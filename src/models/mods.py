@@ -23,11 +23,10 @@ class Mod(__Base, TimestampMixin):
     dowload_android=Column(String(500))
     required_revision = Column(Boolean, default=False)
     aproved_by = Column(String(200))
-    images= relationship(
+    images = relationship(
         "Image",
         back_populates="mod",
         cascade="all, delete"
     )
     genres = relationship("Genre", secondary=mods_genres)
-
 
