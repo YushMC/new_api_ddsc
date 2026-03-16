@@ -13,5 +13,6 @@ class GenreCreate(GenreBase):
 class GenreResponse(GenreBase, TimestampBase):
     """Schema de respuesta de género"""
     id: int
+    identifier: str = Field(..., min_length=1, max_length=100, description="Identificador único en minúsculas")
 
     

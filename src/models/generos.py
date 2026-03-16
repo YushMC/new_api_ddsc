@@ -9,3 +9,4 @@ class Genre(__Base, TimestampMixin):
     __tablename__ = TABLE_NAMES.GENEROS
     id = Column(Integer, primary_key=True, index=True, autoincrement="auto")
     name = Column(String(100), nullable=False)
+    identifier = Column(String(100), nullable=False, unique=True, index=True)
