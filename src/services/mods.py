@@ -20,8 +20,8 @@ class CRUD_MOD:
         
         mod = Mod(**data.model_dump())
 
-        mod.required_revision = True if user.rol == UserRolEnum.UPLOADER else False
-        mod.is_active = False if user.rol == UserRolEnum.UPLOADER else True
+        mod.required_revision = user.rol == UserRolEnum.UPLOADER
+        mod.is_active = user.rol != UserRolEnum.UPLOADER
         mod.created_by = str(user.name)
         mod.updated_by = str(user.name)
 

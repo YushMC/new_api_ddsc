@@ -102,7 +102,7 @@ class CRUD_USERS:
         if not user:
             raise HTTPException(status_code=404, detail="Usuario no encontrado")
         
-        user.logo = logo_url
+        setattr(user, "logo", logo_url)
         self.__db.commit()
         self.__db.refresh(user)
         return user
@@ -120,7 +120,7 @@ class CRUD_USERS:
             raise HTTPException(status_code=401, detail="Contraseña actual incorrecta")
         
         # Hash de nueva contraseña
-        user.password = hash_handler.hash_string(new_password)
+        setattr(user, "password", hash_handler.hash_string(new_password))
         self.__db.commit()
         self.__db.refresh(user)
         return user
@@ -131,7 +131,7 @@ class CRUD_USERS:
         if not user:
             raise HTTPException(status_code=404, detail="Usuario no encontrado")
         
-        user.contact = contact
+        setattr(user, "contact", contact)
         self.__db.commit()
         self.__db.refresh(user)
         return user

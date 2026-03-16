@@ -48,8 +48,8 @@ class CRUD_GENRE:
         if not genero:
             raise HTTPException(status_code=404, detail="Género no encontrado")
         
-        genero.name = nombre
-        self.__db.commit()
+        genero.name = nombre #type: ignore
+        self.__db.commit() 
         self.__db.refresh(genero)
         
         return genero

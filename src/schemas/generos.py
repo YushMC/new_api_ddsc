@@ -14,5 +14,4 @@ class GenreResponse(GenreBase, TimestampBase):
     """Schema de respuesta de género"""
     id: int
 
-    class Config:
-        from_attributes = True
+    

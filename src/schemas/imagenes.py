@@ -27,6 +27,5 @@ class ImageResponse(ImageBase, TimestampBase):
     id: int
     mod_id: int
 
-    class Config:
-        from_attributes = True
+    
 

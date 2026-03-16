@@ -1,3 +1,5 @@
+from typing import cast
+
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from src.conf.database import DATABASE_INIT
@@ -117,8 +119,8 @@ def upload_user_logo(
         logo_url = s3_manager.upload_user_logo(webp_content, user_id, file.filename or "logo")
         
         # Eliminar logo anterior si existe
-        if user.logo:
-            s3_manager.delete_file(user.logo)
+        if cast(str,user.logo):
+            s3_manager.delete_file(cast(str,user.logo))
         
         # Actualizar en BD
         updated_user = crud.update_user_logo(user_id, logo_url)
