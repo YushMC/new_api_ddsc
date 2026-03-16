@@ -4,12 +4,17 @@ from src.schemas.mods import ModBase
 from src.models.mods import Mod
 from src.models.enums import UserRolEnum
 from src.services.token import TokenUser
+import asyncio
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class CRUD_MOD:
-    def __init__(self, db:Session) -> None:
-        self.__db =  db
+    def __init__(self, db: Session) -> None:
+        self.__db = db
 
-    def create_mod(self, data:ModBase, user:TokenUser):
+    def create_mod(self, data: ModBase, user: TokenUser):
         if not user.id and user.id == 0:
             raise HTTPException(status_code=403, detail="Sin autorización")
         
@@ -24,6 +29,13 @@ class CRUD_MOD:
         self.__db.commit()
         self.__db.refresh(mod)
 
+        # Notificar a Discord de forma asincrónica (no interrumpe si falla)
+        try:
+            from src.utils.discord_notifier import DiscordNotifier
+            asyncio.create_task(DiscordNotifier.notify_mod_created(mod, user))
+        except Exception as e:
+            logger.error(f"Error notificando creación a Discord: {e}")
+
         return mod
     
     def get_mod(self, mod_id: int):
@@ -32,22 +44,38 @@ class CRUD_MOD:
     def get_mods(self, skip: int = 0, limit: int = 20):
         return self.__db.query(Mod).filter(Mod.is_active == True).offset(skip).limit(limit).all()
     
-    def update_mod(self, mod_id: int, data: ModBase, user:TokenUser):
+    def update_mod(self, mod_id: int, data: ModBase, user: TokenUser):
         if user.rol == UserRolEnum.UPLOADER:
             raise HTTPException(status_code=403, detail="Sin autorización")
+        
         mod = self.__db.query(Mod).filter(Mod.id == mod_id).first()
 
         if not mod:
             raise HTTPException(status_code=404, detail="Mod no encontrado")
 
+        # Guardar valores anteriores para detectar cambios
+        changes = {}
         for key, value in data.model_dump().items():
             if hasattr(mod, key):
+                old_value = getattr(mod, key)
+                if old_value != value:
+                    changes[key] = {
+                        "old": old_value,
+                        "new": value
+                    }
                 setattr(mod, key, value)
         
         mod.updated_by = str(user.name)
 
         self.__db.commit()
         self.__db.refresh(mod)
+
+        # Notificar a Discord de forma asincrónica
+        try:
+            from src.utils.discord_notifier import DiscordNotifier
+            asyncio.create_task(DiscordNotifier.notify_mod_updated(mod, user, changes))
+        except Exception as e:
+            logger.error(f"Error notificando actualización a Discord: {e}")
 
         return mod
     
