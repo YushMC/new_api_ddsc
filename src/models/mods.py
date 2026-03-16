@@ -33,4 +33,9 @@ class Mod(__Base, TimestampMixin):
         cascade="all, delete"
     )
     genres = relationship("Genre", secondary=mods_genres)
+    credits = relationship(
+        "Credit",
+        cascade="all, delete",
+        lazy="joined"
+    )
 

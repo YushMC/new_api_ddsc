@@ -2,7 +2,7 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from src.schemas.mods import ModBase
 from src.models.mods import Mod
-from src.models.enums import UserRolEnum
+from src.models.enums import UserRolEnum, CreditsTypeEnum
 from src.services.token import TokenUser
 from src.utils.slug_normalizer import normalize_slug
 from datetime import datetime, UTC
@@ -14,6 +14,70 @@ logger = logging.getLogger(__name__)
 class CRUD_MOD:
     def __init__(self, db: Session) -> None:
         self.__db = db
+    
+    @staticmethod
+    def _enrich_credit_with_user(credit, db: Session):
+        """
+        Enriquece un crédito con la información del usuario si existe
+        """
+        from src.models.users import User
+        
+        credit_dict = {
+            "id": credit.id,
+            "id_mod": credit.id_mod,
+            "id_user": credit.id_user,
+            "name": credit.name,
+            "type": credit.type,
+            "is_active": credit.is_active
+        }
+        
+        # Si tiene id_user, obtener la información del usuario
+        if credit.id_user:
+            user = db.query(User).filter(User.id == credit.id_user).first()
+            if user:
+                credit_dict["user"] = {
+                    "id": user.id,
+                    "name": user.name,
+                    "contact": user.contact,
+                    "logo": user.logo
+                }
+        else:
+            # Si no tiene id_user, crear un objeto user con los datos del nombre
+            if credit.name:
+                credit_dict["user"] = {
+                    "id": None,
+                    "name": credit.name,
+                    "contact": None,
+                    "logo": None
+                }
+        
+        return credit_dict
+    
+    @staticmethod
+    def _organize_credits(mod, db: Session):
+        """
+        Organiza los créditos del mod por tipo
+        """
+        organized = {
+            "creators": [],
+            "translators": [],
+            "porters": []
+        }
+        
+        if not hasattr(mod, 'credits') or not mod.credits:
+            return organized
+        
+        for credit in mod.credits:
+            enriched = CRUD_MOD._enrich_credit_with_user(credit, db)
+            
+            if credit.type == CreditsTypeEnum.ORIGINAL_CREATOR:
+                organized["creators"].append(enriched)
+            elif credit.type == CreditsTypeEnum.TRANSLATOR:
+                organized["translators"].append(enriched)
+            elif credit.type == CreditsTypeEnum.PORTER:
+                organized["porters"].append(enriched)
+        
+        return organized
 
     def create_mod(self, data: ModBase, user: TokenUser):
         if not user.id and user.id == 0:

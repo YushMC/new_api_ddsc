@@ -12,6 +12,7 @@ class TABLE_NAMES:
     GENEROS="genres"
     PERSONAJES="characters"
     IMAGENES="images"
+    CREDITOS="credits"
 
 class SESSION_KEYS:
     JWT_KEY="JWT_KEY"

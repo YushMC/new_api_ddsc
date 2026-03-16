@@ -21,19 +21,22 @@ TIMESTAMP_FIELDS = {
     'deleted_by'
 }
 
+# Campos que deben ir en el objeto credits (para mods)
+CREDITS_FIELD = 'credits'
+
 class ResponseBuilder:
     """Constructor de respuestas estandarizadas para la API"""
     
     @staticmethod
-    def _extract_info(data: Any) -> tuple[dict, dict]:
+    def _extract_info(data: Any) -> tuple[dict, dict, dict | None]:
         """
-        Extrae los campos de timestamp de los datos
+        Extrae los campos de timestamp y credits de los datos
         
         Args:
-            data: Datos que pueden contener campos de timestamp
+            data: Datos que pueden contener campos de timestamp y credits
             
         Returns:
-            Tupla de (resource_data, info_data)
+            Tupla de (resource_data, info_data, credits_data)
         """
         if not isinstance(data, dict):
             # Si es un modelo Pydantic, convertir a dict
@@ -42,23 +45,26 @@ class ResponseBuilder:
             elif hasattr(data, '__dict__'):
                 data = data.__dict__
             else:
-                return data, {}
+                return data, {}, None
         
         resource_data = {}
         info_data = {}
+        credits_data = None
         
         for key, value in data.items():
             if key in TIMESTAMP_FIELDS:
                 info_data[key] = value
+            elif key == CREDITS_FIELD:
+                credits_data = value
             else:
                 resource_data[key] = value
         
-        return resource_data, info_data
+        return resource_data, info_data, credits_data
     
     @staticmethod
     def _create_response_with_info(data: Any, response_type: str, message: str) -> dict:
         """
-        Crea una respuesta separando timestamp info
+        Crea una respuesta separando timestamp info y credits
         
         Args:
             data: Datos del recurso
@@ -75,24 +81,31 @@ class ResponseBuilder:
                 "data": None
             }
         
-        resource_data, info_data = ResponseBuilder._extract_info(data)
+        resource_data, info_data, credits_data = ResponseBuilder._extract_info(data)
         
-        # Si no hay campos de timestamp, retornar sin info
-        if not info_data:
+        # Si no hay campos de timestamp ni credits, retornar sin info
+        if not info_data and credits_data is None:
             return {
                 "response": response_type,
                 "message": message,
                 "data": resource_data
             }
         
-        # Crear estructura con info
+        # Crear estructura con info y/o credits
+        response_data = {
+            "resource": resource_data
+        }
+        
+        if info_data:
+            response_data["info"] = info_data
+        
+        if credits_data is not None:
+            response_data["credits"] = credits_data
+        
         return {
             "response": response_type,
             "message": message,
-            "data": {
-                "resource": resource_data,
-                "info": info_data
-            }
+            "data": response_data
         }
     
     @staticmethod

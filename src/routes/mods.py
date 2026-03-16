@@ -11,13 +11,24 @@ from sqlalchemy.orm import Session
 router = APIRouter()
 db_init = DATABASE_INIT()
 
+
+def _prepare_mod_response(mod, db: Session):
+    """Prepara un mod para la respuesta, incluendo créditos organizados"""
+    mod_dict = ModCommplete.model_validate(mod).model_dump()
+    
+    # Organizar créditos si existen
+    credits = CRUD_MOD._organize_credits(mod, db)
+    mod_dict['credits'] = credits
+    
+    return mod_dict
+
 @router.get("/all")
 def list_mods(db: Session = Depends(db_init.get_db)):
     """Listar todos los mods activos (públicamente disponible)"""
     crud = CRUD_MOD(db)
     mods = crud.get_mods()
     return ResponseBuilder.list_response(
-        data=[ModCommplete.model_validate(m) for m in mods],
+        data=[_prepare_mod_response(m, db) for m in mods],
         message="Mods obtenidos exitosamente"
     )
 
@@ -29,7 +40,7 @@ def get_mod(mod_id: int, db: Session = Depends(db_init.get_db)):
     if not mod:
         raise HTTPException(status_code=404, detail="Mod no encontrado")
     return ResponseBuilder.success(
-        data=ModCommplete.model_validate(mod),
+        data=_prepare_mod_response(mod, db),
         message="Mod obtenido exitosamente"
     )
 
@@ -48,7 +59,7 @@ def create_mod_route(
     background_tasks.add_task(notify_mod_created, mod, user)
     
     return ResponseBuilder.created(
-        data=ModCommplete.model_validate(mod),
+        data=_prepare_mod_response(mod, db),
         message="Mod creado exitosamente"
     )
 
@@ -68,7 +79,7 @@ def update_mod_route(
     background_tasks.add_task(notify_mod_updated, mod, user, changes)
     
     return ResponseBuilder.updated(
-        data=ModCommplete.model_validate(mod),
+        data=_prepare_mod_response(mod, db),
         message="Mod actualizado exitosamente"
     )
 

@@ -40,3 +40,8 @@ class UserRolEnum(str, Enum):
     OWNER ="owner"
     EDITOR="editor"
     UPLOADER="uploader"
+
+class CreditsTypeEnum(str, Enum):
+    PORTER="porter"
+    TRANSLATOR="translator"
+    ORIGINAL_CREATOR="original_creator"
