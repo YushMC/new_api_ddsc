@@ -14,7 +14,7 @@ class TABLE_NAMES:
     IMAGENES="images"
 
 class SESSION_KEYS:
-    JWT_kEY="JWT_KEY"
+    JWT_KEY="JWT_KEY"
     ALGORITHM="ALGORITHM"
    
 class QUERY_PARAMS:

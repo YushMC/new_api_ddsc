@@ -6,7 +6,7 @@ from src.conf.all_keys import SESSION_KEYS
 
 class JWT_TOKEN:
     def __init__(self) -> None:
-        self.__KEY = os.getenv(SESSION_KEYS.JWT_kEY)
+        self.__KEY = os.getenv(SESSION_KEYS.JWT_KEY)
         self.__ALGO = os.getenv(SESSION_KEYS.ALGORITHM)
         if self.__KEY is None:
             raise ValueError("JWT key environment variable is not set.")

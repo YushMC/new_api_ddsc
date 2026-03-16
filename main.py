@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 from src.conf.database import DATABASE_INIT
 from fastapi import FastAPI
 from src.routes.mods import router as router_mods
