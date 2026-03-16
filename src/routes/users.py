@@ -6,6 +6,7 @@ from src.conf.database import DATABASE_INIT
 from src.services.users import CRUD_USERS
 from src.middleware.jwt import get_current_user
 from src.services.token import TokenUser
+from src.models.enums import UserRolEnum
 from src.schemas.users import (
     UserCreate, UserLogin, UserResponse, TokenResponse, BootstrapResponse,
     UpdatePasswordRequest, UpdateContactRequest, UpdateUserLogoResponse
@@ -71,7 +72,10 @@ def login(credentials: UserLogin, db: Session = Depends(db_init.get_db)):
 
 @router.get("")
 def list_users(user: TokenUser = Depends(get_current_user), db: Session = Depends(db_init.get_db)):
-    """Listar todos los usuarios activos (requiere autenticación)"""
+    """Listar todos los usuarios activos (requiere autenticación OWNER/EDITOR)"""
+    if user.rol == UserRolEnum.UPLOADER:
+        raise HTTPException(status_code=403, detail="No autorizado para listar usuarios")
+    
     crud = CRUD_USERS(db)
     users = crud.get_users()
     return ResponseBuilder.list_response(
