@@ -8,10 +8,10 @@ from src.schemas.users import UserCreate, UserLogin, UserResponse, TokenResponse
 from src.utils.jwt import JWT_TOKEN
 
 router = APIRouter()
-get_db = DATABASE_INIT().get_db
+db_init = DATABASE_INIT()
 
 @router.post("/bootstrap", response_model=BootstrapResponse)
-def bootstrap_first_user(user_data: UserCreate, db: Session = Depends(get_db)):
+def bootstrap_first_user(user_data: UserCreate, db: Session = Depends(db_init.get_db)):
     """
     Crear el primer usuario OWNER (solo funciona si la BD está vacía)
     
@@ -54,19 +54,19 @@ def bootstrap_first_user(user_data: UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Error creando usuario: {str(e)}")
 
 @router.post("/login", response_model=TokenResponse)
-def login(credentials: UserLogin, db: Session = Depends(get_db)):
+def login(credentials: UserLogin, db: Session = Depends(db_init.get_db)):
     """Autenticar usuario y obtener token JWT"""
     crud = CRUD_USERS(db)
     return crud.login(credentials.username, credentials.password)
 
 @router.get("", response_model=list[UserResponse])
-def list_users(user: TokenUser = Depends(get_current_user), db: Session = Depends(get_db)):
+def list_users(user: TokenUser = Depends(get_current_user), db: Session = Depends(db_init.get_db)):
     """Listar todos los usuarios activos (requiere autenticación)"""
     crud = CRUD_USERS(db)
     return crud.get_users()
 
 @router.post("", response_model=UserResponse)
-def create_user(user_data: UserCreate, user: TokenUser = Depends(get_current_user), db: Session = Depends(get_db)):
+def create_user(user_data: UserCreate, user: TokenUser = Depends(get_current_user), db: Session = Depends(db_init.get_db)):
     """Crear nuevo usuario (requiere autenticación EDITOR/OWNER)"""
     crud = CRUD_USERS(db)
     created_user = crud.create_user(user_data.model_dump(), user)

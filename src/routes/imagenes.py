@@ -10,26 +10,26 @@ from src.utils.image_processor import ImageProcessor
 from src.utils.s3_manager import S3Manager
 
 router = APIRouter()
-get_db = DATABASE_INIT().get_db
+db_init = DATABASE_INIT()
 
 # ============================================================================
 # RUTAS GENÉRICAS (mantener para compatibilidad)
 # ============================================================================
 
 @router.get("/mod/{mod_id}", response_model=list[ImageResponse])
-def get_images_by_mod(mod_id: int, db: Session = Depends(get_db)):
+def get_images_by_mod(mod_id: int, db: Session = Depends(db_init.get_db)):
     """Obtener todas las imágenes de un mod"""
     crud = CRUD_IMAGE(db)
     return crud.get_imagenes_mod(mod_id)
 
 @router.get("/{image_id}", response_model=ImageResponse)
-def get_image(image_id: int, db: Session = Depends(get_db)):
+def get_image(image_id: int, db: Session = Depends(db_init.get_db)):
     """Obtener una imagen específica"""
     crud = CRUD_IMAGE(db)
     return crud.get_imagen(image_id)
 
 @router.delete("/{image_id}")
-def delete_image(image_id: int, user: TokenUser = Depends(get_current_user), db: Session = Depends(get_db)):
+def delete_image(image_id: int, user: TokenUser = Depends(get_current_user), db: Session = Depends(db_init.get_db)):
     """
     Eliminar una imagen (soft delete, requiere autenticación EDITOR/OWNER)
     
@@ -51,7 +51,7 @@ async def upload_logo(
     mod_id: int,
     file: UploadFile = File(...),
     user: TokenUser = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(db_init.get_db)
 ):
     """
     Subir logo del mod (solo 1 imagen)
@@ -112,7 +112,7 @@ async def upload_main(
     mod_id: int,
     file: UploadFile = File(...),
     user: TokenUser = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(db_init.get_db)
 ):
     """
     Subir imagen principal del mod (solo 1 imagen)
@@ -173,7 +173,7 @@ async def upload_screenshot(
     mod_id: int,
     file: UploadFile = File(...),
     user: TokenUser = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(db_init.get_db)
 ):
     """
     Subir captura de pantalla del mod (máximo 4 imágenes)

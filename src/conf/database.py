@@ -23,6 +23,17 @@ class DATABASE_CONNECTION:
         return f"mysql+pymysql://{self.__DB_USER}:{self.__DB_PASSWORD}@{self.__DB_HOST}:{self.__DB_PORT}/{self.__DB_NAME}"
 
 
+# Singleton instance
+_db_instance = None
+
+def get_database_init():
+    """Obtener instancia global de DATABASE_INIT"""
+    global _db_instance
+    if _db_instance is None:
+        _db_instance = DATABASE_INIT()
+    return _db_instance
+
+
 class DATABASE_INIT:
     def __init__(self) -> None:
         self.__db = DATABASE_CONNECTION()
@@ -41,11 +52,12 @@ class DATABASE_INIT:
     def BASE_TYPE(self)->Any:
         return Base
     
-    @property
-    def get_db(self)->Any:
-        db = self.__create_session()
+    def get_db(self):
+        """Generator que proporciona sesión de BD para FastAPI Depends"""
+        SessionLocal = self.__create_session()
+        db = SessionLocal()
 
         try:
             yield db
         finally:
-            db.close_all()
+            db.close()

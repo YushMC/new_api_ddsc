@@ -9,26 +9,26 @@ from src.schemas.generos import GenreCreate, GenreResponse
 from pydantic import BaseModel
 
 router = APIRouter()
-get_db = DATABASE_INIT().get_db
+db_init = DATABASE_INIT()
 
 class GenreName(BaseModel):
     """Schema para actualizar nombre de género"""
     name: str
 
 @router.get("", response_model=list[GenreResponse])
-def list_genres(db: Session = Depends(get_db)):
+def list_genres(db: Session = Depends(db_init.get_db)):
     """Listar todos los géneros activos"""
     crud = CRUD_GENRE(db)
     return crud.get_generos()
 
 @router.get("/{genre_id}", response_model=GenreResponse)
-def get_genre(genre_id: int, db: Session = Depends(get_db)):
+def get_genre(genre_id: int, db: Session = Depends(db_init.get_db)):
     """Obtener un género específico"""
     crud = CRUD_GENRE(db)
     return crud.get_genero(genre_id)
 
 @router.post("", response_model=GenreResponse)
-def create_genre(genre_data: GenreCreate, user: TokenUser = Depends(get_current_user), db: Session = Depends(get_db)):
+def create_genre(genre_data: GenreCreate, user: TokenUser = Depends(get_current_user), db: Session = Depends(db_init.get_db)):
     """Crear nuevo género (requiere autenticación EDITOR/OWNER)"""
     if user.rol == UserRolEnum.UPLOADER:
         raise HTTPException(status_code=403, detail="No autorizado para crear géneros")
@@ -37,7 +37,7 @@ def create_genre(genre_data: GenreCreate, user: TokenUser = Depends(get_current_
     return crud.create_genero(genre_data.name)
 
 @router.put("/{genre_id}", response_model=GenreResponse)
-def update_genre(genre_id: int, genre_data: GenreName, user: TokenUser = Depends(get_current_user), db: Session = Depends(get_db)):
+def update_genre(genre_id: int, genre_data: GenreName, user: TokenUser = Depends(get_current_user), db: Session = Depends(db_init.get_db)):
     """Actualizar un género (requiere autenticación EDITOR/OWNER)"""
     if user.rol == UserRolEnum.UPLOADER:
         raise HTTPException(status_code=403, detail="No autorizado para actualizar géneros")
@@ -46,7 +46,7 @@ def update_genre(genre_id: int, genre_data: GenreName, user: TokenUser = Depends
     return crud.update_genero(genre_id, genre_data.name)
 
 @router.delete("/{genre_id}")
-def delete_genre(genre_id: int, user: TokenUser = Depends(get_current_user), db: Session = Depends(get_db)):
+def delete_genre(genre_id: int, user: TokenUser = Depends(get_current_user), db: Session = Depends(db_init.get_db)):
     """Eliminar un género (soft delete, requiere autenticación EDITOR/OWNER)"""
     if user.rol == UserRolEnum.UPLOADER:
         raise HTTPException(status_code=403, detail="No autorizado para eliminar géneros")
