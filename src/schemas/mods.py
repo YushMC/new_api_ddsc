@@ -10,7 +10,7 @@ class ModBase(BaseModel):
     name: str
     description: str | None = None
     slug: str | None = None
-    type: ModTypeEnum
+    type: ModTypeEnum = ModTypeEnum.TRANSLATION
 
     status: StatusEnum
     duration: DurationEnum
