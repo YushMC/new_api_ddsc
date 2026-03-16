@@ -44,6 +44,20 @@ class S3Manager:
         
         return f"mods/{mod_id}/{image_type}/{timestamp}_{unique_id}_{clean_filename}"
     
+    def generate_user_logo_s3_key(self, user_id: int, filename: str) -> str:
+        """
+        Genera una clave única para el logo de usuario en S3
+        
+        Formato: users/{user_id}/logo/{timestamp}-{uuid}-{filename}.webp
+        """
+        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+        unique_id = str(uuid.uuid4())[:8]
+        
+        # Limpiar nombre de archivo
+        clean_filename = "".join(c for c in filename if c.isalnum() or c in ('-', '_', '.'))
+        
+        return f"users/{user_id}/logo/{timestamp}_{unique_id}_{clean_filename}"
+    
     def upload_file(self, file_content: bytes, mod_id: int, image_type: str, filename: str) -> str:
         """
         Sube un archivo a S3 y retorna la URL pública
@@ -83,6 +97,46 @@ class S3Manager:
             raise HTTPException(
                 status_code=500,
                 detail=f"Error subiendo imagen a S3: {str(e)}"
+            )
+    
+    def upload_user_logo(self, file_content: bytes, user_id: int, filename: str) -> str:
+        """
+        Sube un logo de usuario a S3 y retorna la URL pública
+        
+        Args:
+            file_content: Contenido del archivo
+            user_id: ID del usuario
+            filename: Nombre original del archivo
+        
+        Returns:
+            URL pública del logo en S3
+        """
+        try:
+            s3_key = self.generate_user_logo_s3_key(user_id, filename)
+            
+            # Subir a S3
+            self.s3_client.put_object(
+                Bucket=self.bucket_name,
+                Key=s3_key,
+                Body=file_content,
+                ContentType="image/webp",
+                ACL="public-read",  # Hacer público para lectura
+                Metadata={
+                    "user_id": str(user_id),
+                    "type": "user_logo",
+                    "original_filename": filename
+                }
+            )
+            
+            # Generar URL pública
+            s3_url = f"https://{self.bucket_name}.s3.{self.region}.amazonaws.com/{s3_key}"
+            
+            return s3_url
+            
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error subiendo logo de usuario a S3: {str(e)}"
             )
     
     def delete_file(self, file_url: str) -> bool:

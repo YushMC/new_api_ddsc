@@ -45,3 +45,22 @@ class BootstrapResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class UpdatePasswordRequest(BaseModel):
+    """Schema para actualizar contraseña"""
+    current_password: str = Field(..., min_length=6)
+    new_password: str = Field(..., min_length=6)
+
+class UpdateContactRequest(BaseModel):
+    """Schema para actualizar contacto"""
+    contact: str = Field(..., min_length=1, max_length=500)
+
+class UpdateUserLogoResponse(BaseModel):
+    """Schema de respuesta para actualización de logo"""
+    id: int
+    name: str
+    logo: Optional[str]
+    message: str
+
+    class Config:
+        from_attributes = True

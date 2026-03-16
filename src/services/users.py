@@ -14,6 +14,10 @@ class CRUD_USERS:
     def get_users(self):
         return self.__db.query(User).filter(User.is_active == True).all()
 
+    def get_user_by_id(self, user_id: int):
+        """Obtener usuario por ID"""
+        return self.__db.query(User).filter(User.id == user_id, User.is_active == True).first()
+
     def count_usuarios(self):
         """Contar total de usuarios en la BD"""
         return self.__db.query(User).count()
@@ -91,3 +95,43 @@ class CRUD_USERS:
             "access_token": token,
             "token_type": "bearer"
         }
+
+    def update_user_logo(self, user_id: int, logo_url: str):
+        """Actualizar logo del usuario"""
+        user = self.get_user_by_id(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        
+        user.logo = logo_url
+        self.__db.commit()
+        self.__db.refresh(user)
+        return user
+
+    def update_user_password(self, user_id: int, current_password: str, new_password: str):
+        """Actualizar contraseña del usuario"""
+        user = self.get_user_by_id(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        
+        hash_handler = HASH_DATA()
+        
+        # Verificar contraseña actual
+        if not hash_handler.verify_password(current_password, cast(str, user.password)):
+            raise HTTPException(status_code=401, detail="Contraseña actual incorrecta")
+        
+        # Hash de nueva contraseña
+        user.password = hash_handler.hash_string(new_password)
+        self.__db.commit()
+        self.__db.refresh(user)
+        return user
+
+    def update_user_contact(self, user_id: int, contact: str):
+        """Actualizar contacto del usuario"""
+        user = self.get_user_by_id(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        
+        user.contact = contact
+        self.__db.commit()
+        self.__db.refresh(user)
+        return user
