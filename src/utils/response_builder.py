@@ -2,12 +2,85 @@
 Utilidades para generar respuestas estandarizadas de la API
 """
 from typing import Any, Optional, TypeVar, Generic
-from src.schemas.response import ApiResponse, ApiListResponse, ApiErrorResponse
+from src.schemas.response import ApiResponse, ApiListResponse, ApiErrorResponse, TimestampInfo, DataWithInfo
 
 T = TypeVar('T')
 
+TIMESTAMP_FIELDS = {'created_at', 'created_by', 'updated_at', 'updated_by', 'is_active'}
+
 class ResponseBuilder:
     """Constructor de respuestas estandarizadas para la API"""
+    
+    @staticmethod
+    def _extract_info(data: Any) -> tuple[dict, dict]:
+        """
+        Extrae los campos de timestamp de los datos
+        
+        Args:
+            data: Datos que pueden contener campos de timestamp
+            
+        Returns:
+            Tupla de (resource_data, info_data)
+        """
+        if not isinstance(data, dict):
+            # Si es un modelo Pydantic, convertir a dict
+            if hasattr(data, 'model_dump'):
+                data = data.model_dump()
+            elif hasattr(data, '__dict__'):
+                data = data.__dict__
+            else:
+                return data, {}
+        
+        resource_data = {}
+        info_data = {}
+        
+        for key, value in data.items():
+            if key in TIMESTAMP_FIELDS:
+                info_data[key] = value
+            else:
+                resource_data[key] = value
+        
+        return resource_data, info_data
+    
+    @staticmethod
+    def _create_response_with_info(data: Any, response_type: str, message: str) -> dict:
+        """
+        Crea una respuesta separando timestamp info
+        
+        Args:
+            data: Datos del recurso
+            response_type: Tipo de respuesta (success, created, updated, etc)
+            message: Mensaje descriptivo
+            
+        Returns:
+            Dict con estructura estandarizada
+        """
+        if data is None:
+            return {
+                "response": response_type,
+                "message": message,
+                "data": None
+            }
+        
+        resource_data, info_data = ResponseBuilder._extract_info(data)
+        
+        # Si no hay campos de timestamp, retornar sin info
+        if not info_data:
+            return {
+                "response": response_type,
+                "message": message,
+                "data": resource_data
+            }
+        
+        # Crear estructura con info
+        return {
+            "response": response_type,
+            "message": message,
+            "data": {
+                "resource": resource_data,
+                "info": info_data
+            }
+        }
     
     @staticmethod
     def success(data: Any = None, message: str = "Operación completada exitosamente") -> dict:
@@ -21,11 +94,7 @@ class ResponseBuilder:
         Returns:
             Dict con estructura estandarizada
         """
-        return {
-            "response": "success",
-            "message": message,
-            "data": data
-        }
+        return ResponseBuilder._create_response_with_info(data, "success", message)
     
     @staticmethod
     def created(data: Any, message: str = "Recurso creado exitosamente") -> dict:
@@ -39,11 +108,7 @@ class ResponseBuilder:
         Returns:
             Dict con estructura estandarizada
         """
-        return {
-            "response": "created",
-            "message": message,
-            "data": data
-        }
+        return ResponseBuilder._create_response_with_info(data, "created", message)
     
     @staticmethod
     def updated(data: Any, message: str = "Recurso actualizado exitosamente") -> dict:
@@ -57,11 +122,7 @@ class ResponseBuilder:
         Returns:
             Dict con estructura estandarizada
         """
-        return {
-            "response": "updated",
-            "message": message,
-            "data": data
-        }
+        return ResponseBuilder._create_response_with_info(data, "updated", message)
     
     @staticmethod
     def deleted(message: str = "Recurso eliminado exitosamente") -> dict:

@@ -3,8 +3,59 @@ Esquemas de respuesta estandarizados para toda la API
 """
 from pydantic import BaseModel, Field
 from typing import Any, Optional, Generic, TypeVar
+from datetime import datetime
 
 T = TypeVar('T')
+
+class TimestampInfo(BaseModel):
+    """
+    Información de auditoria y timestamps de un recurso
+    
+    Ejemplo:
+    {
+        "created_at": "2024-03-16T10:30:00Z",
+        "created_by": "admin",
+        "updated_at": "2024-03-16T11:45:00Z",
+        "updated_by": "editor",
+        "is_active": true
+    }
+    """
+    created_at: Optional[datetime] = Field(None, description="Fecha de creación")
+    created_by: Optional[str] = Field(None, description="Usuario que creó el recurso")
+    updated_at: Optional[datetime] = Field(None, description="Fecha de última actualización")
+    updated_by: Optional[str] = Field(None, description="Usuario que actualizó el recurso")
+    is_active: bool = Field(True, description="Si el recurso está activo")
+    
+    class Config:
+        from_attributes = True
+
+
+class DataWithInfo(BaseModel, Generic[T]):
+    """
+    Estructura de datos con información de timestamp separada
+    
+    Ejemplo:
+    {
+        "resource": {
+            "id": 1,
+            "name": "My Mod",
+            "slug": "my-mod"
+        },
+        "info": {
+            "created_at": "2024-03-16T10:30:00Z",
+            "created_by": "admin",
+            "updated_at": "2024-03-16T11:45:00Z",
+            "updated_by": "editor",
+            "is_active": true
+        }
+    }
+    """
+    resource: T = Field(..., description="Datos del recurso")
+    info: TimestampInfo = Field(..., description="Información de auditoria y timestamps")
+    
+    class Config:
+        from_attributes = True
+
 
 class ApiResponse(BaseModel, Generic[T]):
     """
