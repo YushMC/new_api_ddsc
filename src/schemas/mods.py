@@ -8,7 +8,7 @@ from src.models.enums import StatusEnum, DurationEnum, CharacterEnum, ModTypeEnu
 class ModBase(BaseModel):
     name: str
     description: str | None = None
-    slug: str
+    slug: str | None = None
     type: ModTypeEnum
 
     status: StatusEnum

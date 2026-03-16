@@ -19,8 +19,11 @@ class CRUD_MOD:
         if not user.id and user.id == 0:
             raise HTTPException(status_code=403, detail="Sin autorización")
         
-        # Normalizar slug
-        normalized_slug = normalize_slug(data.slug)
+        # Generar slug del nombre si no se proporciona
+        if not data.slug:
+            normalized_slug = normalize_slug(data.name)
+        else:
+            normalized_slug = normalize_slug(data.slug)
         
         # Check for duplicate slug
         existing_mod = self.__db.query(Mod).filter(Mod.slug == normalized_slug).first()
