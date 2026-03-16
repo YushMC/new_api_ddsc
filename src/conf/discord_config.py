@@ -22,11 +22,11 @@ class DiscordConfig:
         return bool(DiscordConfig.WEBHOOK_URL and DiscordConfig.WEBHOOK_URL.strip())
     
     @staticmethod
-    def get_mod_url(mod_id: int) -> str:
+    def get_mod_url(mod_slug: str) -> str:
         """Genera URL al mod en el frontend"""
         if not DiscordConfig.FRONTEND_BASE_URL:
             # Si no hay frontend, retornar URL a API
-            return f"http://localhost:8000/mod/{mod_id}"
+            return f"http://localhost:8000/mod/{mod_slug}"
         
         base_url = DiscordConfig.FRONTEND_BASE_URL.rstrip("/")
-        return f"{base_url}/mod/{mod_id}"
+        return f"{base_url}/mods/{mod_slug}"

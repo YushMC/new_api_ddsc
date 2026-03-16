@@ -155,7 +155,7 @@ class DiscordNotifier:
                 },
                 {
                     "name": "🔗 Ver Mod",
-                    "value": f"[Ir al mod]({DiscordConfig.get_mod_url(mod.id)})",
+                    "value": f"[Ir al mod]({DiscordConfig.get_mod_url(mod.slug)})",
                     "inline": False
                 }
             ],
@@ -210,7 +210,7 @@ class DiscordNotifier:
         
         fields.append({
             "name": "🔗 Ver Mod",
-            "value": f"[Ir al mod]({DiscordConfig.get_mod_url(mod.id)})",
+            "value": f"[Ir al mod]({DiscordConfig.get_mod_url(mod.slug)})",
             "inline": False
         })
         
@@ -259,7 +259,7 @@ class DiscordNotifier:
                 },
                 {
                     "name": "🔗 Ver Mod",
-                    "value": f"[Ir al mod]({DiscordConfig.get_mod_url(mod.id)})",
+                    "value": f"[Ir al mod]({DiscordConfig.get_mod_url(mod.slug)})",
                     "inline": False
                 }
             ],
