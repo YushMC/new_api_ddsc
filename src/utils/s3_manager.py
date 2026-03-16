@@ -90,7 +90,6 @@ class S3Manager:
                 Key=s3_key,
                 Body=file_content,
                 ContentType="image/webp",
-                ACL="public-read",  # Hacer público para lectura
                 Metadata={
                     "mod_id": str(mod_id),
                     "image_type": image_type,
@@ -137,7 +136,6 @@ class S3Manager:
                 Key=s3_key,
                 Body=file_content,
                 ContentType="image/webp",
-                ACL="public-read",  # Hacer público para lectura
                 Metadata={
                     "user_id": str(user_id),
                     "type": "user_logo",

@@ -93,6 +93,12 @@ class CRUD_MOD:
         # Crear mod con datos normalizados
         mod_data = data.model_dump()
         mod_data['slug'] = normalized_slug
+        
+        # Si no se proporciona created_at, dejarlo None (será automático en la BD)
+        # Si se proporciona, usarlo
+        if mod_data.get('created_at') is None:
+            del mod_data['created_at']
+        
         mod = Mod(**mod_data)
 
         mod.required_revision = user.rol == UserRolEnum.UPLOADER
@@ -125,6 +131,10 @@ class CRUD_MOD:
         # Guardar valores anteriores para detectar cambios
         changes = {}
         mod_data = data.model_dump()
+        
+        # No permitir cambiar created_at en updates, solo en creación
+        if 'created_at' in mod_data:
+            del mod_data['created_at']
         
         # Normalizar slug si se proporciona
         if 'slug' in mod_data:

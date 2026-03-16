@@ -22,6 +22,7 @@ class ModBase(BaseModel):
 
     required_revision: bool = False
 
+    created_at: datetime | None = None
     deleted_at: datetime | None = None
     approved_at: datetime | None = None
 
