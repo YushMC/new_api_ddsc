@@ -32,6 +32,10 @@ class CharacterEnum(str, Enum):
     MC="mc"
     OC="oc"
 
+class ModTypeEnum(str, Enum):
+    TRANSLATION="translation"
+    ORIGINAL="original"
+
 class UserRolEnum(str, Enum):
     OWNER ="owner"
     EDITOR="editor"
