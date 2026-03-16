@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, Enum
+from sqlalchemy import Column, Integer, String, Boolean, Enum, ForeignKey
 from src.models.enums import CreditsTypeEnum
 from src.conf.database import DATABASE_INIT
 from src.conf.all_keys import TABLE_NAMES
@@ -12,8 +12,8 @@ class Credit(__Base):
 
     id = Column(Integer, primary_key=True, autoincrement="auto", nullable=False, index=True)
 
-    id_user = Column(Integer)
-    id_mod = Column(Integer)
+    id_user = Column(Integer, ForeignKey("users.id"), nullable=True)
+    id_mod = Column(Integer, ForeignKey("mods.id"), nullable=False, index=True)
 
     name = Column(String(100))
 
