@@ -15,7 +15,7 @@ class JWT_TOKEN:
 
     def create_token(self, user):
         payload = {
-            "sub": user.id,
+            "sub": str(user.id),  # JWT spec requires 'sub' to be a string
             "name": user.name,
             "role": user.role,
             "exp": datetime.now(UTC) + timedelta(hours=48)
