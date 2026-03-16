@@ -4,7 +4,6 @@ from src.schemas.mods import ModBase
 from src.models.mods import Mod
 from src.models.enums import UserRolEnum
 from src.services.token import TokenUser
-import asyncio
 import logging
 
 logger = logging.getLogger(__name__)
@@ -29,13 +28,7 @@ class CRUD_MOD:
         self.__db.commit()
         self.__db.refresh(mod)
 
-        # Notificar a Discord de forma asincrónica (no interrumpe si falla)
-        try:
-            from src.utils.discord_notifier import DiscordNotifier
-            asyncio.create_task(DiscordNotifier.notify_mod_created(mod, user))
-        except Exception as e:
-            logger.error(f"Error notificando creación a Discord: {e}")
-
+        # Retornar el mod (la ruta lo pasará a BackgroundTasks)
         return mod
     
     def get_mod(self, mod_id: int):
@@ -70,14 +63,8 @@ class CRUD_MOD:
         self.__db.commit()
         self.__db.refresh(mod)
 
-        # Notificar a Discord de forma asincrónica
-        try:
-            from src.utils.discord_notifier import DiscordNotifier
-            asyncio.create_task(DiscordNotifier.notify_mod_updated(mod, user, changes))
-        except Exception as e:
-            logger.error(f"Error notificando actualización a Discord: {e}")
-
-        return mod
+        # Retornar tuple (mod, changes) para que la ruta lo pase a BackgroundTasks
+        return (mod, changes)
     
     def delete_mod(self, mod_id: int, user: TokenUser):
         if user.rol == UserRolEnum.UPLOADER:
