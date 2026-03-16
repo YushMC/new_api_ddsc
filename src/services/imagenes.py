@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from src.models.imagen import Image
 from src.models.mods import Mod
+from src.models.enums import ImageTypeEnum
 from fastapi import HTTPException
 
 class CRUD_IMAGE:
@@ -45,6 +46,22 @@ class CRUD_IMAGE:
             raise HTTPException(status_code=404, detail="Imagen no encontrada")
 
         return imagen
+
+    def get_imagen_by_mod_and_type(self, mod_id: int, image_type: ImageTypeEnum):
+        """Obtener una imagen específica de un mod por tipo (logo o main)"""
+        return self.__db.query(Image).filter(
+            Image.mod_id == mod_id,
+            Image.type == image_type,
+            Image.is_active == True
+        ).first()
+
+    def count_imagenes_by_mod_and_type(self, mod_id: int, image_type: ImageTypeEnum):
+        """Contar imágenes por mod y tipo"""
+        return self.__db.query(Image).filter(
+            Image.mod_id == mod_id,
+            Image.type == image_type,
+            Image.is_active == True
+        ).count()
 
     def update_imagen(self, imagen_id: int, data: dict):
         """Actualizar una imagen"""

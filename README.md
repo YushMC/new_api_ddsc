@@ -265,14 +265,35 @@ curl -X POST http://localhost:8000/mod \
   }'
 ```
 
-### 4. Subir Imagen
+### 4. Subir Imágenes
 
+#### 4.1 Subir Logo (1 imagen)
 ```bash
-curl -X POST http://localhost:8000/images \
+curl -X POST http://localhost:8000/images/logo/1 \
   -H "Authorization: Bearer YOUR_TOKEN" \
-  -F "mod_id=1" \
-  -F "image_type=logo" \
-  -F "file=@imagen.jpg"
+  -F "file=@logo.jpg"
+```
+
+#### 4.2 Subir Imagen Main (1 imagen)
+```bash
+curl -X POST http://localhost:8000/images/main/1 \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -F "file=@main.jpg"
+```
+
+#### 4.3 Subir Screenshots (máximo 4 imágenes)
+```bash
+# Screenshot 1
+curl -X POST http://localhost:8000/images/screenshots/1 \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -F "file=@screenshot1.jpg"
+
+# Screenshot 2
+curl -X POST http://localhost:8000/images/screenshots/1 \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -F "file=@screenshot2.jpg"
+
+# ... máximo 4
 ```
 
 ### 5. Listar Mods (Público)
@@ -377,13 +398,19 @@ ddlc-mods-api/
 
 ### Imágenes (`/images`)
 
+#### Rutas Genéricas
 | Método | Endpoint | Descripción | Auth |
 |--------|----------|-------------|------|
 | GET | `/images/mod/{mod_id}` | Listar imágenes de mod | ❌ |
 | GET | `/images/{id}` | Obtener imagen específica | ❌ |
-| POST | `/images` | Subir imagen (FormData) | ✅ (EDITOR/OWNER) |
-| PUT | `/images/{id}` | Actualizar imagen | ✅ (EDITOR/OWNER) |
-| DELETE | `/images/{id}` | Eliminar imagen | ✅ (EDITOR/OWNER) |
+| DELETE | `/images/{id}` | Eliminar imagen (soft delete) | ✅ (EDITOR/OWNER) |
+
+#### Rutas Específicas por Tipo
+| Método | Endpoint | Descripción | Límite | Auth |
+|--------|----------|-------------|--------|------|
+| POST | `/images/logo/{mod_id}` | Subir logo | 1 imagen | ✅ (EDITOR/OWNER) |
+| POST | `/images/main/{mod_id}` | Subir imagen main | 1 imagen | ✅ (EDITOR/OWNER) |
+| POST | `/images/screenshots/{mod_id}` | Subir screenshot | Máx 4 | ✅ (EDITOR/OWNER) |
 
 ### Géneros (`/genres`)
 
@@ -470,6 +497,9 @@ mod.deleted_by = "usuario"
 
 ### 3. Carga de Imágenes a S3
 
+Cada tipo de imagen tiene su propia ruta con validaciones específicas:
+
+#### Logo (1 imagen máximo)
 ```bash
 # Proceso automático:
 # 1. Validación (formato, tamaño)
@@ -479,18 +509,35 @@ mod.deleted_by = "usuario"
 # 5. Subida a S3
 # 6. Retorna URL pública
 
-curl -X POST http://localhost:8000/images \
+curl -X POST http://localhost:8000/images/logo/1 \
   -H "Authorization: Bearer TOKEN" \
-  -F "mod_id=1" \
-  -F "image_type=logo" \
-  -F "file=@mi_imagen.jpg"
+  -F "file=@logo.jpg"
 
 # Response:
 # {
 #   "url": "https://bucket.s3.region.amazonaws.com/mods/1/logo/...",
 #   "type": "logo",
-#   "mod_id": 1
+#   "mod_id": 1,
+#   "created_at": "2024-03-16T10:30:00Z",
+#   "created_by": "usuario"
 # }
+```
+
+#### Imagen Main (1 imagen máximo)
+```bash
+curl -X POST http://localhost:8000/images/main/1 \
+  -H "Authorization: Bearer TOKEN" \
+  -F "file=@main.jpg"
+```
+
+#### Screenshots (máximo 4 imágenes)
+```bash
+# Puedes subir hasta 4 screenshots
+curl -X POST http://localhost:8000/images/screenshots/1 \
+  -H "Authorization: Bearer TOKEN" \
+  -F "file=@screenshot.jpg"
+
+# Si intentas subir una 5ta, recibirás error 409
 ```
 
 ### 4. Notificaciones Discord
@@ -607,11 +654,21 @@ AWS_SECRET_ACCESS_KEY=yyy
    
    → Discord notifica (color rojo/verde según rol)
 
-3. Usuario sube imágenes
-   POST /images (3 veces):
-     - Logo
-     - Main
-     - Screenshot
+3. Usuario sube imágenes (3 rutas separadas)
+   
+   a) Logo (1 imagen obligatoria)
+      POST /images/logo/{mod_id} → Rechaza si ya existe logo
+   
+   b) Imagen Main (1 imagen obligatoria)
+      POST /images/main/{mod_id} → Rechaza si ya existe main
+   
+   c) Screenshots (máximo 4 imágenes)
+      POST /images/screenshots/{mod_id} (repetir hasta 4 veces)
+      POST /images/screenshots/{mod_id} 
+      POST /images/screenshots/{mod_id} 
+      POST /images/screenshots/{mod_id}
+      → Rechaza si intenta una 5ta imagen
+   
    → Cada imagen se procesa: valida → redimensiona → convierte a WebP → sube a S3
 
 4. Admin aprueba mod (si es UPLOADER)

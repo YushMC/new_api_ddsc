@@ -12,6 +12,10 @@ from src.utils.s3_manager import S3Manager
 router = APIRouter()
 get_db = DATABASE_INIT().get_db
 
+# ============================================================================
+# RUTAS GENÉRICAS (mantener para compatibilidad)
+# ============================================================================
+
 @router.get("/mod/{mod_id}", response_model=list[ImageResponse])
 def get_images_by_mod(mod_id: int, db: Session = Depends(get_db)):
     """Obtener todas las imágenes de un mod"""
@@ -23,74 +27,6 @@ def get_image(image_id: int, db: Session = Depends(get_db)):
     """Obtener una imagen específica"""
     crud = CRUD_IMAGE(db)
     return crud.get_imagen(image_id)
-
-@router.post("", response_model=ImageResponse)
-async def create_image(
-    mod_id: int = Form(...),
-    image_type: ImageTypeEnum = Form(...),
-    file: UploadFile = File(...),
-    user: TokenUser = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """
-    Crear nueva imagen para un mod
-    
-    - Lee el archivo subido
-    - Procesa la imagen (valida, redimensiona, comprime)
-    - Convierte a WebP
-    - Sube a AWS S3
-    - Guarda referencia en la BD
-    
-    Requiere autenticación EDITOR/OWNER
-    """
-    if user.rol == UserRolEnum.UPLOADER:
-        raise HTTPException(status_code=403, detail="No autorizado para crear imágenes")
-    
-    try:
-        # 1. Leer archivo
-        file_content = await file.read()
-        
-        # 2. Validar imagen
-        ImageProcessor.validate_image(file_content, file.filename or "image")
-        
-        # 3. Procesar a WebP
-        webp_content = ImageProcessor.process_to_webp(file_content, file.filename or "image")
-        
-        # 4. Subir a S3
-        s3_manager = S3Manager()
-        image_url = s3_manager.upload_file(
-            webp_content,
-            mod_id,
-            image_type.value,
-            file.filename or "image"
-        )
-        
-        # 5. Guardar en BD
-        crud = CRUD_IMAGE(db)
-        image_data = {
-            "mod_id": mod_id,
-            "url": image_url,
-            "type": image_type
-        }
-        
-        return crud.create_imagen(image_data)
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error procesando imagen: {str(e)}"
-        )
-
-@router.put("/{image_id}", response_model=ImageResponse)
-def update_image(image_id: int, image_data: dict, user: TokenUser = Depends(get_current_user), db: Session = Depends(get_db)):
-    """Actualizar una imagen (requiere autenticación EDITOR/OWNER)"""
-    if user.rol == UserRolEnum.UPLOADER:
-        raise HTTPException(status_code=403, detail="No autorizado para actualizar imágenes")
-    
-    crud = CRUD_IMAGE(db)
-    return crud.update_imagen(image_id, image_data)
 
 @router.delete("/{image_id}")
 def delete_image(image_id: int, user: TokenUser = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -105,4 +41,191 @@ def delete_image(image_id: int, user: TokenUser = Depends(get_current_user), db:
     crud = CRUD_IMAGE(db)
     crud.delete_imagen(image_id)
     return {"message": "Imagen eliminada"}
+
+# ============================================================================
+# RUTAS ESPECÍFICAS POR TIPO DE IMAGEN
+# ============================================================================
+
+@router.post("/logo/{mod_id}", response_model=ImageResponse)
+async def upload_logo(
+    mod_id: int,
+    file: UploadFile = File(...),
+    user: TokenUser = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Subir logo del mod (solo 1 imagen)
+    
+    - Valida que solo exista 1 logo por mod
+    - Procesa a WebP
+    - Sube a S3
+    
+    Requiere autenticación EDITOR/OWNER
+    """
+    if user.rol == UserRolEnum.UPLOADER:
+        raise HTTPException(status_code=403, detail="No autorizado para subir imágenes")
+    
+    try:
+        crud = CRUD_IMAGE(db)
+        
+        # Verificar que solo existe 1 logo por mod
+        existing_logo = crud.get_imagen_by_mod_and_type(mod_id, ImageTypeEnum.LOGO)
+        if existing_logo:
+            raise HTTPException(
+                status_code=409,
+                detail="Ya existe un logo para este mod. Usa DELETE para reemplazarlo."
+            )
+        
+        # Procesar imagen
+        file_content = await file.read()
+        ImageProcessor.validate_image(file_content, file.filename or "logo")
+        webp_content = ImageProcessor.process_to_webp(file_content, file.filename or "logo")
+        
+        # Subir a S3
+        s3_manager = S3Manager()
+        image_url = s3_manager.upload_file(
+            webp_content,
+            mod_id,
+            ImageTypeEnum.LOGO.value,
+            file.filename or "logo"
+        )
+        
+        # Guardar en BD
+        image_data = {
+            "mod_id": mod_id,
+            "url": image_url,
+            "type": ImageTypeEnum.LOGO
+        }
+        
+        return crud.create_imagen(image_data)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error procesando logo: {str(e)}"
+        )
+
+@router.post("/main/{mod_id}", response_model=ImageResponse)
+async def upload_main(
+    mod_id: int,
+    file: UploadFile = File(...),
+    user: TokenUser = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Subir imagen principal del mod (solo 1 imagen)
+    
+    - Valida que solo exista 1 imagen main por mod
+    - Procesa a WebP
+    - Sube a S3
+    
+    Requiere autenticación EDITOR/OWNER
+    """
+    if user.rol == UserRolEnum.UPLOADER:
+        raise HTTPException(status_code=403, detail="No autorizado para subir imágenes")
+    
+    try:
+        crud = CRUD_IMAGE(db)
+        
+        # Verificar que solo existe 1 main image por mod
+        existing_main = crud.get_imagen_by_mod_and_type(mod_id, ImageTypeEnum.MAIN)
+        if existing_main:
+            raise HTTPException(
+                status_code=409,
+                detail="Ya existe una imagen main para este mod. Usa DELETE para reemplazarla."
+            )
+        
+        # Procesar imagen
+        file_content = await file.read()
+        ImageProcessor.validate_image(file_content, file.filename or "main")
+        webp_content = ImageProcessor.process_to_webp(file_content, file.filename or "main")
+        
+        # Subir a S3
+        s3_manager = S3Manager()
+        image_url = s3_manager.upload_file(
+            webp_content,
+            mod_id,
+            ImageTypeEnum.MAIN.value,
+            file.filename or "main"
+        )
+        
+        # Guardar en BD
+        image_data = {
+            "mod_id": mod_id,
+            "url": image_url,
+            "type": ImageTypeEnum.MAIN
+        }
+        
+        return crud.create_imagen(image_data)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error procesando imagen main: {str(e)}"
+        )
+
+@router.post("/screenshots/{mod_id}", response_model=ImageResponse)
+async def upload_screenshot(
+    mod_id: int,
+    file: UploadFile = File(...),
+    user: TokenUser = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Subir captura de pantalla del mod (máximo 4 imágenes)
+    
+    - Valida que no excedan 4 screenshots
+    - Procesa a WebP
+    - Sube a S3
+    
+    Requiere autenticación EDITOR/OWNER
+    """
+    if user.rol == UserRolEnum.UPLOADER:
+        raise HTTPException(status_code=403, detail="No autorizado para subir imágenes")
+    
+    try:
+        crud = CRUD_IMAGE(db)
+        
+        # Verificar que no excedan 4 screenshots
+        screenshot_count = crud.count_imagenes_by_mod_and_type(mod_id, ImageTypeEnum.SCREENSHOT)
+        if screenshot_count >= 4:
+            raise HTTPException(
+                status_code=409,
+                detail=f"Este mod ya tiene {screenshot_count} screenshots (máximo 4). Usa DELETE para reemplazar uno."
+            )
+        
+        # Procesar imagen
+        file_content = await file.read()
+        ImageProcessor.validate_image(file_content, file.filename or "screenshot")
+        webp_content = ImageProcessor.process_to_webp(file_content, file.filename or "screenshot")
+        
+        # Subir a S3
+        s3_manager = S3Manager()
+        image_url = s3_manager.upload_file(
+            webp_content,
+            mod_id,
+            ImageTypeEnum.SCREENSHOT.value,
+            file.filename or "screenshot"
+        )
+        
+        # Guardar en BD
+        image_data = {
+            "mod_id": mod_id,
+            "url": image_url,
+            "type": ImageTypeEnum.SCREENSHOT
+        }
+        
+        return crud.create_imagen(image_data)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error procesando screenshot: {str(e)}"
+        )
 
