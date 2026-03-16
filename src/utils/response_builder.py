@@ -6,7 +6,20 @@ from src.schemas.response import ApiResponse, ApiListResponse, ApiErrorResponse,
 
 T = TypeVar('T')
 
-TIMESTAMP_FIELDS = {'created_at', 'created_by', 'updated_at', 'updated_by', 'is_active'}
+# Campos de timestamp que deben ir en el objeto info
+TIMESTAMP_FIELDS = {
+    # Genéricos
+    'created_at', 
+    'created_by', 
+    'updated_at', 
+    'updated_by', 
+    'is_active',
+    # Específicos de Mods
+    'approved_at', 
+    'approved_by',
+    'deleted_at', 
+    'deleted_by'
+}
 
 class ResponseBuilder:
     """Constructor de respuestas estandarizadas para la API"""

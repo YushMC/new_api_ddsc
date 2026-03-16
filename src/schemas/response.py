@@ -11,12 +11,25 @@ class TimestampInfo(BaseModel):
     """
     Información de auditoria y timestamps de un recurso
     
+    Campos genéricos:
+    - created_at, created_by: Creación
+    - updated_at, updated_by: Última actualización
+    - is_active: Estado del recurso
+    
+    Campos específicos de Mods:
+    - approved_at, approved_by: Aprobación del mod
+    - deleted_at, deleted_by: Eliminación (soft delete)
+    
     Ejemplo:
     {
         "created_at": "2024-03-16T10:30:00Z",
-        "created_by": "admin",
+        "created_by": "uploader",
         "updated_at": "2024-03-16T11:45:00Z",
         "updated_by": "editor",
+        "approved_at": "2024-03-16T12:00:00Z",
+        "approved_by": "owner",
+        "deleted_at": null,
+        "deleted_by": null,
         "is_active": true
     }
     """
@@ -24,6 +37,10 @@ class TimestampInfo(BaseModel):
     created_by: Optional[str] = Field(None, description="Usuario que creó el recurso")
     updated_at: Optional[datetime] = Field(None, description="Fecha de última actualización")
     updated_by: Optional[str] = Field(None, description="Usuario que actualizó el recurso")
+    approved_at: Optional[datetime] = Field(None, description="Fecha de aprobación (específico de Mods)")
+    approved_by: Optional[str] = Field(None, description="Usuario que aprobó (específico de Mods)")
+    deleted_at: Optional[datetime] = Field(None, description="Fecha de eliminación (soft delete, específico de Mods)")
+    deleted_by: Optional[str] = Field(None, description="Usuario que eliminó (específico de Mods)")
     is_active: bool = Field(True, description="Si el recurso está activo")
     
     class Config:
