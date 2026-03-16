@@ -13,11 +13,12 @@ from src.schemas.users import (
 from src.utils.jwt import JWT_TOKEN
 from src.utils.image_processor import ImageProcessor
 from src.utils.s3_manager import S3Manager
+from src.utils.response_builder import ResponseBuilder
 
 router = APIRouter()
 db_init = DATABASE_INIT()
 
-@router.post("/bootstrap", response_model=BootstrapResponse)
+@router.post("/bootstrap")
 def bootstrap_first_user(user_data: UserCreate, db: Session = Depends(db_init.get_db)):
     """
     Crear el primer usuario OWNER (solo funciona si la BD está vacía)
@@ -31,12 +32,7 @@ def bootstrap_first_user(user_data: UserCreate, db: Session = Depends(db_init.ge
     - contact: email o contacto (opcional)
     - logo: URL del logo (opcional)
     
-    Retorna:
-    - user: datos del usuario creado
-    - access_token: token JWT para usar en próximas solicitudes
-    - token_type: tipo de token (bearer)
-    - message: confirmación de creación
-    - warning: aviso de que esta ruta ya no estará disponible
+    Retorna respuesta con estructura: {response, message, data}
     """
     try:
         crud = CRUD_USERS(db)
@@ -48,38 +44,52 @@ def bootstrap_first_user(user_data: UserCreate, db: Session = Depends(db_init.ge
         jwt_handler = JWT_TOKEN()
         token = jwt_handler.create_token(user=created_user)
         
-        return {
-            "user": created_user,
+        response_data = {
+            "user": UserResponse.model_validate(created_user),
             "access_token": token,
-            "token_type": "bearer",
-            "message": f"Usuario OWNER '{created_user.name}' creado exitosamente",
-            "warning": "Esta ruta (POST /users/bootstrap) ya no estará disponible para futuras solicitudes. Use POST /users/login para autenticarse."
+            "token_type": "bearer"
         }
+        
+        return ResponseBuilder.created(
+            data=response_data,
+            message="Usuario OWNER creado exitosamente"
+        )
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error creando usuario: {str(e)}")
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login")
 def login(credentials: UserLogin, db: Session = Depends(db_init.get_db)):
     """Autenticar usuario y obtener token JWT"""
     crud = CRUD_USERS(db)
-    return crud.login(credentials.username, credentials.password)
+    login_result = crud.login(credentials.username, credentials.password)
+    return ResponseBuilder.success(
+        data=login_result,
+        message="Autenticación exitosa"
+    )
 
-@router.get("", response_model=list[UserResponse])
+@router.get("")
 def list_users(user: TokenUser = Depends(get_current_user), db: Session = Depends(db_init.get_db)):
     """Listar todos los usuarios activos (requiere autenticación)"""
     crud = CRUD_USERS(db)
-    return crud.get_users()
+    users = crud.get_users()
+    return ResponseBuilder.list_response(
+        data=[UserResponse.model_validate(u) for u in users],
+        message="Usuarios obtenidos exitosamente"
+    )
 
-@router.post("", response_model=UserResponse)
+@router.post("")
 def create_user(user_data: UserCreate, user: TokenUser = Depends(get_current_user), db: Session = Depends(db_init.get_db)):
     """Crear nuevo usuario (requiere autenticación EDITOR/OWNER)"""
     crud = CRUD_USERS(db)
     created_user = crud.create_user(user_data.model_dump(), user)
-    return created_user
+    return ResponseBuilder.created(
+        data=UserResponse.model_validate(created_user),
+        message="Usuario creado exitosamente"
+    )
 
-@router.post("/{user_id}/logo", response_model=UpdateUserLogoResponse)
+@router.post("/{user_id}/logo")
 def upload_user_logo(
     user_id: int,
     file: UploadFile = File(...),
@@ -125,18 +135,16 @@ def upload_user_logo(
         # Actualizar en BD
         updated_user = crud.update_user_logo(user_id, logo_url)
         
-        return {
-            "id": updated_user.id,
-            "name": updated_user.name,
-            "logo": updated_user.logo,
-            "message": f"Logo actualizado exitosamente"
-        }
+        return ResponseBuilder.updated(
+            data=UserResponse.model_validate(updated_user),
+            message="Logo actualizado exitosamente"
+        )
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error subiendo logo: {str(e)}")
 
-@router.patch("/{user_id}/password", response_model=UserResponse)
+@router.patch("/{user_id}/password")
 def update_password(
     user_id: int,
     password_data: UpdatePasswordRequest,
@@ -161,13 +169,16 @@ def update_password(
             password_data.current_password,
             password_data.new_password
         )
-        return updated_user
+        return ResponseBuilder.updated(
+            data=UserResponse.model_validate(updated_user),
+            message="Contraseña actualizada exitosamente"
+        )
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error actualizando contraseña: {str(e)}")
 
-@router.patch("/{user_id}/contact", response_model=UserResponse)
+@router.patch("/{user_id}/contact")
 def update_contact(
     user_id: int,
     contact_data: UpdateContactRequest,
@@ -187,7 +198,10 @@ def update_contact(
         
         crud = CRUD_USERS(db)
         updated_user = crud.update_user_contact(user_id, contact_data.contact)
-        return updated_user
+        return ResponseBuilder.updated(
+            data=UserResponse.model_validate(updated_user),
+            message="Contacto actualizado exitosamente"
+        )
     except HTTPException:
         raise
     except Exception as e:

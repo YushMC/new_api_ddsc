@@ -1,10 +1,11 @@
-from src.schemas.mods import ModBase
+from src.schemas.mods import ModBase, ModCommplete
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from src.middleware.jwt import get_current_user
 from src.conf.database import DATABASE_INIT
 from src.services.mods import CRUD_MOD
 from src.services.token import TokenUser
 from src.background_tasks import notify_mod_created, notify_mod_updated
+from src.utils.response_builder import ResponseBuilder
 from sqlalchemy.orm import Session
 
 router = APIRouter()
@@ -14,7 +15,11 @@ db_init = DATABASE_INIT()
 def list_mods(db: Session = Depends(db_init.get_db)):
     """Listar todos los mods activos"""
     crud = CRUD_MOD(db)
-    return crud.get_mods()
+    mods = crud.get_mods()
+    return ResponseBuilder.list_response(
+        data=[ModCommplete.model_validate(m) for m in mods],
+        message="Mods obtenidos exitosamente"
+    )
 
 @router.get("/{mod_id}")
 def get_mod(mod_id: int, db: Session = Depends(db_init.get_db)):
@@ -23,7 +28,10 @@ def get_mod(mod_id: int, db: Session = Depends(db_init.get_db)):
     mod = crud.get_mod(mod_id)
     if not mod:
         raise HTTPException(status_code=404, detail="Mod no encontrado")
-    return mod
+    return ResponseBuilder.success(
+        data=ModCommplete.model_validate(mod),
+        message="Mod obtenido exitosamente"
+    )
 
 @router.post("")
 def create_mod_route(
@@ -39,7 +47,10 @@ def create_mod_route(
     # Agregar notificación a Discord como background task (no bloquea respuesta)
     background_tasks.add_task(notify_mod_created, mod, user)
     
-    return mod
+    return ResponseBuilder.created(
+        data=ModCommplete.model_validate(mod),
+        message="Mod creado exitosamente"
+    )
 
 @router.put("/{mod_id}")
 def update_mod_route(
@@ -56,7 +67,10 @@ def update_mod_route(
     # Agregar notificación a Discord como background task (no bloquea respuesta)
     background_tasks.add_task(notify_mod_updated, mod, user, changes)
     
-    return mod
+    return ResponseBuilder.updated(
+        data=ModCommplete.model_validate(mod),
+        message="Mod actualizado exitosamente"
+    )
 
 @router.delete("/{mod_id}")
 def delete_mod_route(
@@ -66,4 +80,5 @@ def delete_mod_route(
 ):
     """Eliminar un mod (soft delete, requiere autenticación)"""
     crud = CRUD_MOD(db)
-    return crud.delete_mod(mod_id, user)
+    mod = crud.delete_mod(mod_id, user)
+    return ResponseBuilder.deleted(message="Mod eliminado exitosamente")
