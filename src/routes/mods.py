@@ -13,12 +13,23 @@ db_init = DATABASE_INIT()
 
 
 def _prepare_mod_response(mod, db: Session):
-    """Prepara un mod para la respuesta, incluendo créditos organizados"""
+    """Prepara un mod para la respuesta, incluendo créditos organizados e imágenes"""
+    from src.schemas.imagenes import ImageResponse
+    
     mod_dict = ModCommplete.model_validate(mod).model_dump()
     
     # Organizar créditos si existen
     credits = CRUD_MOD._organize_credits(mod, db)
     mod_dict['credits'] = credits
+    
+    # Agregar imágenes activas si existen
+    images = []
+    if hasattr(mod, 'images') and mod.images:
+        images = [
+            ImageResponse.model_validate(img).model_dump()
+            for img in mod.images if img.is_active
+        ]
+    mod_dict['images'] = images
     
     return mod_dict
 

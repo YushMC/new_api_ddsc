@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from src.schemas.timestamp import TimestampBase
 from src.models.enums import StatusEnum, DurationEnum, CharacterEnum, ModTypeEnum
 from src.schemas.credits import CreditsInfo
+from src.schemas.imagenes import ImageResponse
 
 
 class ModBase(BaseModel):
@@ -30,4 +31,5 @@ class ModBase(BaseModel):
 class ModCommplete(ModBase, TimestampBase):
     id: int
     credits: CreditsInfo | None = None
+    images: list[ImageResponse] = []
 

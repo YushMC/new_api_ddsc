@@ -24,6 +24,9 @@ TIMESTAMP_FIELDS = {
 # Campos que deben ir en el objeto credits (para mods)
 CREDITS_FIELD = 'credits'
 
+# Campos que NO deben ser extraídos (se mantienen íntegros)
+PRESERVED_FIELDS = {'images'}
+
 class ResponseBuilder:
     """Constructor de respuestas estandarizadas para la API"""
     
@@ -56,6 +59,9 @@ class ResponseBuilder:
                 info_data[key] = value
             elif key == CREDITS_FIELD:
                 credits_data = value
+            elif key in PRESERVED_FIELDS:
+                # Mantener campos íntegros sin extraer nada
+                resource_data[key] = value
             else:
                 resource_data[key] = value
         
