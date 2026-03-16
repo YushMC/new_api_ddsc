@@ -19,11 +19,28 @@ class CRUD_MOD:
     def _enrich_credit_with_user(credit, db: Session):
         """
         Enriquece un crédito con la información del usuario si existe.
-        Solo incluye el objeto 'user' si tiene id_user.
+        - Si tiene id_user: solo retorna {id, type, user}
+        - Si no tiene id_user: retorna {id, id_mod, id_user, name, type, is_active}
         """
         from src.models.users import User
         
-        credit_dict = {
+        # Si tiene id_user, solo retornar user object
+        if credit.id_user:
+            user = db.query(User).filter(User.id == credit.id_user).first()
+            if user:
+                return {
+                    "id": credit.id,
+                    "type": credit.type,
+                    "user": {
+                        "id": user.id,
+                        "name": user.name,
+                        "contact": user.contact,
+                        "logo": user.logo
+                    }
+                }
+        
+        # Si no tiene id_user, retornar datos del crédito
+        return {
             "id": credit.id,
             "id_mod": credit.id_mod,
             "id_user": credit.id_user,
@@ -31,19 +48,6 @@ class CRUD_MOD:
             "type": credit.type,
             "is_active": credit.is_active
         }
-        
-        # Si tiene id_user, obtener la información del usuario
-        if credit.id_user:
-            user = db.query(User).filter(User.id == credit.id_user).first()
-            if user:
-                credit_dict["user"] = {
-                    "id": user.id,
-                    "name": user.name,
-                    "contact": user.contact,
-                    "logo": user.logo
-                }
-        
-        return credit_dict
     
     @staticmethod
     def _organize_credits(mod, db: Session):
