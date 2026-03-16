@@ -181,6 +181,64 @@ Documentación interactiva:
 
 ---
 
+## 🔑 Primeros Pasos - Bootstrap del Primer Usuario
+
+Cuando la base de datos está vacía por primera vez, necesitas crear un usuario OWNER inicial para administrar el sistema. Para esto, usa el endpoint especial `/users/bootstrap`:
+
+### ⚠️ Importante
+- Este endpoint **solo funciona UNA SOLA VEZ** cuando la BD está vacía
+- Una vez creado el primer usuario, retornará error 403
+- El usuario se crea automáticamente con rol **OWNER**
+- El nombre de usuario es **case-sensitive**
+
+### Crear Primer Usuario
+
+```bash
+curl -X POST http://localhost:8000/users/bootstrap \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "admin",
+    "password": "tu_password_segura",
+    "contact": "admin@example.com"
+  }'
+```
+
+### Respuesta
+
+```json
+{
+  "user": {
+    "id": 1,
+    "name": "admin",
+    "role": "owner",
+    "contact": "admin@example.com",
+    "logo": null,
+    "is_active": true
+  },
+  "access_token": "eyJhbGciOiJIUzI1NiIs...",
+  "token_type": "bearer",
+  "message": "Usuario OWNER 'admin' creado exitosamente",
+  "warning": "Esta ruta (POST /users/bootstrap) ya no estará disponible para futuras solicitudes. Use POST /users/login para autenticarse."
+}
+```
+
+### Próximos Pasos
+
+Después de crear el primer usuario, usa el token recibido o haz login con tus credenciales:
+
+```bash
+curl -X POST http://localhost:8000/users/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "admin",
+    "password": "tu_password_segura"
+  }'
+```
+
+Ahora puedes crear más usuarios y gestionar el sistema con tu token.
+
+---
+
 ## ⚙️ Configuración
 
 ### Base de Datos MySQL
@@ -213,21 +271,34 @@ Instrucciones completas en: [DISCORD_SETUP.md](./DISCORD_SETUP.md)
 
 ## 📖 Uso
 
-### 1. Crear Usuario
+### 1. Bootstrap - Crear Primer Usuario OWNER
+
+**⚠️ IMPORTANTE: Solo la primera vez, cuando la BD está vacía**
 
 ```bash
-# Primero necesitas un usuario OWNER para crear otros
-# Crear manualmente en la BD o usar endpoint (con token existente)
-
-curl -X POST http://localhost:8000/users \
-  -H "Authorization: Bearer YOUR_TOKEN" \
+curl -X POST http://localhost:8000/users/bootstrap \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "nuevo_usuario",
-    "password": "password_segura",
-    "role": "EDITOR",
-    "contact": "email@example.com"
+    "name": "admin",
+    "password": "password123",
+    "contact": "admin@example.com"
   }'
+
+# Response:
+# {
+#   "user": {
+#     "id": 1,
+#     "name": "admin",
+#     "role": "owner",
+#     "contact": "admin@example.com",
+#     "logo": null,
+#     "is_active": true
+#   },
+#   "access_token": "eyJhbGciOiJIUzI1NiIs...",
+#   "token_type": "bearer",
+#   "message": "Usuario OWNER 'admin' creado exitosamente",
+#   "warning": "Esta ruta ya no estará disponible..."
+# }
 ```
 
 ### 2. Login
@@ -236,7 +307,7 @@ curl -X POST http://localhost:8000/users \
 curl -X POST http://localhost:8000/users/login \
   -H "Content-Type: application/json" \
   -d '{
-    "username": "juan",
+    "username": "admin",
     "password": "password123"
   }'
 
@@ -382,6 +453,7 @@ ddlc-mods-api/
 
 | Método | Endpoint | Descripción | Auth |
 |--------|----------|-------------|------|
+| POST | `/users/bootstrap` | Crear primer usuario OWNER | ❌ (solo si BD vacía) |
 | POST | `/users/login` | Autenticar usuario | ❌ |
 | GET | `/users` | Listar usuarios | ✅ |
 | POST | `/users` | Crear usuario | ✅ (EDITOR/OWNER) |
@@ -644,6 +716,10 @@ AWS_SECRET_ACCESS_KEY=yyy
 ## 🔄 Flujo Típico de Creación de Mod
 
 ```
+0. BOOTSTRAP (Primera vez, BD vacía)
+   POST /users/bootstrap → Crear usuario OWNER
+   → Usuario creado, guarda el token o usa login
+
 1. Usuario hace login
    POST /users/login → Token JWT
 

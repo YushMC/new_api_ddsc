@@ -34,3 +34,14 @@ class TokenResponse(BaseModel):
     """Schema de respuesta con token"""
     access_token: str
     token_type: str = "bearer"
+
+class BootstrapResponse(BaseModel):
+    """Schema de respuesta para bootstrap del primer usuario"""
+    user: UserResponse
+    access_token: str
+    token_type: str = "bearer"
+    message: str
+    warning: str
+
+    class Config:
+        from_attributes = True

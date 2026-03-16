@@ -14,6 +14,10 @@ class CRUD_USERS:
     def get_users(self):
         return self.__db.query(User).filter(User.is_active == True).all()
 
+    def count_usuarios(self):
+        """Contar total de usuarios en la BD"""
+        return self.__db.query(User).count()
+
     def create_user(self, data: dict, token: TokenUser):
         """Crear nuevo usuario (solo EDITOR/OWNER)"""
         if token.rol == UserRolEnum.UPLOADER:
@@ -29,6 +33,33 @@ class CRUD_USERS:
         
         hash_handler = HASH_DATA()
         data["password"] = hash_handler.hash_string(data["password"])
+
+        user = User(**data)
+        
+        self.__db.add(user)
+        self.__db.commit()
+        self.__db.refresh(user)
+
+        return user
+
+    def create_first_owner(self, data: dict):
+        """Crear primer usuario como OWNER (sin validar token) - Solo funciona si BD vacía"""
+        # Verificar que no existan usuarios
+        user_count = self.count_usuarios()
+        if user_count > 0:
+            raise HTTPException(status_code=403, detail="Ya existen usuarios en el sistema")
+        
+        # Verificar que el usuario no exista
+        existing_user = self.__db.query(User).filter(User.name == data["name"]).first()
+        if existing_user:
+            raise HTTPException(status_code=400, detail="El usuario ya existe")
+        
+        # Hash de contraseña
+        hash_handler = HASH_DATA()
+        data["password"] = hash_handler.hash_string(data["password"])
+        
+        # Forzar role a OWNER
+        data["role"] = UserRolEnum.OWNER
 
         user = User(**data)
         
