@@ -17,6 +17,11 @@ class CRUD_MOD:
         if not user.id and user.id == 0:
             raise HTTPException(status_code=403, detail="Sin autorización")
         
+        # Check for duplicate slug
+        existing_mod = self.__db.query(Mod).filter(Mod.slug == data.slug).first()
+        if existing_mod:
+            raise HTTPException(status_code=400, detail=f"Mod con slug '{data.slug}' ya existe")
+        
         mod = Mod(**data.model_dump())
 
         mod.required_revision = user.rol == UserRolEnum.UPLOADER

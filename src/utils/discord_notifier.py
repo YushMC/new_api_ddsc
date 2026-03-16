@@ -15,6 +15,22 @@ class DiscordNotifier:
     """Maneja el envío de notificaciones a Discord mediante webhooks"""
     
     @staticmethod
+    def _safe_enum_value(value: Any) -> str:
+        """
+        Safely extracts enum value or converts to string
+        Handles both enum objects and string values from JWT tokens
+        
+        Args:
+            value: Enum object or string
+        
+        Returns:
+            String representation of the value
+        """
+        if hasattr(value, 'value'):
+            return value.value
+        return str(value)
+    
+    @staticmethod
     async def notify_mod_created(mod: Any, user: Any) -> bool:
         """
         Notifica cuando se crea un nuevo mod
@@ -120,7 +136,7 @@ class DiscordNotifier:
             "fields": [
                 {
                     "name": "👤 Creador",
-                    "value": f"{user.name} ({user.rol.value})",
+                    "value": f"{user.name} ({DiscordNotifier._safe_enum_value(user.rol)})",
                     "inline": True
                 },
                 {
@@ -177,7 +193,7 @@ class DiscordNotifier:
         fields = [
             {
                 "name": "👤 Actualizado por",
-                "value": f"{user.name} ({user.rol.value})",
+                "value": f"{user.name} ({DiscordNotifier._safe_enum_value(user.rol)})",
                 "inline": True
             },
             {
@@ -249,7 +265,7 @@ class DiscordNotifier:
                 },
                 {
                     "name": "✅ Aprobado por",
-                    "value": f"{approved_by.name} ({approved_by.rol.value})",
+                    "value": f"{approved_by.name} ({DiscordNotifier._safe_enum_value(approved_by.rol)})",
                     "inline": True
                 },
                 {

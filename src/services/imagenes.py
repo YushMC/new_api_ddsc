@@ -15,6 +15,18 @@ class CRUD_IMAGE:
         if not mod:
             raise HTTPException(status_code=404, detail="Mod no encontrado")
 
+        # Validate image type limits
+        image_type = data.get("type")
+        current_count = self.count_imagenes_by_mod_and_type(data["mod_id"], image_type)
+        
+        # Check limits based on type
+        if image_type == ImageTypeEnum.LOGO and current_count >= 1:
+            raise HTTPException(status_code=400, detail="El mod ya tiene una imagen de logo")
+        elif image_type == ImageTypeEnum.MAIN and current_count >= 1:
+            raise HTTPException(status_code=400, detail="El mod ya tiene una imagen principal")
+        elif image_type == ImageTypeEnum.SCREENSHOT and current_count >= 4:
+            raise HTTPException(status_code=400, detail="El mod ya tiene el máximo de 4 imágenes (screenshots)")
+
         imagen = Image(**data)
 
         self.__db.add(imagen)
