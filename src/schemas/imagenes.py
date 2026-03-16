@@ -8,6 +8,11 @@ class ImageBase(BaseModel):
     url: str = Field(..., max_length=500)
     type: ImageTypeEnum
 
+class ImageCreateFormData(BaseModel):
+    """Schema para crear imágenes con FormData"""
+    mod_id: int
+    image_type: ImageTypeEnum
+
 class ImageCreate(ImageBase):
     """Schema para crear imágenes"""
     mod_id: int
@@ -24,3 +29,4 @@ class ImageResponse(ImageBase, TimestampBase):
 
     class Config:
         from_attributes = True
+
