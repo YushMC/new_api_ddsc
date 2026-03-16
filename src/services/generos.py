@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from src.models.generos import Genre
 from fastapi import HTTPException
-import re
+from src.utils.slug_normalizer import normalize_identifier
 
 class CRUD_GENRE:
     def __init__(self, db: Session) -> None:
@@ -9,18 +9,8 @@ class CRUD_GENRE:
     
     @staticmethod
     def _generate_identifier(name: str) -> str:
-        """Genera un identifier a partir del nombre (minúsculas, sin espacios especiales)"""
-        # Convertir a minúsculas
-        identifier = name.lower()
-        # Reemplazar espacios por guiones
-        identifier = identifier.replace(" ", "-")
-        # Remover caracteres especiales, mantener solo letras, números y guiones
-        identifier = re.sub(r'[^a-z0-9\-]', '', identifier)
-        # Remover guiones múltiples
-        identifier = re.sub(r'-+', '-', identifier)
-        # Remover guiones al inicio y final
-        identifier = identifier.strip('-')
-        return identifier
+        """Genera un identifier a partir del nombre (minúsculas, sin acentos, sin caracteres especiales)"""
+        return normalize_identifier(name)
 
     def get_generos(self):
         """Obtener todos los géneros activos"""

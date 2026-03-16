@@ -4,6 +4,7 @@ from src.schemas.mods import ModBase
 from src.models.mods import Mod
 from src.models.enums import UserRolEnum
 from src.services.token import TokenUser
+from src.utils.slug_normalizer import normalize_slug
 from datetime import datetime, UTC
 import logging
 
@@ -18,12 +19,18 @@ class CRUD_MOD:
         if not user.id and user.id == 0:
             raise HTTPException(status_code=403, detail="Sin autorización")
         
-        # Check for duplicate slug
-        existing_mod = self.__db.query(Mod).filter(Mod.slug == data.slug).first()
-        if existing_mod:
-            raise HTTPException(status_code=400, detail=f"Mod con slug '{data.slug}' ya existe")
+        # Normalizar slug
+        normalized_slug = normalize_slug(data.slug)
         
-        mod = Mod(**data.model_dump())
+        # Check for duplicate slug
+        existing_mod = self.__db.query(Mod).filter(Mod.slug == normalized_slug).first()
+        if existing_mod:
+            raise HTTPException(status_code=400, detail=f"Mod con slug '{normalized_slug}' ya existe")
+        
+        # Crear mod con datos normalizados
+        mod_data = data.model_dump()
+        mod_data['slug'] = normalized_slug
+        mod = Mod(**mod_data)
 
         mod.required_revision = user.rol == UserRolEnum.UPLOADER
         mod.is_active = user.rol != UserRolEnum.UPLOADER
@@ -54,7 +61,21 @@ class CRUD_MOD:
 
         # Guardar valores anteriores para detectar cambios
         changes = {}
-        for key, value in data.model_dump().items():
+        mod_data = data.model_dump()
+        
+        # Normalizar slug si se proporciona
+        if 'slug' in mod_data:
+            mod_data['slug'] = normalize_slug(mod_data['slug'])
+            # Verificar que el nuevo slug no exista en otro mod
+            if mod_data['slug'] != mod.slug:
+                existing_slug = self.__db.query(Mod).filter(
+                    Mod.slug == mod_data['slug'],
+                    Mod.id != mod_id
+                ).first()
+                if existing_slug:
+                    raise HTTPException(status_code=400, detail=f"Mod con slug '{mod_data['slug']}' ya existe")
+        
+        for key, value in mod_data.items():
             if hasattr(mod, key):
                 old_value = getattr(mod, key)
                 if old_value != value:
