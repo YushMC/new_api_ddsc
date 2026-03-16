@@ -1,4 +1,4 @@
-from sqlalchemy import  Column, Integer, String, Text, Enum, Boolean
+from sqlalchemy import  Column, Integer, String, Text, Enum, Boolean, DateTime
 from sqlalchemy.orm import relationship
 from src.conf.database import DATABASE_INIT
 from src.conf.all_keys import TABLE_NAMES
@@ -22,7 +22,7 @@ class Mod(__Base, TimestampMixin):
     dowload_pc=Column(String(500))
     dowload_android=Column(String(500))
     required_revision = Column(Boolean, default=False)
-    aproved_by = Column(String(200))
+    approved_at = Column(DateTime, nullable=True)
     images = relationship(
         "Image",
         back_populates="mod",

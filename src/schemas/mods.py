@@ -16,7 +16,6 @@ class ModBase(BaseModel):
     dowload_android: str | None = None
 
     required_revision: bool = False
-    aproved_by: str | None = None
 
 class ModCommplete(ModBase, TimestampBase):
     id: int

@@ -17,6 +17,8 @@ class TimestampMixin:
     )
 
     deleted_at = Column(DateTime)
+    
+    approved_at = Column(DateTime, nullable=True)
 
     @declared_attr
     def created_by(cls):
