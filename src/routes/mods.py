@@ -4,7 +4,6 @@ from src.middleware.jwt import get_current_user
 from src.conf.database import DATABASE_INIT
 from src.services.mods import CRUD_MOD
 from src.services.token import TokenUser
-from src.models.enums import UserRolEnum
 from src.background_tasks import notify_mod_created, notify_mod_updated
 from src.utils.response_builder import ResponseBuilder
 from sqlalchemy.orm import Session
@@ -13,11 +12,8 @@ router = APIRouter()
 db_init = DATABASE_INIT()
 
 @router.get("/all")
-def list_mods(user: TokenUser = Depends(get_current_user), db: Session = Depends(db_init.get_db)):
-    """Listar todos los mods activos (requiere autenticación OWNER/EDITOR)"""
-    if user.rol == UserRolEnum.UPLOADER:
-        raise HTTPException(status_code=403, detail="No autorizado para listar mods")
-    
+def list_mods(db: Session = Depends(db_init.get_db)):
+    """Listar todos los mods activos (públicamente disponible)"""
     crud = CRUD_MOD(db)
     mods = crud.get_mods()
     return ResponseBuilder.list_response(
@@ -26,11 +22,8 @@ def list_mods(user: TokenUser = Depends(get_current_user), db: Session = Depends
     )
 
 @router.get("/{mod_id}")
-def get_mod(mod_id: int, user: TokenUser = Depends(get_current_user), db: Session = Depends(db_init.get_db)):
-    """Obtener un mod específico por ID (requiere autenticación OWNER/EDITOR)"""
-    if user.rol == UserRolEnum.UPLOADER:
-        raise HTTPException(status_code=403, detail="No autorizado para obtener mods")
-    
+def get_mod(mod_id: int, db: Session = Depends(db_init.get_db)):
+    """Obtener un mod específico por ID (públicamente disponible)"""
     crud = CRUD_MOD(db)
     mod = crud.get_mod(mod_id)
     if not mod:
