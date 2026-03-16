@@ -132,8 +132,8 @@ class CRUD_MOD:
         changes = {}
         mod_data = data.model_dump()
         
-        # Normalizar slug si se proporciona
-        if 'slug' in mod_data:
+        # Normalizar slug si se proporciona y no es None
+        if 'slug' in mod_data and mod_data['slug'] is not None:
             mod_data['slug'] = normalize_slug(mod_data['slug'])
             # Verificar que el nuevo slug no exista en otro mod
             if mod_data['slug'] != mod.slug:
