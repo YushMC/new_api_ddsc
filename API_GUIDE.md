@@ -281,6 +281,105 @@ Content-Type: application/json
 - No se pueden crear usuarios con rol OWNER
 - UPLOADER no puede crear otros usuarios
 
+### Subir/Actualizar Logo de Usuario (Requiere Autenticación)
+```http
+POST /users/{user_id}/logo
+Authorization: Bearer {token}
+Content-Type: multipart/form-data
+
+Form Data:
+- file: [archivo de imagen]
+```
+
+**Características:**
+- ✅ Validación de formato (JPEG, PNG, WebP, GIF)
+- ✅ Validación de tamaño (máximo 10 MB)
+- ✅ Redimensionamiento automático (máximo 2560x2560)
+- ✅ Conversión automática a WebP
+- ✅ Compresión (calidad 85)
+- ✅ Subida a AWS S3
+- ✅ Eliminación automática del logo anterior
+
+**Autorización:**
+- El usuario puede actualizar su propio logo
+- OWNER puede actualizar el logo de cualquier usuario
+
+**Response:**
+```json
+{
+  "id": 1,
+  "name": "juan",
+  "logo": "https://tu-bucket.s3.us-east-1.amazonaws.com/users/1/logo/...",
+  "message": "Logo actualizado exitosamente"
+}
+```
+
+### Actualizar Contraseña de Usuario (Requiere Autenticación)
+```http
+PATCH /users/{user_id}/password
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "current_password": "password_actual",
+  "new_password": "nuevo_password_seguro"
+}
+```
+
+**Restricciones:**
+- El usuario debe proporcionar su contraseña actual para validación
+- El usuario puede cambiar su propia contraseña
+- OWNER puede cambiar la contraseña de cualquier usuario
+
+**Response:**
+```json
+{
+  "id": 1,
+  "name": "juan",
+  "role": "OWNER",
+  "logo": "https://...",
+  "contact": "juan@example.com",
+  "is_active": true
+}
+```
+
+**Posibles errores:**
+- `401 Unauthorized`: Contraseña actual incorrecta
+- `403 Forbidden`: No autorizado para cambiar esta contraseña
+- `404 Not Found`: Usuario no encontrado
+
+### Actualizar Contacto de Usuario (Requiere Autenticación)
+```http
+PATCH /users/{user_id}/contact
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "contact": "nuevo_email@example.com"
+}
+```
+
+**Restricciones:**
+- El usuario puede actualizar su propio contacto
+- OWNER puede actualizar el contacto de cualquier usuario
+- El contacto debe tener entre 1 y 500 caracteres
+
+**Response:**
+```json
+{
+  "id": 1,
+  "name": "juan",
+  "role": "OWNER",
+  "logo": "https://...",
+  "contact": "nuevo_email@example.com",
+  "is_active": true
+}
+```
+
+**Posibles errores:**
+- `403 Forbidden`: No autorizado para cambiar este contacto
+- `404 Not Found`: Usuario no encontrado
+
 ---
 
 ## 🔐 Roles y Permisos
