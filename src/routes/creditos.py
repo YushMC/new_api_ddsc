@@ -22,7 +22,8 @@ class CreditUpdate(BaseModel):
 
 def _enrich_credit_with_user(credit, db: Session):
     """
-    Enriquece un crédito con la información del usuario si existe
+    Enriquece un crédito con la información del usuario si existe.
+    Solo incluye el objeto 'user' si tiene id_user.
     """
     from src.models.users import User
     
@@ -45,22 +46,14 @@ def _enrich_credit_with_user(credit, db: Session):
                 "contact": user.contact,
                 "logo": user.logo
             }
-    else:
-        # Si no tiene id_user, crear un objeto user con los datos del nombre
-        if credit.name:
-            credit_dict["user"] = {
-                "id": None,
-                "name": credit.name,
-                "contact": None,
-                "logo": None
-            }
     
     return credit_dict
 
 
 def _organize_credits_by_type(credits, db: Session):
     """
-    Organiza los créditos por tipo en arrays (creators, translators, porters)
+    Organiza los créditos por tipo en arrays (creators, translators, porters).
+    Solo incluye objeto 'user' si el crédito tiene id_user.
     """
     from src.models.enums import CreditsTypeEnum
     

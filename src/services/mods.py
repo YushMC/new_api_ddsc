@@ -18,7 +18,8 @@ class CRUD_MOD:
     @staticmethod
     def _enrich_credit_with_user(credit, db: Session):
         """
-        Enriquece un crédito con la información del usuario si existe
+        Enriquece un crédito con la información del usuario si existe.
+        Solo incluye el objeto 'user' si tiene id_user.
         """
         from src.models.users import User
         
@@ -40,15 +41,6 @@ class CRUD_MOD:
                     "name": user.name,
                     "contact": user.contact,
                     "logo": user.logo
-                }
-        else:
-            # Si no tiene id_user, crear un objeto user con los datos del nombre
-            if credit.name:
-                credit_dict["user"] = {
-                    "id": None,
-                    "name": credit.name,
-                    "contact": None,
-                    "logo": None
                 }
         
         return credit_dict
