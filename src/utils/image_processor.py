@@ -4,7 +4,10 @@ Servicio para procesar imágenes: redimensionar, comprimir y convertir a WebP
 from PIL import Image
 import io
 import os
+import logging
 from fastapi import HTTPException
+
+logger = logging.getLogger(__name__)
 
 class ImageProcessor:
     """Procesa imágenes: redimensiona, comprime y convierte a WebP"""
@@ -49,8 +52,11 @@ class ImageProcessor:
             Contenido de la imagen en formato WebP
         """
         try:
+            logger.info(f"[ImageProcessor] Iniciando conversión a WebP: {filename} (size: {len(file_content)} bytes)")
+            
             # Abrir imagen
             img = Image.open(io.BytesIO(file_content))
+            logger.info(f"[ImageProcessor] Imagen abierta: {img.format}, {img.size}, mode: {img.mode}")
             
             # Convertir a RGB si tiene transparencia (excepto PNG con alpha)
             if img.mode in ('RGBA', 'LA', 'P'):
@@ -67,22 +73,30 @@ class ImageProcessor:
             elif img.mode != 'RGB':
                 img = img.convert('RGB')
             
+            logger.info(f"[ImageProcessor] Modo de color convertido a: {img.mode}")
+            
             # Redimensionar si es necesario
             if img.width > ImageProcessor.MAX_WIDTH or img.height > ImageProcessor.MAX_HEIGHT:
+                original_size = img.size
                 img.thumbnail(
                     (ImageProcessor.MAX_WIDTH, ImageProcessor.MAX_HEIGHT),
                     Image.Resampling.LANCZOS
                 )
+                logger.info(f"[ImageProcessor] Imagen redimensionada: {original_size} -> {img.size}")
             
             # Guardar como WebP
             output = io.BytesIO()
             img.save(output, format='WEBP', quality=quality, method=6)
+            webp_bytes = output.getvalue()
             
-            return output.getvalue()
+            logger.info(f"[ImageProcessor] Conversión exitosa: {len(webp_bytes)} bytes WebP (quality: {quality})")
+            
+            return webp_bytes
             
         except HTTPException:
             raise
         except Exception as e:
+            logger.error(f"[ImageProcessor] Error procesando imagen: {str(e)}")
             raise HTTPException(
                 status_code=400,
                 detail=f"Error procesando imagen: {str(e)}"
