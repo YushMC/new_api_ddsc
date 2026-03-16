@@ -16,14 +16,17 @@ class Mod(__Base, TimestampMixin):
     name=Column(String(200), nullable=False, index=True)
     description=Column(Text)
     slug=Column(String(200), nullable=False)
-    type=Column(Enum(ModTypeEnum), nullable=False)
-    status=Column(Enum(StatusEnum), nullable=False)
-    duration=Column(Enum(DurationEnum), nullable=False)
+    type=Column(Enum(ModTypeEnum), nullable=False, default=ModTypeEnum.TRANSLATION)
+    status=Column(Enum(StatusEnum), nullable=False, default=StatusEnum.STABLE)
+    duration=Column(Enum(DurationEnum), nullable=False, default=DurationEnum.SHORT)
     character=Column(Enum(CharacterEnum), nullable=False, default=CharacterEnum.MC)
     dowload_pc=Column(String(500))
     dowload_android=Column(String(500))
     required_revision = Column(Boolean, default=False)
-    approved_at = Column(DateTime, nullable=True)
+    approved_by = Column(String(100))
+    deleted_by = Column(String(100))
+    deleted_at = Column(DateTime)
+    approved_at = Column(DateTime)
     images = relationship(
         "Image",
         back_populates="mod",

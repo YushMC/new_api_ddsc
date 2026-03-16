@@ -16,10 +16,6 @@ class TimestampMixin:
         onupdate=lambda: datetime.now(UTC)
     )
 
-    deleted_at = Column(DateTime)
-    
-    approved_at = Column(DateTime, nullable=True)
-
     @declared_attr
     def created_by(cls):
         return Column(String(100), default=lambda: get_current_user_name() or "system")
@@ -27,7 +23,5 @@ class TimestampMixin:
     @declared_attr
     def updated_by(cls):
         return Column(String(100), default=lambda: get_current_user_name() or "system", onupdate=lambda: get_current_user_name() or "system")
-
-    deleted_by = Column(String(100))
 
     is_active = Column(Boolean, default=True)
