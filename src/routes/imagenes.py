@@ -8,6 +8,7 @@ from src.models.enums import UserRolEnum, ImageTypeEnum
 from src.schemas.imagenes import ImageResponse
 from src.utils.image_processor import ImageProcessor
 from src.utils.s3_manager import S3Manager
+from src.utils.response_builder import ResponseBuilder
 
 router = APIRouter()
 db_init = DATABASE_INIT()
@@ -16,17 +17,33 @@ db_init = DATABASE_INIT()
 # RUTAS GENÉRICAS (mantener para compatibilidad)
 # ============================================================================
 
-@router.get("/mod/{mod_id}", response_model=list[ImageResponse])
-def get_images_by_mod(mod_id: int, db: Session = Depends(db_init.get_db)):
-    """Obtener todas las imágenes de un mod"""
+@router.get("/mod/{mod_id}")
+def get_images_by_mod(mod_id: int, user: TokenUser = Depends(get_current_user), db: Session = Depends(db_init.get_db)):
+    """Obtener todas las imágenes de un mod (requiere autenticación OWNER/EDITOR)"""
+    if user.rol == UserRolEnum.UPLOADER:
+        raise HTTPException(status_code=403, detail="No autorizado para obtener imágenes")
+    
     crud = CRUD_IMAGE(db)
-    return crud.get_imagenes_mod(mod_id)
+    images = crud.get_imagenes_mod(mod_id)
+    return ResponseBuilder.list_response(
+        data=[ImageResponse.model_validate(img) for img in images],
+        message="Imágenes obtenidas exitosamente"
+    )
 
-@router.get("/{image_id}", response_model=ImageResponse)
-def get_image(image_id: int, db: Session = Depends(db_init.get_db)):
-    """Obtener una imagen específica"""
+@router.get("/{image_id}")
+def get_image(image_id: int, user: TokenUser = Depends(get_current_user), db: Session = Depends(db_init.get_db)):
+    """Obtener una imagen específica (requiere autenticación OWNER/EDITOR)"""
+    if user.rol == UserRolEnum.UPLOADER:
+        raise HTTPException(status_code=403, detail="No autorizado para obtener imágenes")
+    
     crud = CRUD_IMAGE(db)
-    return crud.get_imagen(image_id)
+    image = crud.get_imagen(image_id)
+    if not image:
+        raise HTTPException(status_code=404, detail="Imagen no encontrada")
+    return ResponseBuilder.success(
+        data=ImageResponse.model_validate(image),
+        message="Imagen obtenida exitosamente"
+    )
 
 @router.delete("/{image_id}")
 def delete_image(image_id: int, user: TokenUser = Depends(get_current_user), db: Session = Depends(db_init.get_db)):
@@ -40,13 +57,13 @@ def delete_image(image_id: int, user: TokenUser = Depends(get_current_user), db:
     
     crud = CRUD_IMAGE(db)
     crud.delete_imagen(image_id)
-    return {"message": "Imagen eliminada"}
+    return ResponseBuilder.deleted(message="Imagen eliminada exitosamente")
 
 # ============================================================================
 # RUTAS ESPECÍFICAS POR TIPO DE IMAGEN
 # ============================================================================
 
-@router.post("/logo/{mod_id}", response_model=ImageResponse)
+@router.post("/logo/{mod_id}")
 async def upload_logo(
     mod_id: int,
     file: UploadFile = File(...),
@@ -97,7 +114,11 @@ async def upload_logo(
             "type": ImageTypeEnum.LOGO
         }
         
-        return crud.create_imagen(image_data)
+        image = crud.create_imagen(image_data)
+        return ResponseBuilder.created(
+            data=ImageResponse.model_validate(image),
+            message="Logo subido exitosamente"
+        )
         
     except HTTPException:
         raise
@@ -107,7 +128,7 @@ async def upload_logo(
             detail=f"Error procesando logo: {str(e)}"
         )
 
-@router.post("/main/{mod_id}", response_model=ImageResponse)
+@router.post("/main/{mod_id}")
 async def upload_main(
     mod_id: int,
     file: UploadFile = File(...),
@@ -158,7 +179,11 @@ async def upload_main(
             "type": ImageTypeEnum.MAIN
         }
         
-        return crud.create_imagen(image_data)
+        image = crud.create_imagen(image_data)
+        return ResponseBuilder.created(
+            data=ImageResponse.model_validate(image),
+            message="Imagen principal subida exitosamente"
+        )
         
     except HTTPException:
         raise
@@ -168,7 +193,7 @@ async def upload_main(
             detail=f"Error procesando imagen main: {str(e)}"
         )
 
-@router.post("/screenshots/{mod_id}", response_model=ImageResponse)
+@router.post("/screenshots/{mod_id}")
 async def upload_screenshot(
     mod_id: int,
     file: UploadFile = File(...),
@@ -219,7 +244,11 @@ async def upload_screenshot(
             "type": ImageTypeEnum.SCREENSHOT
         }
         
-        return crud.create_imagen(image_data)
+        image = crud.create_imagen(image_data)
+        return ResponseBuilder.created(
+            data=ImageResponse.model_validate(image),
+            message="Captura de pantalla subida exitosamente"
+        )
         
     except HTTPException:
         raise
