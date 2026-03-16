@@ -38,10 +38,27 @@ def list_mods(db: Session = Depends(db_init.get_db)):
     """Listar todos los mods activos (públicamente disponible)"""
     crud = CRUD_MOD(db)
     mods = crud.get_mods()
-    return ResponseBuilder.list_response(
-        data=[_prepare_mod_response(m, db) for m in mods],
-        message="Mods obtenidos exitosamente"
-    )
+    
+    # Preparar respuesta con estructura individual para cada mod
+    prepared_mods = []
+    for m in mods:
+        mod_dict = _prepare_mod_response(m, db)
+        
+        # Separar info y credits para estructura consistente con GET individual
+        from src.utils.response_builder import ResponseBuilder
+        response_structure = ResponseBuilder._create_response_with_info(
+            mod_dict, 
+            "success", 
+            ""  # Sin mensaje individual, solo para estructura
+        )
+        # Extraer solo la estructura de data
+        prepared_mods.append(response_structure["data"])
+    
+    return {
+        "response": "success",
+        "message": "Mods obtenidos exitosamente",
+        "data": prepared_mods
+    }
 
 @router.get("/{mod_id}")
 def get_mod(mod_id: int, db: Session = Depends(db_init.get_db)):
