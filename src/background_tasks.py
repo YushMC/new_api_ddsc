@@ -71,3 +71,22 @@ def notify_mod_approved(mod: Any, approved_by: Any) -> None:
         loop.run_until_complete(DiscordNotifier.notify_mod_approved(mod, approved_by))
     except Exception as e:
         logger.error(f"Error en background task notify_mod_approved: {e}")
+
+
+def notify_mod_completed(mod: Any) -> None:
+    """
+    Ejecuta la notificación de completamiento de mod de forma asincrónica
+    
+    Args:
+        mod: Objeto del mod completado (con imágenes y créditos)
+    """
+    try:
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        
+        loop.run_until_complete(DiscordNotifier.notify_mod_completed(mod))
+    except Exception as e:
+        logger.error(f"Error en background task notify_mod_completed: {e}")

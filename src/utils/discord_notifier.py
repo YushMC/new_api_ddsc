@@ -92,6 +92,107 @@ class DiscordNotifier:
             return False
     
     @staticmethod
+    async def notify_mod_completed(mod: Any) -> bool:
+        """
+        Notifica cuando un mod está completo (tiene imágenes y créditos)
+        
+        Args:
+            mod: Objeto del mod completo
+        
+        Returns:
+            True si se envió exitosamente, False si fallo (no interrumpe API)
+        """
+        if not DiscordConfig.is_configured():
+            return False
+        
+        try:
+            embed = DiscordNotifier._format_embed_completed(mod)
+            await DiscordNotifier._send_webhook(embed)
+            return True
+        except Exception as e:
+            logger.error(f"Error notificando completamiento de mod a Discord: {e}")
+            return False
+    
+    @staticmethod
+    def _format_embed_completed(mod: Any) -> Dict[str, Any]:
+        """Formatea embed para mod completado (con imágenes y créditos)"""
+        
+        # Contar créditos por tipo
+        creators_count = 0
+        translators_count = 0
+        porters_count = 0
+        images_count = 0
+        
+        if hasattr(mod, 'credits') and mod.credits:
+            from src.models.enums import CreditsTypeEnum
+            for credit in mod.credits:
+                if credit.is_active:
+                    if credit.type == CreditsTypeEnum.ORIGINAL_CREATOR:
+                        creators_count += 1
+                    elif credit.type == CreditsTypeEnum.TRANSLATOR:
+                        translators_count += 1
+                    elif credit.type == CreditsTypeEnum.PORTER:
+                        porters_count += 1
+        
+        if hasattr(mod, 'images') and mod.images:
+            images_count = len([img for img in mod.images if img.is_active])
+        
+        genres = ", ".join([g.name for g in mod.genres]) if mod.genres else "Sin asignar"
+        
+        embed = {
+            "title": "🎉 MOD COMPLETADO",
+            "color": DiscordConfig.COLOR_APPROVED,
+            "description": f"El mod tiene todas las secciones completadas: imágenes y créditos",
+            "fields": [
+                {
+                    "name": "📛 Nombre",
+                    "value": mod.name,
+                    "inline": True
+                },
+                {
+                    "name": "🎭 Personaje",
+                    "value": mod.character.value if hasattr(mod.character, 'value') else str(mod.character),
+                    "inline": True
+                },
+                {
+                    "name": "⏱️ Duración",
+                    "value": mod.duration.value if hasattr(mod.duration, 'value') else str(mod.duration),
+                    "inline": True
+                },
+                {
+                    "name": "🖼️ Imágenes",
+                    "value": f"{images_count} imagen(es)",
+                    "inline": True
+                },
+                {
+                    "name": "👥 Créditos",
+                    "value": f"👨‍💻 {creators_count} | 🌐 {translators_count} | 📱 {porters_count}",
+                    "inline": True
+                },
+                {
+                    "name": "📊 Estado",
+                    "value": mod.status.value if hasattr(mod.status, 'value') else str(mod.status),
+                    "inline": True
+                },
+                {
+                    "name": "🏷️ Géneros",
+                    "value": genres,
+                    "inline": False
+                },
+                {
+                    "name": "🔗 Ver Mod",
+                    "value": f"[Ir al mod]({DiscordConfig.get_mod_url(mod.slug)})",
+                    "inline": False
+                }
+            ],
+            "footer": {
+                "text": f"ID: {mod.id} • Completado: {mod.updated_at.strftime('%d/%m/%Y %H:%M UTC') if hasattr(mod.updated_at, 'strftime') else mod.updated_at}"
+            }
+        }
+        
+        return {"embeds": [embed]}
+    
+    @staticmethod
     async def notify_mod_approved(mod: Any, approved_by: Any) -> bool:
         """
         Notifica cuando un mod es aprobado por admin

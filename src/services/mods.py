@@ -178,3 +178,26 @@ class CRUD_MOD:
         self.__db.refresh(mod)
 
         return mod
+    
+    def is_mod_complete(self, mod_id: int) -> bool:
+        """
+        Verifica si un mod está completo (tiene imágenes Y al menos un crédito activo)
+        
+        Args:
+            mod_id: ID del mod
+        
+        Returns:
+            True si tiene imágenes y créditos, False en caso contrario
+        """
+        mod = self.__db.query(Mod).filter(Mod.id == mod_id).first()
+        
+        if not mod:
+            return False
+        
+        # Verificar que tiene al menos una imagen
+        has_images = len([img for img in mod.images if img.is_active]) > 0 if hasattr(mod, 'images') and mod.images else False
+        
+        # Verificar que tiene al menos un crédito
+        has_credits = len([c for c in mod.credits if c.is_active]) > 0 if hasattr(mod, 'credits') and mod.credits else False
+        
+        return has_images and has_credits

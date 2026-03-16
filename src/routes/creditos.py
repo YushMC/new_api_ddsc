@@ -1,11 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from src.conf.database import DATABASE_INIT
 from src.services.creditos import CRUD_CREDITS
+from src.services.mods import CRUD_MOD
 from src.middleware.jwt import get_current_user
 from src.services.token import TokenUser
 from src.schemas.credits import CreditCreate, CreditResponse
 from src.utils.response_builder import ResponseBuilder
+from src.background_tasks import notify_mod_completed
 from pydantic import BaseModel
 from src.models.enums import CreditsTypeEnum
 
@@ -112,7 +114,8 @@ def get_credit(credit_id: int, db: Session = Depends(db_init.get_db)):
 def create_credit(
     data: CreditCreate,
     user: TokenUser = Depends(get_current_user),
-    db: Session = Depends(db_init.get_db)
+    db: Session = Depends(db_init.get_db),
+    background_tasks: BackgroundTasks = BackgroundTasks()
 ):
     """Crear nuevo crédito (requiere token válido)"""
     crud = CRUD_CREDITS(db)
@@ -125,6 +128,15 @@ def create_credit(
     
     enriched = _enrich_credit_with_user(credit, db)
     
+    # Verificar si el mod está completo (tiene imágenes y créditos)
+    crud_mod = CRUD_MOD(db)
+    if crud_mod.is_mod_complete(data.id_mod):
+        # Obtener el mod completo
+        mod = crud_mod.get_mod(data.id_mod)
+        if mod:
+            # Agregar notificación a Discord como background task
+            background_tasks.add_task(notify_mod_completed, mod)
+    
     return ResponseBuilder.created(
         data=enriched,
         message="Crédito creado exitosamente"
@@ -136,10 +148,15 @@ def update_credit(
     credit_id: int,
     data: CreditUpdate,
     user: TokenUser = Depends(get_current_user),
-    db: Session = Depends(db_init.get_db)
+    db: Session = Depends(db_init.get_db),
+    background_tasks: BackgroundTasks = BackgroundTasks()
 ):
     """Actualizar un crédito (requiere token válido)"""
     crud = CRUD_CREDITS(db)
+    
+    # Obtener el crédito original para saber el mod_id
+    original_credit = crud.get_credit(credit_id)
+    
     credit = crud.update_credit(
         credit_id=credit_id,
         id_user=data.id_user,
@@ -148,6 +165,15 @@ def update_credit(
     )
     
     enriched = _enrich_credit_with_user(credit, db)
+    
+    # Verificar si el mod está completo (tiene imágenes y créditos)
+    crud_mod = CRUD_MOD(db)
+    if crud_mod.is_mod_complete(original_credit.id_mod):
+        # Obtener el mod completo
+        mod = crud_mod.get_mod(original_credit.id_mod)
+        if mod:
+            # Agregar notificación a Discord como background task
+            background_tasks.add_task(notify_mod_completed, mod)
     
     return ResponseBuilder.updated(
         data=enriched,
