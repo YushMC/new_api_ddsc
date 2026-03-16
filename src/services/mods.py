@@ -130,11 +130,7 @@ class CRUD_MOD:
 
         # Guardar valores anteriores para detectar cambios
         changes = {}
-        mod_data = data.model_dump(exclude={'created_at'})
-        
-        # Validación: no permitir cambiar created_at en updates
-        if data.created_at is not None and data.created_at != mod.created_at:
-            raise HTTPException(status_code=400, detail="No se puede cambiar created_at después de crear el mod")
+        mod_data = data.model_dump()
         
         # Normalizar slug si se proporciona
         if 'slug' in mod_data:
