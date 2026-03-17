@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from src.conf.database import DATABASE_INIT
 from src.services.users import CRUD_USERS
-from src.middleware.jwt import get_current_user
+from src.middleware.jwt import get_current_user, verify_admin_role
 from src.services.token import TokenUser
 from src.models.enums import UserRolEnum
 from src.schemas.users import (
@@ -81,6 +81,21 @@ def list_users(user: TokenUser = Depends(get_current_user), db: Session = Depend
     return ResponseBuilder.list_response(
         data=[UserResponse.model_validate(u) for u in users],
         message="Usuarios obtenidos exitosamente"
+    )
+
+@router.get("/admin/all")
+def list_users_admin(
+    db: Session = Depends(db_init.get_db),
+    skip: int = 0,
+    limit: int = 20,
+    user: TokenUser = Depends(verify_admin_role)
+):
+    """Listar todos los usuarios incluyendo inactivos (solo para OWNER/EDITOR)"""
+    crud = CRUD_USERS(db)
+    users = crud.get_users_admin(skip, limit)
+    return ResponseBuilder.list_response(
+        data=[UserResponse.model_validate(u) for u in users],
+        message="Usuarios obtenidos exitosamente (incluyendo inactivos)"
     )
 
 @router.post("")

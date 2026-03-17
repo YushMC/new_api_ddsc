@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from src.conf.database import DATABASE_INIT
 from src.services.creditos import CRUD_CREDITS
 from src.services.mods import CRUD_MOD
-from src.middleware.jwt import get_current_user
+from src.middleware.jwt import get_current_user, verify_admin_role
 from src.services.token import TokenUser
 from src.schemas.credits import CreditCreate, CreditResponse
 from src.utils.response_builder import ResponseBuilder
@@ -95,6 +95,30 @@ def get_credits_by_mod(mod_id: int, db: Session = Depends(db_init.get_db)):
         data=organized_credits,
         message="Créditos obtenidos exitosamente"
     )
+
+
+@router.get("/admin/all")
+def list_credits_admin(
+    db: Session = Depends(db_init.get_db),
+    skip: int = 0,
+    limit: int = 20,
+    user: TokenUser = Depends(verify_admin_role)
+):
+    """Listar todos los créditos incluyendo inactivos (solo para OWNER/EDITOR)"""
+    crud = CRUD_CREDITS(db)
+    credits = crud.get_credits_admin(skip, limit)
+    
+    # Preparar cada crédito con la información enriquecida
+    prepared_credits = []
+    for credit in credits:
+        enriched = _enrich_credit_with_user(credit, db)
+        prepared_credits.append(enriched)
+    
+    return {
+        "response": "success",
+        "message": "Créditos obtenidos exitosamente (incluyendo inactivos)",
+        "data": prepared_credits
+    }
 
 
 @router.get("/{credit_id}")

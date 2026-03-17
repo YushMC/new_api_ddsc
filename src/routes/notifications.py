@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from src.conf.database import DATABASE_INIT
-from src.middleware.jwt import get_current_user
+from src.middleware.jwt import get_current_user, verify_admin_role
 from src.services.token import TokenUser
 from src.services.notifications import CRUD_NOTIFICATION
 from src.schemas.notifications import NotificationResponse, UpdateNotificationType
@@ -53,6 +53,23 @@ def get_notifications(
     return ResponseBuilder.success(
         data=[NotificationResponse.model_validate(n).model_dump() for n in notifications],
         message="Notificaciones obtenidas exitosamente"
+    )
+
+
+@router.get("/admin/all")
+def list_notifications_admin(
+    db: Session = Depends(db_init.get_db),
+    skip: int = 0,
+    limit: int = 50,
+    user: TokenUser = Depends(verify_admin_role)
+):
+    """Listar todas las notificaciones incluyendo inactivas (solo para OWNER/EDITOR)"""
+    crud = CRUD_NOTIFICATION(db)
+    notifications = crud.get_notifications_admin(skip, limit)
+    
+    return ResponseBuilder.success(
+        data=[NotificationResponse.model_validate(n).model_dump() for n in notifications],
+        message="Notificaciones obtenidas exitosamente (incluyendo inactivas)"
     )
 
 

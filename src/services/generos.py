@@ -16,6 +16,10 @@ class CRUD_GENRE:
         """Obtener todos los géneros activos"""
         return self.__db.query(Genre).filter(Genre.is_active == True).all()
 
+    def get_generos_admin(self, skip: int = 0, limit: int = 20):
+        """Obtener todos los géneros (incluyendo inactivos) - Solo para administradores"""
+        return self.__db.query(Genre).offset(skip).limit(limit).all()
+
     def get_genero(self, genre_id: int):
         """Obtener un género específico"""
         genre = self.__db.query(Genre).filter(

@@ -106,6 +106,10 @@ class CRUD_NOTIFICATION:
         
         return query.order_by(Notification.created_at.desc()).offset(skip).limit(limit).all()
     
+    def get_notifications_admin(self, skip: int = 0, limit: int = 50):
+        """Obtener todas las notificaciones (incluyendo inactivas) - Solo para administradores"""
+        return self.__db.query(Notification).offset(skip).limit(limit).all()
+    
     def get_unread_count(self, user_id: int) -> int:
         """
         Obtiene el número de notificaciones sin leer

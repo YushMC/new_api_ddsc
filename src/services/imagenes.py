@@ -49,6 +49,10 @@ class CRUD_IMAGE:
             Image.is_active == True
         ).all()
     
+    def get_imagenes_admin(self, skip: int = 0, limit: int = 20):
+        """Obtener todas las imágenes (incluyendo inactivas) - Solo para administradores"""
+        return self.__db.query(Image).offset(skip).limit(limit).all()
+    
     def get_imagen(self, imagen_id: int):
         """Obtener una imagen específica"""
         imagen = self.__db.query(Image).filter(

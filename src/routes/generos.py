@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from src.conf.database import DATABASE_INIT
 from src.services.generos import CRUD_GENRE
-from src.middleware.jwt import get_current_user
+from src.middleware.jwt import get_current_user, verify_admin_role
 from src.services.token import TokenUser
 from src.models.enums import UserRolEnum
 from src.schemas.generos import GenreCreate, GenreResponse
@@ -40,6 +40,34 @@ def list_genres(user: TokenUser = Depends(get_current_user), db: Session = Depen
     return {
         "response": "success",
         "message": "Géneros obtenidos exitosamente",
+        "data": prepared_genres
+    }
+
+@router.get("/admin/all")
+def list_genres_admin(
+    db: Session = Depends(db_init.get_db),
+    skip: int = 0,
+    limit: int = 20,
+    user: TokenUser = Depends(verify_admin_role)
+):
+    """Listar todos los géneros incluyendo inactivos (solo para OWNER/EDITOR)"""
+    crud = CRUD_GENRE(db)
+    genres = crud.get_generos_admin(skip, limit)
+    
+    # Preparar cada género con la estructura info
+    prepared_genres = []
+    for g in genres:
+        genre_dict = ResponseBuilder._create_response_with_info(
+            GenreResponse.model_validate(g),
+            "success",
+            "",
+            force_info=True
+        )
+        prepared_genres.append(genre_dict["data"])
+    
+    return {
+        "response": "success",
+        "message": "Géneros obtenidos exitosamente (incluyendo inactivos)",
         "data": prepared_genres
     }
 

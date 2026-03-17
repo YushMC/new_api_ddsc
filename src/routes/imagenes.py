@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Form
 from sqlalchemy.orm import Session
 from src.conf.database import DATABASE_INIT
 from src.services.imagenes import CRUD_IMAGE
-from src.middleware.jwt import get_current_user
+from src.middleware.jwt import get_current_user, verify_admin_role
 from src.services.token import TokenUser
 from src.models.enums import UserRolEnum, ImageTypeEnum
 from src.schemas.imagenes import ImageResponse
@@ -39,6 +39,34 @@ def get_images_by_mod(mod_id: int, db: Session = Depends(db_init.get_db)):
     return {
         "response": "success",
         "message": "Imágenes obtenidas exitosamente",
+        "data": prepared_images
+    }
+
+@router.get("/admin/all")
+def list_images_admin(
+    db: Session = Depends(db_init.get_db),
+    skip: int = 0,
+    limit: int = 20,
+    user: TokenUser = Depends(verify_admin_role)
+):
+    """Listar todas las imágenes incluyendo inactivas (solo para OWNER/EDITOR)"""
+    crud = CRUD_IMAGE(db)
+    images = crud.get_imagenes_admin(skip, limit)
+    
+    # Preparar cada imagen con la estructura info
+    prepared_images = []
+    for img in images:
+        img_dict = ResponseBuilder._create_response_with_info(
+            ImageResponse.model_validate(img),
+            "success",
+            "",
+            force_info=True
+        )
+        prepared_images.append(img_dict["data"])
+    
+    return {
+        "response": "success",
+        "message": "Imágenes obtenidas exitosamente (incluyendo inactivas)",
         "data": prepared_images
     }
 

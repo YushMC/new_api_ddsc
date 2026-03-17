@@ -239,6 +239,52 @@ class DiscordNotifier:
             return False
     
     @staticmethod
+    async def notify_mod_deleted(mod: Any, deleted_by: Any) -> bool:
+        """
+        Notifica cuando un mod es eliminado (soft delete)
+        
+        Args:
+            mod: Objeto del mod
+            deleted_by: Usuario que eliminó
+        
+        Returns:
+            True si se envió exitosamente
+        """
+        if not DiscordConfig.is_configured():
+            return False
+        
+        try:
+            embed = DiscordNotifier._format_embed_deleted(mod, deleted_by)
+            await DiscordNotifier._send_webhook(embed)
+            return True
+        except Exception as e:
+            logger.error(f"Error notificando eliminación de mod a Discord: {e}")
+            return False
+    
+    @staticmethod
+    async def notify_mod_restored(mod: Any, restored_by: Any) -> bool:
+        """
+        Notifica cuando un mod es restaurado
+        
+        Args:
+            mod: Objeto del mod
+            restored_by: Usuario que restauró
+        
+        Returns:
+            True si se envió exitosamente
+        """
+        if not DiscordConfig.is_configured():
+            return False
+        
+        try:
+            embed = DiscordNotifier._format_embed_restored(mod, restored_by)
+            await DiscordNotifier._send_webhook(embed)
+            return True
+        except Exception as e:
+            logger.error(f"Error notificando restauración de mod a Discord: {e}")
+            return False
+    
+    @staticmethod
     def _format_embed_created(mod: Any, user: Any, is_approved: bool) -> Dict[str, Any]:
         """Formatea embed para creación de mod"""
         
@@ -455,6 +501,96 @@ class DiscordNotifier:
             ],
             "footer": {
                 "text": f"ID: {mod.id} • Rechazado: {mod.updated_at.strftime('%d/%m/%Y %H:%M UTC') if hasattr(mod.updated_at, 'strftime') else mod.updated_at}"
+            }
+        }
+        
+        return {"embeds": [embed]}
+    
+    @staticmethod
+    def _format_embed_deleted(mod: Any, deleted_by: Any) -> Dict[str, Any]:
+        """Formatea embed para eliminación de mod"""
+        
+        # Obtener el creator del mod si existe
+        creator = mod.created_by if hasattr(mod, 'created_by') else "Desconocido"
+        
+        embed = {
+            "title": "🗑️ MOD ELIMINADO",
+            "color": 0x808080,  # Gris - Eliminado
+            "description": "Este mod ha sido eliminado",
+            "fields": [
+                {
+                    "name": "📛 Mod",
+                    "value": mod.name,
+                    "inline": True
+                },
+                {
+                    "name": "👤 Creador",
+                    "value": creator,
+                    "inline": True
+                },
+                {
+                    "name": "🗑️ Eliminado por",
+                    "value": f"{deleted_by.name} ({DiscordNotifier._safe_enum_value(deleted_by.rol)})",
+                    "inline": True
+                },
+                {
+                    "name": "📝 Descripción",
+                    "value": mod.description[:150] + "..." if len(mod.description or "") > 150 else mod.description,
+                    "inline": False
+                },
+                {
+                    "name": "💬 Razón de eliminación",
+                    "value": mod.comments if mod.comments else "Sin especificar",
+                    "inline": False
+                }
+            ],
+            "footer": {
+                "text": f"ID: {mod.id} • Eliminado: {mod.updated_at.strftime('%d/%m/%Y %H:%M UTC') if hasattr(mod.updated_at, 'strftime') else mod.updated_at}"
+            }
+        }
+        
+        return {"embeds": [embed]}
+    
+    @staticmethod
+    def _format_embed_restored(mod: Any, restored_by: Any) -> Dict[str, Any]:
+        """Formatea embed para restauración de mod"""
+        
+        # Obtener el creator del mod si existe
+        creator = mod.created_by if hasattr(mod, 'created_by') else "Desconocido"
+        
+        embed = {
+            "title": "✅ MOD RESTAURADO",
+            "color": 0x00DD00,  # Verde oscuro - Restaurado
+            "description": "Este mod ha sido restaurado y es visible nuevamente",
+            "fields": [
+                {
+                    "name": "📛 Mod",
+                    "value": mod.name,
+                    "inline": True
+                },
+                {
+                    "name": "👤 Creador",
+                    "value": creator,
+                    "inline": True
+                },
+                {
+                    "name": "✅ Restaurado por",
+                    "value": f"{restored_by.name} ({DiscordNotifier._safe_enum_value(restored_by.rol)})",
+                    "inline": True
+                },
+                {
+                    "name": "📝 Descripción",
+                    "value": mod.description[:150] + "..." if len(mod.description or "") > 150 else mod.description,
+                    "inline": False
+                },
+                {
+                    "name": "🔗 Ver Mod",
+                    "value": f"[Ir al mod]({DiscordConfig.get_mod_url(mod.slug)})",
+                    "inline": False
+                }
+            ],
+            "footer": {
+                "text": f"ID: {mod.id} • Restaurado: {mod.updated_at.strftime('%d/%m/%Y %H:%M UTC') if hasattr(mod.updated_at, 'strftime') else mod.updated_at}"
             }
         }
         

@@ -14,6 +14,10 @@ class CRUD_USERS:
     def get_users(self):
         return self.__db.query(User).filter(User.is_active == True).all()
 
+    def get_users_admin(self, skip: int = 0, limit: int = 20):
+        """Obtener todos los usuarios (incluyendo inactivos) - Solo para administradores"""
+        return self.__db.query(User).offset(skip).limit(limit).all()
+
     def get_user_by_id(self, user_id: int):
         """Obtener usuario por ID"""
         return self.__db.query(User).filter(User.id == user_id, User.is_active == True).first()

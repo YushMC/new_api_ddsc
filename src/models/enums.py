@@ -50,6 +50,8 @@ class NotificationTypeEnum(str, Enum):
     MOD_PENDING_REVIEW="mod_pending_review"
     MOD_APPROVED="mod_approved"
     MOD_REJECTED="mod_rejected"
+    MOD_DELETED="mod_deleted"
+    MOD_RESTORED="mod_restored"
 
 class NotificationStatusEnum(str, Enum):
     UNREAD="unread"
