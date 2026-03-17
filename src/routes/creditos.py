@@ -10,6 +10,7 @@ from src.utils.response_builder import ResponseBuilder
 from src.background_tasks import notify_mod_completed
 from pydantic import BaseModel
 from src.models.enums import CreditsTypeEnum
+from typing import cast
 
 router = APIRouter()
 db_init = DATABASE_INIT()
@@ -102,6 +103,9 @@ def get_credit(credit_id: int, db: Session = Depends(db_init.get_db)):
     crud = CRUD_CREDITS(db)
     credit = crud.get_credit(credit_id)
     
+    if not credit:
+        raise HTTPException(status_code=404, detail="Crédito no encontrado")
+    
     enriched = _enrich_credit_with_user(credit, db)
     
     return ResponseBuilder.success(
@@ -168,9 +172,9 @@ def update_credit(
     
     # Verificar si el mod está completo (tiene imágenes y créditos)
     crud_mod = CRUD_MOD(db)
-    if crud_mod.is_mod_complete(original_credit.id_mod):
+    if crud_mod.is_mod_complete(cast(int, original_credit.id_mod)):
         # Obtener el mod completo
-        mod = crud_mod.get_mod(original_credit.id_mod)
+        mod = crud_mod.get_mod(cast(int, original_credit.id_mod))
         if mod:
             # Agregar notificación a Discord como background task
             background_tasks.add_task(notify_mod_completed, mod)
