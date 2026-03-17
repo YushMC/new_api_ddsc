@@ -25,12 +25,19 @@ class ModBase(BaseModel):
     created_at: datetime | None = None
     deleted_at: datetime | None = None
     approved_at: datetime | None = None
+    rejected_at: datetime | None = None
 
     deleted_by: str | None = None
     approved_by: str | None = None
+    rejected_by: str | None = None
+    comments: str | None = None
 
 class ModCommplete(ModBase, TimestampBase):
     id: int
     credits: CreditsInfo | None = None
     images: list[ImageResponse] = []
+
+class ModRejectRequest(BaseModel):
+    """Schema para rechazar un mod"""
+    comments: str
 

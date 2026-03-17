@@ -257,3 +257,48 @@ class CRUD_MOD:
         self.__db.refresh(mod)
         
         return (mod, changes)
+    
+    def reject_mod(self, mod_id: int, user: TokenUser, comments: str):
+        """
+        Rechaza un mod (solo si required_revision es True)
+        
+        Args:
+            mod_id: ID del mod a rechazar
+            user: Usuario que rechaza (debe ser EDITOR/OWNER)
+            comments: Comentarios/razón del rechazo
+        
+        Returns:
+            Tuple (mod, changes) con el mod actualizado y los cambios
+        """
+        if user.rol == UserRolEnum.UPLOADER:
+            raise HTTPException(status_code=403, detail="Sin autorización para rechazar mods")
+        
+        mod = self.__db.query(Mod).filter(Mod.id == mod_id).first()
+        
+        if not mod:
+            raise HTTPException(status_code=404, detail="Mod no encontrado")
+        
+        if not mod.required_revision: #type: ignore
+            raise HTTPException(status_code=400, detail="Este mod no requiere revisión")
+        
+        changes = {
+            "required_revision": {
+                "old": True,
+                "new": False
+            },
+            "rejected": {
+                "old": False,
+                "new": True
+            }
+        }
+        
+        mod.required_revision = False #type: ignore
+        mod.rejected_by = str(user.name) # type: ignore
+        mod.rejected_at = datetime.now(UTC)  # type: ignore
+        mod.comments = comments  # type: ignore
+        mod.updated_by = str(user.name)
+        
+        self.__db.commit()
+        self.__db.refresh(mod)
+        
+        return (mod, changes)

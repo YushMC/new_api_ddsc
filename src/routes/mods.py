@@ -1,4 +1,4 @@
-from src.schemas.mods import ModBase, ModCommplete
+from src.schemas.mods import ModBase, ModCommplete, ModRejectRequest
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from src.middleware.jwt import get_current_user
 from src.conf.database import DATABASE_INIT
@@ -179,4 +179,52 @@ def approve_mod_route(
     return ResponseBuilder.updated(
         data=_prepare_mod_response(mod, db),
         message="Mod aprobado exitosamente"
+    )
+
+
+@router.post("/{mod_id}/rejected")
+def reject_mod_route(
+    mod_id: int,
+    request: ModRejectRequest,
+    user: TokenUser = Depends(get_current_user),
+    db: Session = Depends(db_init.get_db),
+    background_tasks: BackgroundTasks = BackgroundTasks()
+):
+    """
+    Rechazar un mod que requiere revisión (requiere EDITOR/OWNER)
+    
+    - Solo rechaza si required_revision es True
+    - Establece required_revision a False
+    - Marca rejected_at y rejected_by
+    - Guarda los comentarios del rechazo
+    - Crea notificación para el uploader
+    - Envía notificación a Discord
+    """
+    if user.rol == UserRolEnum.UPLOADER:
+        raise HTTPException(status_code=403, detail="No autorizado para rechazar mods")
+    
+    crud = CRUD_MOD(db)
+    mod, changes = crud.reject_mod(mod_id, user, request.comments)
+    
+    # Crear notificación para el uploader (creador del mod)
+    from src.services.notifications import CRUD_NOTIFICATION
+    notification_crud = CRUD_NOTIFICATION(db)
+    
+    # Obtener el usuario que creó el mod
+    from src.models.users import User
+    creator = db.query(User).filter(User.name == mod.created_by).first()
+    if creator:
+        notification_crud.notify_mod_rejected(
+            mod_id=mod_id,
+            mod_name=mod.name,
+            mod_creator_id=creator.id,
+            rejected_by=user.name
+        )
+    
+    # Agregar notificación a Discord como background task
+    background_tasks.add_task(DiscordNotifier.notify_mod_rejected, mod, user, request.comments)
+    
+    return ResponseBuilder.updated(
+        data=_prepare_mod_response(mod, db),
+        message="Mod rechazado exitosamente"
     )

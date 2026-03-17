@@ -216,6 +216,29 @@ class DiscordNotifier:
             return False
     
     @staticmethod
+    async def notify_mod_rejected(mod: Any, rejected_by: Any) -> bool:
+        """
+        Notifica cuando un mod es rechazado por admin
+        
+        Args:
+            mod: Objeto del mod
+            rejected_by: Usuario que rechazó (EDITOR/OWNER)
+        
+        Returns:
+            True si se envió exitosamente
+        """
+        if not DiscordConfig.is_configured():
+            return False
+        
+        try:
+            embed = DiscordNotifier._format_embed_rejected(mod, rejected_by)
+            await DiscordNotifier._send_webhook(embed)
+            return True
+        except Exception as e:
+            logger.error(f"Error notificando rechazo de mod a Discord: {e}")
+            return False
+    
+    @staticmethod
     def _format_embed_created(mod: Any, user: Any, is_approved: bool) -> Dict[str, Any]:
         """Formatea embed para creación de mod"""
         
@@ -382,6 +405,56 @@ class DiscordNotifier:
             ],
             "footer": {
                 "text": f"ID: {mod.id} • Aprobado: {mod.updated_at.strftime('%d/%m/%Y %H:%M UTC') if hasattr(mod.updated_at, 'strftime') else mod.updated_at}"
+            }
+        }
+        
+        return {"embeds": [embed]}
+    
+    @staticmethod
+    def _format_embed_rejected(mod: Any, rejected_by: Any) -> Dict[str, Any]:
+        """Formatea embed para rechazo de mod"""
+        
+        # Obtener el creator del mod si existe
+        creator = mod.created_by if hasattr(mod, 'created_by') else "Desconocido"
+        
+        embed = {
+            "title": "❌ MOD RECHAZADO",
+            "color": 0xFF0000,  # Rojo - Rechazado
+            "description": "Este mod ha sido rechazado y requiere revisión",
+            "fields": [
+                {
+                    "name": "📛 Mod",
+                    "value": mod.name,
+                    "inline": True
+                },
+                {
+                    "name": "👤 Creador",
+                    "value": creator,
+                    "inline": True
+                },
+                {
+                    "name": "❌ Rechazado por",
+                    "value": f"{rejected_by.name} ({DiscordNotifier._safe_enum_value(rejected_by.rol)})",
+                    "inline": True
+                },
+                {
+                    "name": "📝 Descripción",
+                    "value": mod.description[:150] + "..." if len(mod.description or "") > 150 else mod.description,
+                    "inline": False
+                },
+                {
+                    "name": "💬 Comentarios",
+                    "value": mod.comments if mod.comments else "Sin comentarios",
+                    "inline": False
+                },
+                {
+                    "name": "🔗 Ver Mod",
+                    "value": f"[Ir al mod]({DiscordConfig.get_mod_url(mod.slug)})",
+                    "inline": False
+                }
+            ],
+            "footer": {
+                "text": f"ID: {mod.id} • Rechazado: {mod.updated_at.strftime('%d/%m/%Y %H:%M UTC') if hasattr(mod.updated_at, 'strftime') else mod.updated_at}"
             }
         }
         
