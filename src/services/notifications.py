@@ -188,7 +188,7 @@ class CRUD_NOTIFICATION:
         
         # Obtener todos los usuarios que no sean UPLOADER (EDITOR y OWNER)
         editors_owners = self.__db.query(User).filter(
-            User.rol.in_([UserRolEnum.EDITOR, UserRolEnum.OWNER])
+            User.role.in_([UserRolEnum.EDITOR, UserRolEnum.OWNER])
         ).all()
         
         notifications = []
