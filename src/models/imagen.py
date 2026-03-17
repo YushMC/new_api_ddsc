@@ -19,6 +19,6 @@ class Image(__Base, TimestampMixin):
 
     mod_id = Column(Integer, ForeignKey(TABLE_NAMES.MODS + QUERY_PARAMS.JOIN_BY_ID))
 
-    mod = relationship("Mod", back_populates="images")
+    mod = relationship("Mod", back_populates=TABLE_NAMES.IMAGENES)
 
 
