@@ -25,10 +25,23 @@ def list_genres(user: TokenUser = Depends(get_current_user), db: Session = Depen
     
     crud = CRUD_GENRE(db)
     genres = crud.get_generos()
-    return ResponseBuilder.list_response(
-        data=[GenreResponse.model_validate(g) for g in genres],
-        message="Géneros obtenidos exitosamente"
-    )
+    
+    # Preparar cada género con la estructura info
+    prepared_genres = []
+    for g in genres:
+        genre_dict = ResponseBuilder._create_response_with_info(
+            GenreResponse.model_validate(g),
+            "success",
+            "",
+            force_info=True
+        )
+        prepared_genres.append(genre_dict["data"])
+    
+    return {
+        "response": "success",
+        "message": "Géneros obtenidos exitosamente",
+        "data": prepared_genres
+    }
 
 @router.get("/{genre_id}")
 def get_genre(genre_id: int, user: TokenUser = Depends(get_current_user), db: Session = Depends(db_init.get_db)):
@@ -40,7 +53,8 @@ def get_genre(genre_id: int, user: TokenUser = Depends(get_current_user), db: Se
     genre = crud.get_genero(genre_id)
     return ResponseBuilder.success(
         data=GenreResponse.model_validate(genre),
-        message="Género obtenido exitosamente"
+        message="Género obtenido exitosamente",
+        force_info=True
     )
 
 @router.post("")
@@ -53,7 +67,8 @@ def create_genre(genre_data: GenreCreate, user: TokenUser = Depends(get_current_
     genre = crud.create_genero(genre_data.name)
     return ResponseBuilder.created(
         data=GenreResponse.model_validate(genre),
-        message="Género creado exitosamente"
+        message="Género creado exitosamente",
+        force_info=True
     )
 
 @router.put("/{genre_id}")
@@ -66,7 +81,8 @@ def update_genre(genre_id: int, genre_data: GenreName, user: TokenUser = Depends
     genre = crud.update_genero(genre_id, genre_data.name)
     return ResponseBuilder.updated(
         data=GenreResponse.model_validate(genre),
-        message="Género actualizado exitosamente"
+        message="Género actualizado exitosamente",
+        force_info=True
     )
 
 @router.delete("/{genre_id}")

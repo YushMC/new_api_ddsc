@@ -146,18 +146,19 @@ class ResponseBuilder:
         return ResponseBuilder._create_response_with_info(data, "created", message, force_info=force_info)
     
     @staticmethod
-    def updated(data: Any, message: str = "Recurso actualizado exitosamente") -> dict:
+    def updated(data: Any, message: str = "Recurso actualizado exitosamente", force_info: bool = False) -> dict:
         """
         Construir respuesta de actualización exitosa
         
         Args:
             data: Datos del recurso actualizado
             message: Mensaje descriptivo
+            force_info: Si True, siempre crea estructura con info
             
         Returns:
             Dict con estructura estandarizada
         """
-        return ResponseBuilder._create_response_with_info(data, "updated", message)
+        return ResponseBuilder._create_response_with_info(data, "updated", message, force_info=force_info)
     
     @staticmethod
     def deleted(message: str = "Recurso eliminado exitosamente") -> dict:
