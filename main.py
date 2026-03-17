@@ -30,9 +30,9 @@ app.include_router(router_generos, prefix="/genres", tags=["genres"])
 app.include_router(router_imagenes, prefix="/images", tags=["images"])
 app.include_router(router_creditos, prefix="/credits", tags=["credits"])
 app.include_router(router_notifications, prefix="/notifications", tags=["notifications"])
-app.include_router(router_mod_statistics, prefix="/api/v1/statistics", tags=["statistics"])
-app.include_router(router_collections, prefix="/api/v1/collections", tags=["collections"])
-app.include_router(router_mods_collections, prefix="/api/v1/mods-collections", tags=["mods-collections"])
+app.include_router(router_mod_statistics, prefix="/statistics", tags=["statistics"])
+app.include_router(router_collections, prefix="/collections", tags=["collections"])
+app.include_router(router_mods_collections, prefix="/mods-collections", tags=["mods-collections"])
 
 # Ensure all models are imported before creating tables
 import src.models.generos
