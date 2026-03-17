@@ -9,6 +9,7 @@ from src.schemas.imagenes import ImageResponse
 from src.utils.image_processor import ImageProcessor
 from src.utils.s3_manager import S3Manager
 from src.utils.response_builder import ResponseBuilder
+from typing import cast
 
 router = APIRouter()
 db_init = DATABASE_INIT()
@@ -269,5 +270,198 @@ async def upload_screenshot(
         raise HTTPException(
             status_code=500,
             detail=f"Error procesando screenshot: {str(e)}"
+        )
+
+# ============================================================================
+# RUTAS PUT PARA ACTUALIZAR IMÁGENES (reemplazar anterior)
+# ============================================================================
+
+@router.put("/logo/{mod_id}")
+async def update_logo(
+    mod_id: int,
+    file: UploadFile = File(...),
+    user: TokenUser = Depends(get_current_user),
+    db: Session = Depends(db_init.get_db)
+):
+    """
+    Actualizar logo del mod (reemplaza el anterior)
+    
+    - Obtiene el logo actual
+    - Elimina el anterior de S3
+    - Procesa nueva imagen a WebP
+    - Sube a S3
+    - Actualiza en BD
+    
+    Requiere autenticación EDITOR/OWNER
+    """
+    if user.rol == UserRolEnum.UPLOADER:
+        raise HTTPException(status_code=403, detail="No autorizado para actualizar imágenes")
+    
+    try:
+        crud = CRUD_IMAGE(db)
+        s3_manager = S3Manager()
+        
+        # Obtener logo actual
+        existing_logo = crud.get_imagen_by_mod_and_type(mod_id, ImageTypeEnum.LOGO)
+        if not existing_logo:
+            raise HTTPException(status_code=404, detail="No existe logo para este mod")
+        
+        # Procesar imagen
+        file_content = await file.read()
+        ImageProcessor.validate_image(file_content, file.filename or "logo")
+        webp_content = ImageProcessor.process_to_webp(file_content, file.filename or "logo")
+        
+        # Eliminar logo anterior de S3
+        s3_manager.delete_file(cast(str, existing_logo.url))
+        
+        # Subir nueva imagen a S3
+        image_url = s3_manager.upload_file(
+            webp_content,
+            mod_id,
+            ImageTypeEnum.LOGO.value,
+            file.filename or "logo"
+        )
+        
+        # Actualizar en BD
+        image = crud.update_imagen(cast(int, existing_logo.id), {"url": image_url})
+        
+        return ResponseBuilder.updated(
+            data=ImageResponse.model_validate(image),
+            message="Logo actualizado exitosamente",
+            force_info=True
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error actualizando logo: {str(e)}"
+        )
+
+@router.put("/main/{mod_id}")
+async def update_main(
+    mod_id: int,
+    file: UploadFile = File(...),
+    user: TokenUser = Depends(get_current_user),
+    db: Session = Depends(db_init.get_db)
+):
+    """
+    Actualizar imagen principal del mod (reemplaza la anterior)
+    
+    - Obtiene la imagen actual
+    - Elimina la anterior de S3
+    - Procesa nueva imagen a WebP
+    - Sube a S3
+    - Actualiza en BD
+    
+    Requiere autenticación EDITOR/OWNER
+    """
+    if user.rol == UserRolEnum.UPLOADER:
+        raise HTTPException(status_code=403, detail="No autorizado para actualizar imágenes")
+    
+    try:
+        crud = CRUD_IMAGE(db)
+        s3_manager = S3Manager()
+        
+        # Obtener imagen main actual
+        existing_main = crud.get_imagen_by_mod_and_type(mod_id, ImageTypeEnum.MAIN)
+        if not existing_main:
+            raise HTTPException(status_code=404, detail="No existe imagen main para este mod")
+        
+        # Procesar imagen
+        file_content = await file.read()
+        ImageProcessor.validate_image(file_content, file.filename or "main")
+        webp_content = ImageProcessor.process_to_webp(file_content, file.filename or "main")
+        
+        # Eliminar imagen anterior de S3
+        s3_manager.delete_file(cast(str, existing_main.url))
+        
+        # Subir nueva imagen a S3
+        image_url = s3_manager.upload_file(
+            webp_content,
+            mod_id,
+            ImageTypeEnum.MAIN.value,
+            file.filename or "main"
+        )
+        
+        # Actualizar en BD
+        image = crud.update_imagen(cast(int, existing_main.id), {"url": image_url})
+        
+        return ResponseBuilder.updated(
+            data=ImageResponse.model_validate(image),
+            message="Imagen principal actualizada exitosamente",
+            force_info=True
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error actualizando imagen main: {str(e)}"
+        )
+
+@router.put("/screenshots/{image_id}")
+async def update_screenshot(
+    image_id: int,
+    file: UploadFile = File(...),
+    user: TokenUser = Depends(get_current_user),
+    db: Session = Depends(db_init.get_db)
+):
+    """
+    Actualizar una captura de pantalla específica (reemplaza la anterior)
+    
+    - Obtiene la screenshot por ID
+    - Elimina la anterior de S3
+    - Procesa nueva imagen a WebP
+    - Sube a S3
+    - Actualiza en BD
+    
+    Requiere autenticación EDITOR/OWNER
+    """
+    if user.rol == UserRolEnum.UPLOADER:
+        raise HTTPException(status_code=403, detail="No autorizado para actualizar imágenes")
+    
+    try:
+        crud = CRUD_IMAGE(db)
+        s3_manager = S3Manager()
+        
+        # Obtener screenshot actual
+        existing_screenshot = crud.get_imagen(image_id)
+        if not existing_screenshot or cast(str, existing_screenshot.type) != ImageTypeEnum.SCREENSHOT.value:
+            raise HTTPException(status_code=404, detail="Screenshot no encontrada")
+        
+        # Procesar imagen
+        file_content = await file.read()
+        ImageProcessor.validate_image(file_content, file.filename or "screenshot")
+        webp_content = ImageProcessor.process_to_webp(file_content, file.filename or "screenshot")
+        
+        # Eliminar screenshot anterior de S3
+        s3_manager.delete_file(cast(str, existing_screenshot.url))
+        
+        # Subir nueva imagen a S3
+        image_url = s3_manager.upload_file(
+            webp_content,
+            cast(int, existing_screenshot.mod_id),
+            ImageTypeEnum.SCREENSHOT.value,
+            file.filename or "screenshot"
+        )
+        
+        # Actualizar en BD
+        image = crud.update_imagen(image_id, {"url": image_url})
+        
+        return ResponseBuilder.updated(
+            data=ImageResponse.model_validate(image),
+            message="Screenshot actualizada exitosamente",
+            force_info=True
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error actualizando screenshot: {str(e)}"
         )
 
