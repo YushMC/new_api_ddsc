@@ -38,7 +38,6 @@ six==1.17.0
 SQLAlchemy==2.0.48
 starlette==0.52.1
 typing-extensions==4.15.0
-urllib3==2.6.3
 uvicorn==0.41.0
 uvloop==0.22.1
 watchfiles==1.1.1
