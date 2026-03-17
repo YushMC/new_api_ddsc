@@ -16,5 +16,5 @@ class ModGenre(__Base, TimestampMixin):
     genre_id = Column(Integer, ForeignKey(TABLE_NAMES.GENEROS + QUERY_PARAMS.JOIN_BY_ID), nullable=False, index=True)
 
     # Relaciones
-    mod = relationship("Mod", backref="mod_genres")
+    mod = relationship("Mod", back_populates="mod_genres")
     genre = relationship("Genre", backref="mod_genres")
