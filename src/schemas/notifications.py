@@ -31,3 +31,6 @@ class NotificationCreate(BaseModel):
     message: Optional[str] = None
     action_by: Optional[str] = None
     mod_name: Optional[str] = None
+
+class UpdateNotificationType(BaseModel):
+    type: NotificationTypeEnum

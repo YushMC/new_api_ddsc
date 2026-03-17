@@ -172,6 +172,33 @@ class CRUD_NOTIFICATION:
         
         return notification
     
+    def update_notification_type(self, notification_id: int, user_id: int, new_type: NotificationTypeEnum):
+        """
+        Actualiza el tipo de una notificación
+        
+        Args:
+            notification_id: ID de la notificación
+            user_id: ID del usuario (para validar ownership)
+            new_type: Nuevo tipo de notificación
+        
+        Returns:
+            Notification actualizada
+        """
+        notification = self.__db.query(Notification).filter(
+            Notification.id == notification_id,
+            Notification.id_user == user_id
+        ).first()
+        
+        if not notification:
+            raise HTTPException(status_code=404, detail="Notificación no encontrada")
+        
+        notification.type = new_type
+        
+        self.__db.commit()
+        self.__db.refresh(notification)
+        
+        return notification
+    
     def notify_mod_pending_review(self, mod_id: int, mod_name: str, uploader_name: str):
         """
         Crea notificaciones para TODOS los EDITORS/OWNERS cuando un mod requiere revisión

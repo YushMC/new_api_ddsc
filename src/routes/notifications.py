@@ -4,7 +4,7 @@ from src.conf.database import DATABASE_INIT
 from src.middleware.jwt import get_current_user
 from src.services.token import TokenUser
 from src.services.notifications import CRUD_NOTIFICATION
-from src.schemas.notifications import NotificationResponse
+from src.schemas.notifications import NotificationResponse, UpdateNotificationType
 from src.utils.response_builder import ResponseBuilder
 from src.models.enums import NotificationStatusEnum
 from typing import Optional
@@ -113,3 +113,25 @@ def delete_notification(
     crud.delete_notification(notification_id, user.id)
     
     return ResponseBuilder.deleted(message="Notificación eliminada exitosamente")
+
+
+@router.put("/{notification_id}/type")
+def update_notification_type(
+    notification_id: int,
+    request: UpdateNotificationType,
+    user: TokenUser = Depends(get_current_user),
+    db: Session = Depends(db_init.get_db)
+):
+    """
+    Actualizar el tipo de una notificación
+    
+    - notification_id: ID de la notificación
+    - type: Nuevo tipo de notificación (mod_pending_review, mod_approved, mod_rejected)
+    """
+    crud = CRUD_NOTIFICATION(db)
+    notification = crud.update_notification_type(notification_id, user.id, request.type)
+    
+    return ResponseBuilder.updated(
+        data=NotificationResponse.model_validate(notification).model_dump(),
+        message="Tipo de notificación actualizado exitosamente"
+    )
