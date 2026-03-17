@@ -17,6 +17,8 @@ class CRUD_IMAGE:
 
         # Validate image type limits
         image_type = data.get("type")
+        if not image_type:
+            raise HTTPException(status_code=400, detail="El tipo de imagen es requerido")
         current_count = self.count_imagenes_by_mod_and_type(data["mod_id"], image_type)
         
         # Check limits based on type

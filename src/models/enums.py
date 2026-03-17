@@ -45,3 +45,12 @@ class CreditsTypeEnum(str, Enum):
     PORTER="porter"
     TRANSLATOR="translator"
     ORIGINAL_CREATOR="original_creator"
+
+class NotificationTypeEnum(str, Enum):
+    MOD_PENDING_REVIEW="mod_pending_review"
+    MOD_APPROVED="mod_approved"
+    MOD_REJECTED="mod_rejected"
+
+class NotificationStatusEnum(str, Enum):
+    UNREAD="unread"
+    READ="read"

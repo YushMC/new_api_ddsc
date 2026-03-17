@@ -13,6 +13,7 @@ class TABLE_NAMES:
     PERSONAJES="characters"
     IMAGENES="images"
     CREDITOS="credits"
+    NOTIFICATIONS="notifications"
 
 class SESSION_KEYS:
     JWT_KEY="JWT_KEY"
@@ -21,4 +22,4 @@ class SESSION_KEYS:
 class QUERY_PARAMS:
     JOIN_BY_ID=".id"
 
-   
+    

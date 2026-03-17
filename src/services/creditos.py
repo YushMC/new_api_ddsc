@@ -87,7 +87,7 @@ class CRUD_CREDITS:
             raise HTTPException(status_code=400, detail="Debe proporcionar al menos un campo para actualizar")
         
         # Si se actualiza el tipo a porter, verificar que no exista otro
-        if credit_type == CreditsTypeEnum.PORTER and credit.type != CreditsTypeEnum.PORTER:
+        if credit_type == CreditsTypeEnum.PORTER and credit.type != CreditsTypeEnum.PORTER:  # type: ignore
             existing_porter = self.__db.query(Credit).filter(
                 Credit.id_mod == credit.id_mod,
                 Credit.type == CreditsTypeEnum.PORTER,
@@ -123,7 +123,7 @@ class CRUD_CREDITS:
         if not credit:
             raise HTTPException(status_code=404, detail="Crédito no encontrado")
         
-        credit.is_active = False
+        credit.is_active = False #type: ignore
         self.__db.commit()
         self.__db.refresh(credit)
         

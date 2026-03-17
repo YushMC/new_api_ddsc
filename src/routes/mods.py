@@ -85,6 +85,17 @@ def create_mod_route(
     crud = CRUD_MOD(db)
     mod = crud.create_mod(data, user)
     
+    # Si es UPLOADER, crear notificaciones para EDITORS/OWNERS
+    if user.rol == UserRolEnum.UPLOADER:
+        from src.services.notifications import CRUD_NOTIFICATION
+        notification_crud = CRUD_NOTIFICATION(db)
+        background_tasks.add_task(
+            notification_crud.notify_mod_pending_review,
+            mod_id=mod.id,
+            mod_name=mod.name,
+            uploader_name=user.name
+        )
+    
     # Agregar notificación a Discord como background task (no bloquea respuesta)
     background_tasks.add_task(notify_mod_created, mod, user)
     
@@ -137,6 +148,7 @@ def approve_mod_route(
     - Solo aprueba si required_revision es True
     - Establece required_revision a False
     - Marca approved_at y approved_by
+    - Crea notificación para el uploader
     - Envía notificación a Discord
     """
     if user.rol == UserRolEnum.UPLOADER:
@@ -144,6 +156,22 @@ def approve_mod_route(
     
     crud = CRUD_MOD(db)
     mod, changes = crud.approve_mod(mod_id, user)
+    
+    # Crear notificación para el uploader (creador del mod)
+    from src.services.notifications import CRUD_NOTIFICATION
+    notification_crud = CRUD_NOTIFICATION(db)
+    
+    # El mod tiene el id del usuario que lo creó en created_by, pero necesitamos el user_id
+    # Debemos obtener el usuario que creó el mod
+    from src.models.users import User
+    creator = db.query(User).filter(User.name == mod.created_by).first()
+    if creator:
+        notification_crud.notify_mod_approved(
+            mod_id=mod_id,
+            mod_name=mod.name,
+            mod_creator_id=creator.id,
+            approved_by=user.name
+        )
     
     # Agregar notificación a Discord como background task
     background_tasks.add_task(DiscordNotifier.notify_mod_approved, mod, user)
