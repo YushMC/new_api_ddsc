@@ -5,6 +5,7 @@ from src.services.generos import CRUD_GENRE
 from src.middleware.jwt import get_current_user, verify_admin_role
 from src.services.token import TokenUser
 from src.models.enums import UserRolEnum
+from src.models.generos import Genre
 from src.schemas.generos import GenreCreate, GenreResponse
 from src.schemas.response import ApiResponse, ApiListResponse
 from src.utils.response_builder import ResponseBuilder
@@ -79,6 +80,22 @@ def get_genre(genre_id: int, user: TokenUser = Depends(get_current_user), db: Se
     
     crud = CRUD_GENRE(db)
     genre = crud.get_genero(genre_id)
+    return ResponseBuilder.success(
+        data=GenreResponse.model_validate(genre),
+        message="Género obtenido exitosamente",
+        force_info=True
+    )
+
+@router.get("/admin/{genre_id}")
+def get_genre_admin(
+    genre_id: int,
+    db: Session = Depends(db_init.get_db),
+    user: TokenUser = Depends(verify_admin_role)
+):
+    """Obtener un género específico incluyendo inactivos (solo OWNER/EDITOR)"""
+    genre = db.query(Genre).filter(Genre.id == genre_id).first()
+    if not genre:
+        raise HTTPException(status_code=404, detail="Género no encontrado")
     return ResponseBuilder.success(
         data=GenreResponse.model_validate(genre),
         message="Género obtenido exitosamente",

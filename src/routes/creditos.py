@@ -5,6 +5,7 @@ from src.services.creditos import CRUD_CREDITS
 from src.services.mods import CRUD_MOD
 from src.middleware.jwt import get_current_user, verify_admin_role
 from src.services.token import TokenUser
+from src.models.credits import Credit
 from src.schemas.credits import CreditCreate, CreditResponse
 from src.utils.response_builder import ResponseBuilder
 from src.background_tasks import notify_mod_completed
@@ -126,6 +127,26 @@ def get_credit(credit_id: int, db: Session = Depends(db_init.get_db)):
     """Obtener un crédito específico (públicamente disponible)"""
     crud = CRUD_CREDITS(db)
     credit = crud.get_credit(credit_id)
+    
+    if not credit:
+        raise HTTPException(status_code=404, detail="Crédito no encontrado")
+    
+    enriched = _enrich_credit_with_user(credit, db)
+    
+    return ResponseBuilder.success(
+        data=enriched,
+        message="Crédito obtenido exitosamente"
+    )
+
+
+@router.get("/admin/{credit_id}")
+def get_credit_admin(
+    credit_id: int,
+    db: Session = Depends(db_init.get_db),
+    user: TokenUser = Depends(verify_admin_role)
+):
+    """Obtener un crédito específico incluyendo inactivos (solo OWNER/EDITOR)"""
+    credit = db.query(Credit).filter(Credit.id == credit_id).first()
     
     if not credit:
         raise HTTPException(status_code=404, detail="Crédito no encontrado")

@@ -8,6 +8,7 @@ from src.background_tasks import notify_mod_created, notify_mod_updated
 from src.utils.response_builder import ResponseBuilder
 from src.utils.discord_notifier import DiscordNotifier
 from src.models.enums import UserRolEnum
+from src.models.mods import Mod
 from sqlalchemy.orm import Session
 
 router = APIRouter()
@@ -111,6 +112,21 @@ def get_mod(mod_id: int, db: Session = Depends(db_init.get_db)):
     """Obtener un mod específico por ID (públicamente disponible)"""
     crud = CRUD_MOD(db)
     mod = crud.get_mod(mod_id)
+    if not mod:
+        raise HTTPException(status_code=404, detail="Mod no encontrado")
+    return ResponseBuilder.success(
+        data=_prepare_mod_response(mod, db),
+        message="Mod obtenido exitosamente"
+    )
+
+@router.get("/admin/{mod_id}")
+def get_mod_admin(
+    mod_id: int,
+    db: Session = Depends(db_init.get_db),
+    user: TokenUser = Depends(verify_admin_role)
+):
+    """Obtener un mod específico por ID (incluyendo inactivos - solo OWNER/EDITOR)"""
+    mod = db.query(Mod).filter(Mod.id == mod_id).first()
     if not mod:
         raise HTTPException(status_code=404, detail="Mod no encontrado")
     return ResponseBuilder.success(

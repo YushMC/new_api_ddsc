@@ -5,6 +5,7 @@ from src.services.imagenes import CRUD_IMAGE
 from src.middleware.jwt import get_current_user, verify_admin_role
 from src.services.token import TokenUser
 from src.models.enums import UserRolEnum, ImageTypeEnum
+from src.models.imagen import Image
 from src.schemas.imagenes import ImageResponse
 from src.utils.image_processor import ImageProcessor
 from src.utils.s3_manager import S3Manager
@@ -76,6 +77,22 @@ def get_image(image_id: int, db: Session = Depends(db_init.get_db)):
     
     crud = CRUD_IMAGE(db)
     image = crud.get_imagen(image_id)
+    if not image:
+        raise HTTPException(status_code=404, detail="Imagen no encontrada")
+    return ResponseBuilder.success(
+        data=ImageResponse.model_validate(image),
+        message="Imagen obtenida exitosamente",
+        force_info=True
+    )
+
+@router.get("/admin/{image_id}")
+def get_image_admin(
+    image_id: int,
+    db: Session = Depends(db_init.get_db),
+    user: TokenUser = Depends(verify_admin_role)
+):
+    """Obtener una imagen específica incluyendo inactivas (solo OWNER/EDITOR)"""
+    image = db.query(Image).filter(Image.id == image_id).first()
     if not image:
         raise HTTPException(status_code=404, detail="Imagen no encontrada")
     return ResponseBuilder.success(
