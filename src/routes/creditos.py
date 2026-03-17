@@ -160,12 +160,19 @@ def update_credit(
     
     # Obtener el crédito original para saber el mod_id
     original_credit = crud.get_credit(credit_id)
+    if not original_credit:
+        raise HTTPException(status_code=404, detail="Crédito no encontrado")
+    
+    # Lógica: si id_user es null, usar y actualizar name
+    #         si id_user no es null, ignorar name (será null en DB)
+    update_id_user = data.id_user if data.id_user is not None else original_credit.id_user
+    update_name = data.name if data.id_user is not None else (data.name if data.name is not None else original_credit.name)
     
     credit = crud.update_credit(
         credit_id=credit_id,
-        id_user=data.id_user,
-        name=data.name,
-        credit_type=data.type
+        id_user=update_id_user,
+        name=update_name,
+        credit_type=data.type if data.type is not None else original_credit.type
     )
     
     enriched = _enrich_credit_with_user(credit, db)
