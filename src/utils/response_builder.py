@@ -68,7 +68,7 @@ class ResponseBuilder:
         return resource_data, info_data, credits_data
     
     @staticmethod
-    def _create_response_with_info(data: Any, response_type: str, message: str) -> dict:
+    def _create_response_with_info(data: Any, response_type: str, message: str, force_info: bool = False) -> dict:
         """
         Crea una respuesta separando timestamp info y credits
         
@@ -76,6 +76,7 @@ class ResponseBuilder:
             data: Datos del recurso
             response_type: Tipo de respuesta (success, created, updated, etc)
             message: Mensaje descriptivo
+            force_info: Si True, siempre crea estructura con info aunque sea vacío
             
         Returns:
             Dict con estructura estandarizada
@@ -89,8 +90,8 @@ class ResponseBuilder:
         
         resource_data, info_data, credits_data = ResponseBuilder._extract_info(data)
         
-        # Si no hay campos de timestamp ni credits, retornar sin info
-        if not info_data and credits_data is None:
+        # Si no hay campos de timestamp ni credits, retornar sin info (a menos que force_info=True)
+        if not info_data and credits_data is None and not force_info:
             return {
                 "response": response_type,
                 "message": message,
@@ -102,7 +103,7 @@ class ResponseBuilder:
             "resource": resource_data
         }
         
-        if info_data:
+        if info_data or force_info:
             response_data["info"] = info_data
         
         if credits_data is not None:
@@ -115,32 +116,34 @@ class ResponseBuilder:
         }
     
     @staticmethod
-    def success(data: Any = None, message: str = "Operación completada exitosamente") -> dict:
+    def success(data: Any = None, message: str = "Operación completada exitosamente", force_info: bool = False) -> dict:
         """
         Construir respuesta de éxito
         
         Args:
             data: Datos a retornar
             message: Mensaje descriptivo
+            force_info: Si True, siempre crea estructura con info
             
         Returns:
             Dict con estructura estandarizada
         """
-        return ResponseBuilder._create_response_with_info(data, "success", message)
+        return ResponseBuilder._create_response_with_info(data, "success", message, force_info=force_info)
     
     @staticmethod
-    def created(data: Any, message: str = "Recurso creado exitosamente") -> dict:
+    def created(data: Any, message: str = "Recurso creado exitosamente", force_info: bool = False) -> dict:
         """
         Construir respuesta de creación exitosa
         
         Args:
             data: Datos del recurso creado
             message: Mensaje descriptivo
+            force_info: Si True, siempre crea estructura con info
             
         Returns:
             Dict con estructura estandarizada
         """
-        return ResponseBuilder._create_response_with_info(data, "created", message)
+        return ResponseBuilder._create_response_with_info(data, "created", message, force_info=force_info)
     
     @staticmethod
     def updated(data: Any, message: str = "Recurso actualizado exitosamente") -> dict:

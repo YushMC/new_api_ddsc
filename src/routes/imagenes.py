@@ -25,10 +25,23 @@ def get_images_by_mod(mod_id: int, user: TokenUser = Depends(get_current_user), 
     
     crud = CRUD_IMAGE(db)
     images = crud.get_imagenes_mod(mod_id)
-    return ResponseBuilder.list_response(
-        data=[ImageResponse.model_validate(img) for img in images],
-        message="Imágenes obtenidas exitosamente"
-    )
+    
+    # Preparar cada imagen con la estructura info
+    prepared_images = []
+    for img in images:
+        img_dict = ResponseBuilder._create_response_with_info(
+            ImageResponse.model_validate(img),
+            "success",
+            "",
+            force_info=True
+        )
+        prepared_images.append(img_dict["data"])
+    
+    return {
+        "response": "success",
+        "message": "Imágenes obtenidas exitosamente",
+        "data": prepared_images
+    }
 
 @router.get("/{image_id}")
 def get_image(image_id: int, user: TokenUser = Depends(get_current_user), db: Session = Depends(db_init.get_db)):
@@ -42,7 +55,8 @@ def get_image(image_id: int, user: TokenUser = Depends(get_current_user), db: Se
         raise HTTPException(status_code=404, detail="Imagen no encontrada")
     return ResponseBuilder.success(
         data=ImageResponse.model_validate(image),
-        message="Imagen obtenida exitosamente"
+        message="Imagen obtenida exitosamente",
+        force_info=True
     )
 
 @router.delete("/{image_id}")
@@ -117,7 +131,8 @@ async def upload_logo(
         image = crud.create_imagen(image_data)
         return ResponseBuilder.created(
             data=ImageResponse.model_validate(image),
-            message="Logo subido exitosamente"
+            message="Logo subido exitosamente",
+            force_info=True
         )
         
     except HTTPException:
@@ -182,7 +197,8 @@ async def upload_main(
         image = crud.create_imagen(image_data)
         return ResponseBuilder.created(
             data=ImageResponse.model_validate(image),
-            message="Imagen principal subida exitosamente"
+            message="Imagen principal subida exitosamente",
+            force_info=True
         )
         
     except HTTPException:
@@ -247,7 +263,8 @@ async def upload_screenshot(
         image = crud.create_imagen(image_data)
         return ResponseBuilder.created(
             data=ImageResponse.model_validate(image),
-            message="Captura de pantalla subida exitosamente"
+            message="Captura de pantalla subida exitosamente",
+            force_info=True
         )
         
     except HTTPException:
