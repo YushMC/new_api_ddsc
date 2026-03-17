@@ -170,7 +170,7 @@ class CRUD_MOD:
             old_val = changes["required_revision"]["old"]
             new_val = changes["required_revision"]["new"]
             if old_val == True and new_val == False:
-                mod.approved_at = datetime.now(UTC)
+                mod.approved_at = datetime.now(UTC) # type: ignore
         
         mod.updated_by = str(user.name)
 
@@ -190,7 +190,7 @@ class CRUD_MOD:
             raise HTTPException(status_code=404, detail="Mod no encontrado")
 
         mod.is_active = False
-        mod.deleted_by = str(user.name)
+        mod.deleted_by = str(user.name) # type: ignore
         self.__db.commit()
         self.__db.refresh(mod)
 
@@ -218,3 +218,42 @@ class CRUD_MOD:
         has_credits = len([c for c in mod.credits if c.is_active]) > 0 if hasattr(mod, 'credits') and mod.credits else False
         
         return has_images and has_credits
+    
+    def approve_mod(self, mod_id: int, user: TokenUser):
+        """
+        Aprueba un mod (solo si required_revision es True)
+        
+        Args:
+            mod_id: ID del mod a aprobar
+            user: Usuario que aprueba (debe ser EDITOR/OWNER)
+        
+        Returns:
+            Tuple (mod, changes) con el mod actualizado y los cambios
+        """
+        if user.rol == UserRolEnum.UPLOADER:
+            raise HTTPException(status_code=403, detail="Sin autorización para aprobar mods")
+        
+        mod = self.__db.query(Mod).filter(Mod.id == mod_id).first()
+        
+        if not mod:
+            raise HTTPException(status_code=404, detail="Mod no encontrado")
+        
+        if not mod.required_revision:
+            raise HTTPException(status_code=400, detail="Este mod no requiere revisión")
+        
+        changes = {
+            "required_revision": {
+                "old": True,
+                "new": False
+            }
+        }
+        
+        mod.required_revision = False
+        mod.approved_by = str(user.name)
+        mod.approved_at = datetime.now(UTC)  # type: ignore
+        mod.updated_by = str(user.name)
+        
+        self.__db.commit()
+        self.__db.refresh(mod)
+        
+        return (mod, changes)

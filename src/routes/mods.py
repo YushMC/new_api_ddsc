@@ -6,6 +6,8 @@ from src.services.mods import CRUD_MOD
 from src.services.token import TokenUser
 from src.background_tasks import notify_mod_created, notify_mod_updated
 from src.utils.response_builder import ResponseBuilder
+from src.utils.discord_notifier import DiscordNotifier
+from src.models.enums import UserRolEnum
 from sqlalchemy.orm import Session
 
 router = APIRouter()
@@ -121,3 +123,32 @@ def delete_mod_route(
     crud = CRUD_MOD(db)
     mod = crud.delete_mod(mod_id, user)
     return ResponseBuilder.deleted(message="Mod eliminado exitosamente")
+
+@router.post("/{mod_id}/approve")
+def approve_mod_route(
+    mod_id: int,
+    user: TokenUser = Depends(get_current_user),
+    db: Session = Depends(db_init.get_db),
+    background_tasks: BackgroundTasks = BackgroundTasks()
+):
+    """
+    Aprobar un mod que requiere revisión (requiere EDITOR/OWNER)
+    
+    - Solo aprueba si required_revision es True
+    - Establece required_revision a False
+    - Marca approved_at y approved_by
+    - Envía notificación a Discord
+    """
+    if user.rol == UserRolEnum.UPLOADER:
+        raise HTTPException(status_code=403, detail="No autorizado para aprobar mods")
+    
+    crud = CRUD_MOD(db)
+    mod, changes = crud.approve_mod(mod_id, user)
+    
+    # Agregar notificación a Discord como background task
+    background_tasks.add_task(DiscordNotifier.notify_mod_approved, mod, user)
+    
+    return ResponseBuilder.updated(
+        data=_prepare_mod_response(mod, db),
+        message="Mod aprobado exitosamente"
+    )
