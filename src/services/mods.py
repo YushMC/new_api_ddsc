@@ -2,6 +2,7 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from src.schemas.mods import ModBase
 from src.models.mods import Mod
+from src.models.mod_genre import ModGenre
 from src.models.enums import UserRolEnum, CreditsTypeEnum
 from src.services.token import TokenUser
 from src.utils.slug_normalizer import normalize_slug
@@ -118,6 +119,10 @@ class CRUD_MOD:
 
     def get_mods(self, skip: int = 0, limit: int = 20):
         return self.__db.query(Mod).filter(Mod.is_active == True).offset(skip).limit(limit).all()
+    
+    def get_mods_admin(self, skip: int = 0, limit: int = 20):
+        """Obtener todos los mods (incluyendo inactivos) - Solo para administradores"""
+        return self.__db.query(Mod).offset(skip).limit(limit).all()
     
     def update_mod(self, mod_id: int, data: ModBase, user: TokenUser):
         if user.rol == UserRolEnum.UPLOADER:
@@ -302,3 +307,108 @@ class CRUD_MOD:
         self.__db.refresh(mod)
         
         return (mod, changes)
+    
+    def add_genres_to_mod(self, mod_id: int, genre_ids: list[int]):
+        """
+        Agrega géneros a un mod
+        - Si el genre ya existe y está activo: no hace nada
+        - Si el genre existe pero está soft-deleted: lo reactiva
+        - Si el genre no existe: crea una nueva asociación
+        
+        Args:
+            mod_id: ID del mod
+            genre_ids: Lista de IDs de géneros a agregar
+        
+        Returns:
+            Mod actualizado con los nuevos géneros
+        """
+        from src.models.generos import Genre
+        
+        # Verificar que el mod existe
+        mod = self.__db.query(Mod).filter(Mod.id == mod_id).first()
+        if not mod:
+            raise HTTPException(status_code=404, detail="Mod no encontrado")
+        
+        # Verificar que todos los géneros existen
+        genres = self.__db.query(Genre).filter(Genre.id.in_(genre_ids)).all()
+        if len(genres) != len(genre_ids):
+            raise HTTPException(status_code=400, detail="Algunos géneros no existen")
+        
+        # Agregar géneros al mod (evitar duplicados activos)
+        for genre_id in genre_ids:
+            # Verificar si existe una asociación (activa o inactiva)
+            existing = self.__db.query(ModGenre).filter(
+                ModGenre.mod_id == mod_id,
+                ModGenre.genre_id == genre_id
+            ).first()
+            
+            if existing:
+                # Si existe pero está inactivo, reactivarlo
+                if not existing.is_active:
+                    existing.is_active = True
+                    self.__db.commit()
+                # Si ya está activo, no hacer nada
+            else:
+                # Crear nueva asociación
+                new_association = ModGenre(
+                    mod_id=mod_id,
+                    genre_id=genre_id,
+                    is_active=True
+                )
+                self.__db.add(new_association)
+                self.__db.commit()
+        
+        self.__db.refresh(mod)
+        
+        return mod
+    
+    def remove_genres_from_mod(self, mod_id: int, genre_ids: list[int]):
+        """
+        Remueve géneros de un mod (soft delete - marca como inactivo)
+        
+        Args:
+            mod_id: ID del mod
+            genre_ids: Lista de IDs de géneros a remover
+        
+        Returns:
+            Mod actualizado sin los géneros removidos
+        """
+        # Verificar que el mod existe
+        mod = self.__db.query(Mod).filter(Mod.id == mod_id).first()
+        if not mod:
+            raise HTTPException(status_code=404, detail="Mod no encontrado")
+        
+        # Soft delete: marcar las asociaciones como inactivas
+        mod_genres = self.__db.query(ModGenre).filter(
+            ModGenre.mod_id == mod_id,
+            ModGenre.genre_id.in_(genre_ids)
+        ).all()
+        
+        for mod_genre in mod_genres:
+            mod_genre.is_active = False
+        
+        self.__db.commit()
+        self.__db.refresh(mod)
+        
+        return mod
+    
+    def get_mod_genres(self, mod_id: int):
+        """
+        Obtiene los géneros activos de un mod
+        
+        Args:
+            mod_id: ID del mod
+        
+        Returns:
+            Lista de géneros activos del mod
+        """
+        mod = self.__db.query(Mod).filter(Mod.id == mod_id).first()
+        if not mod:
+            raise HTTPException(status_code=404, detail="Mod no encontrado")
+        
+        # Retornar solo los géneros activos
+        if hasattr(mod, 'mod_genres') and mod.mod_genres:
+            return [mg.genre for mg in mod.mod_genres if mg.is_active]
+        
+        return []
+

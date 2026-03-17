@@ -4,7 +4,6 @@ from src.conf.database import DATABASE_INIT
 from src.conf.all_keys import TABLE_NAMES
 from src.models.enums import StatusEnum, DurationEnum, CharacterEnum, ModTypeEnum
 
-from src.models.relations import mods_genres
 from src.models.timestamp import TimestampMixin
 
 __Base = DATABASE_INIT().BASE_TYPE
@@ -35,7 +34,7 @@ class Mod(__Base, TimestampMixin):
         back_populates="mod",
         cascade="all, delete"
     )
-    genres = relationship("Genre", secondary=mods_genres)
+    mod_genres = relationship("ModGenre", back_populates="mod", cascade="all, delete")
     credits = relationship(
         "Credit",
         cascade="all, delete",
