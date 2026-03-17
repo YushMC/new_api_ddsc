@@ -18,10 +18,8 @@ db_init = DATABASE_INIT()
 # ============================================================================
 
 @router.get("/mod/{mod_id}")
-def get_images_by_mod(mod_id: int, user: TokenUser = Depends(get_current_user), db: Session = Depends(db_init.get_db)):
-    """Obtener todas las imágenes de un mod (requiere autenticación OWNER/EDITOR)"""
-    if user.rol == UserRolEnum.UPLOADER:
-        raise HTTPException(status_code=403, detail="No autorizado para obtener imágenes")
+def get_images_by_mod(mod_id: int, db: Session = Depends(db_init.get_db)):
+    """Obtener todas las imágenes de un mod (públicamente disponible)"""
     
     crud = CRUD_IMAGE(db)
     images = crud.get_imagenes_mod(mod_id)
@@ -44,10 +42,8 @@ def get_images_by_mod(mod_id: int, user: TokenUser = Depends(get_current_user), 
     }
 
 @router.get("/{image_id}")
-def get_image(image_id: int, user: TokenUser = Depends(get_current_user), db: Session = Depends(db_init.get_db)):
-    """Obtener una imagen específica (requiere autenticación OWNER/EDITOR)"""
-    if user.rol == UserRolEnum.UPLOADER:
-        raise HTTPException(status_code=403, detail="No autorizado para obtener imágenes")
+def get_image(image_id: int, db: Session = Depends(db_init.get_db)):
+    """Obtener una imagen específica (públicamente disponible)"""
     
     crud = CRUD_IMAGE(db)
     image = crud.get_imagen(image_id)
