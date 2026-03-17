@@ -85,12 +85,27 @@ def list_users(user: TokenUser = Depends(get_current_user), db: Session = Depend
 
 @router.post("")
 def create_user(user_data: UserCreate, user: TokenUser = Depends(get_current_user), db: Session = Depends(db_init.get_db)):
-    """Crear nuevo usuario (requiere autenticación EDITOR/OWNER)"""
+    """
+    Crear nuevo usuario (requiere autenticación EDITOR/OWNER)
+    
+    Retorna el usuario creado junto con un token de acceso como si hiciera login
+    """
     crud = CRUD_USERS(db)
     created_user = crud.create_user(user_data.model_dump(), user)
+    
+    # Generar token JWT para el nuevo usuario
+    jwt_handler = JWT_TOKEN()
+    token = jwt_handler.create_token(user=created_user)
+    
+    response_data = {
+        "user": UserResponse.model_validate(created_user),
+        "access_token": token,
+        "token_type": "bearer"
+    }
+    
     return ResponseBuilder.created(
-        data=UserResponse.model_validate(created_user),
-        message="Usuario creado exitosamente"
+        data=response_data,
+        message="Usuario creado exitosamente. Token generado para login automático."
     )
 
 @router.post("/{user_id}/logo")
