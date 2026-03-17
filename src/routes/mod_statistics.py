@@ -118,6 +118,54 @@ def increment_statistic(
     )
 
 
+@router.post("/mod/{mod_id}/increment-download-pc")
+def increment_download_pc(
+    mod_id: int,
+    db: Session = Depends(db_init.get_db)
+):
+    """
+    Incrementar descargas PC en 1 (público, sin token)
+    """
+    crud = CRUD_MOD_STATISTIC(db)
+    statistic = crud.increment_download_pc(mod_id)
+    return ResponseBuilder.updated(
+        data=ModStatisticResponse.model_validate(statistic),
+        message="Descargas PC incrementadas exitosamente"
+    )
+
+
+@router.post("/mod/{mod_id}/increment-download-android")
+def increment_download_android(
+    mod_id: int,
+    db: Session = Depends(db_init.get_db)
+):
+    """
+    Incrementar descargas Android en 1 (público, sin token)
+    """
+    crud = CRUD_MOD_STATISTIC(db)
+    statistic = crud.increment_download_android(mod_id)
+    return ResponseBuilder.updated(
+        data=ModStatisticResponse.model_validate(statistic),
+        message="Descargas Android incrementadas exitosamente"
+    )
+
+
+@router.post("/mod/{mod_id}/increment-searchs")
+def increment_searchs(
+    mod_id: int,
+    db: Session = Depends(db_init.get_db)
+):
+    """
+    Incrementar búsquedas en 1 (público, sin token)
+    """
+    crud = CRUD_MOD_STATISTIC(db)
+    statistic = crud.increment_searchs(mod_id)
+    return ResponseBuilder.updated(
+        data=ModStatisticResponse.model_validate(statistic),
+        message="Búsquedas incrementadas exitosamente"
+    )
+
+
 @router.delete("/{statistic_id}")
 def delete_statistic(
     statistic_id: int,

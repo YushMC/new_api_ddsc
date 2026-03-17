@@ -85,6 +85,51 @@ class CRUD_MOD_STATISTIC:
         
         return statistic
     
+    def increment_download_pc(self, mod_id: int):
+        """Incrementar descargas PC en 1 (público)"""
+        statistic = self.__db.query(ModStatistic).filter(
+            ModStatistic.mod_id == mod_id,
+            ModStatistic.is_active == True
+        ).first()
+        
+        if not statistic:
+            raise HTTPException(status_code=404, detail="Estadística no encontrada")
+        
+        statistic.download_pc = (statistic.download_pc or 0) + 1
+        self.__db.commit()
+        self.__db.refresh(statistic)
+        return statistic
+    
+    def increment_download_android(self, mod_id: int):
+        """Incrementar descargas Android en 1 (público)"""
+        statistic = self.__db.query(ModStatistic).filter(
+            ModStatistic.mod_id == mod_id,
+            ModStatistic.is_active == True
+        ).first()
+        
+        if not statistic:
+            raise HTTPException(status_code=404, detail="Estadística no encontrada")
+        
+        statistic.download_android = (statistic.download_android or 0) + 1
+        self.__db.commit()
+        self.__db.refresh(statistic)
+        return statistic
+    
+    def increment_searchs(self, mod_id: int):
+        """Incrementar búsquedas en 1 (público)"""
+        statistic = self.__db.query(ModStatistic).filter(
+            ModStatistic.mod_id == mod_id,
+            ModStatistic.is_active == True
+        ).first()
+        
+        if not statistic:
+            raise HTTPException(status_code=404, detail="Estadística no encontrada")
+        
+        statistic.searchs = (statistic.searchs or 0) + 1
+        self.__db.commit()
+        self.__db.refresh(statistic)
+        return statistic
+    
     def delete_statistic(self, statistic_id: int):
         """Soft delete de estadística (solo OWNER/EDITOR)"""
         statistic = self.__db.query(ModStatistic).filter(

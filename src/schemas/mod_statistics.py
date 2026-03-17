@@ -21,6 +21,11 @@ class ModStatisticUpdate(BaseModel):
     searchs: int = 0
 
 
+class ModStatisticIncrement(BaseModel):
+    """Schema para incrementar un campo específico de estadísticas (siempre suma 1)"""
+    pass  # No necesita parámetros, siempre suma 1
+
+
 class ModStatisticResponse(ModStatisticBase, TimestampBase):
     """Schema para respuesta de estadísticas"""
     id: int
