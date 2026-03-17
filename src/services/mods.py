@@ -144,7 +144,18 @@ class CRUD_MOD:
                 if existing_slug:
                     raise HTTPException(status_code=400, detail=f"Mod con slug '{mod_data['slug']}' ya existe")
         
+        # Campos que NO pueden ser None (requeridos)
+        required_fields = {'name', 'status', 'duration', 'character'}
+        
         for key, value in mod_data.items():
+            # Saltar campos None para campos no requeridos, pero rechazar None para campos requeridos
+            if value is None and key in required_fields:
+                raise HTTPException(status_code=400, detail=f"Campo requerido '{key}' no puede ser None")
+            
+            # Saltar si el valor es None (para campos opcionales)
+            if value is None:
+                continue
+            
             if hasattr(mod, key):
                 old_value = getattr(mod, key)
                 if old_value != value:
