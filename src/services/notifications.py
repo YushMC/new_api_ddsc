@@ -9,6 +9,34 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def get_notification_content(notification_type: NotificationTypeEnum, mod_name: str, action_by: str | None = None) -> tuple[str, str]:
+    """
+    Genera el título y mensaje según el tipo de notificación
+    
+    Args:
+        notification_type: Tipo de notificación
+        mod_name: Nombre del mod
+        action_by: Nombre del usuario que realizó la acción (opcional)
+    
+    Returns:
+        Tupla (title, message)
+    """
+    if notification_type == NotificationTypeEnum.MOD_PENDING_REVIEW:
+        title = f"Nuevo Mod pendiente de revisión: {mod_name}"
+        message = f"El usuario {action_by} ha creado un nuevo mod que requiere tu revisión."
+    elif notification_type == NotificationTypeEnum.MOD_APPROVED:
+        title = f"¡Tu mod ha sido aprobado! {mod_name}"
+        message = f"Tu mod '{mod_name}' ha sido aprobado por {action_by} y ahora es visible públicamente."
+    elif notification_type == NotificationTypeEnum.MOD_REJECTED:
+        title = f"Tu mod ha sido rechazado: {mod_name}"
+        message = f"Tu mod '{mod_name}' ha sido rechazado por {action_by}. Por favor revisa los comentarios para más detalles."
+    else:
+        title = f"Notificación del mod: {mod_name}"
+        message = "Se ha actualizado el estado de tu mod."
+    
+    return title, message
+
+
 class CRUD_NOTIFICATION:
     def __init__(self, db: Session) -> None:
         self.__db = db
@@ -174,7 +202,7 @@ class CRUD_NOTIFICATION:
     
     def update_notification_type(self, notification_id: int, user_id: int, new_type: NotificationTypeEnum):
         """
-        Actualiza el tipo de una notificación
+        Actualiza el tipo de una notificación y su título y mensaje correspondientes
         
         Args:
             notification_id: ID de la notificación
@@ -193,6 +221,15 @@ class CRUD_NOTIFICATION:
             raise HTTPException(status_code=404, detail="Notificación no encontrada")
         
         notification.type = new_type
+        
+        # Generar nuevo título y mensaje según el tipo actualizado
+        title, message = get_notification_content(
+            notification_type=new_type,
+            mod_name=notification.mod_name or "Mod",
+            action_by=notification.action_by
+        )
+        notification.title = title
+        notification.message = message
         
         self.__db.commit()
         self.__db.refresh(notification)
