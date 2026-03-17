@@ -163,16 +163,29 @@ def update_credit(
     if not original_credit:
         raise HTTPException(status_code=404, detail="Crédito no encontrado")
     
-    # Lógica: si id_user es null, usar y actualizar name
-    #         si id_user no es null, ignorar name (será null en DB)
-    update_id_user = data.id_user if data.id_user is not None else original_credit.id_user
-    update_name = data.name if data.id_user is not None else (data.name if data.name is not None else original_credit.name)
+    # Lógica de actualización:
+    # - Si se proporciona id_user: actualizar id_user y set name a null
+    # - Si id_user es null en request: set id_user a null y usar name del request o preservar
+    # - Si no se proporciona id_user en request: preservar id_user actual
+    
+    if data.id_user is not None:
+        # Caso 1: Se proporciona id_user (puede ser un número)
+        update_id_user = data.id_user
+        update_name = None  # name será null cuando hay id_user
+    elif "id_user" in data.model_dump() and data.model_dump()["id_user"] is None:
+        # Caso 2: Explícitamente se manda id_user: null
+        update_id_user = None
+        update_name = data.name if data.name is not None else cast(str, original_credit.name)
+    else:
+        # Caso 3: No se proporciona id_user en el request, preservar
+        update_id_user = cast(int, original_credit.id_user)
+        update_name = data.name if data.name is not None else cast(str, original_credit.name)
     
     credit = crud.update_credit(
         credit_id=credit_id,
-        id_user=update_id_user,
-        name=update_name,
-        credit_type=data.type if data.type is not None else original_credit.type
+        id_user=cast(int | None, update_id_user),
+        name=cast(str | None, update_name),
+        credit_type=data.type or cast(CreditsTypeEnum, original_credit.type)
     )
     
     enriched = _enrich_credit_with_user(credit, db)
