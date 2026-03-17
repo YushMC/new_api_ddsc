@@ -238,7 +238,7 @@ class CRUD_MOD:
         if not mod:
             raise HTTPException(status_code=404, detail="Mod no encontrado")
         
-        if not mod.required_revision:
+        if not mod.required_revision: #type: ignore
             raise HTTPException(status_code=400, detail="Este mod no requiere revisión")
         
         changes = {
@@ -248,8 +248,8 @@ class CRUD_MOD:
             }
         }
         
-        mod.required_revision = False
-        mod.approved_by = str(user.name)
+        mod.required_revision = False #type: ignore
+        mod.approved_by = str(user.name) # type: ignore
         mod.approved_at = datetime.now(UTC)  # type: ignore
         mod.updated_by = str(user.name)
         
