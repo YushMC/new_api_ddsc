@@ -30,6 +30,7 @@ Una API REST completa y moderna para gestionar mods de **Doki Doki Literature Cl
 ## ✨ Características
 
 ### 🔐 Seguridad
+
 - ✅ **Autenticación JWT** con expiración de 48 horas
 - ✅ **Control de Roles** (OWNER, EDITOR, UPLOADER)
 - ✅ **Autorización por Endpoint** - Permisos granulares
@@ -38,12 +39,14 @@ Una API REST completa y moderna para gestionar mods de **Doki Doki Literature Cl
 - ✅ **Validación de Entrada** - Pydantic para todos los datos
 
 ### 📊 Auditoría y Trazabilidad
+
 - ✅ **Timestamps Automáticos** - created_at, updated_at, deleted_at
 - ✅ **Tracking de Usuario** - created_by, updated_by, deleted_by
 - ✅ **ContextVar** - Aislamiento seguro de contexto por request
 - ✅ **Historial Completo** - Todos los cambios registrados
 
 ### 🖼️ Gestión de Imágenes
+
 - ✅ **Carga a AWS S3** - Almacenamiento escalable en la nube
 - ✅ **Conversión Automática a WebP** - Optimización de tamaño
 - ✅ **Redimensionamiento Inteligente** - Máximo 2560x2560
@@ -51,6 +54,7 @@ Una API REST completa y moderna para gestionar mods de **Doki Doki Literature Cl
 - ✅ **URLs Públicas** - Acceso directo a imágenes
 
 ### 🤖 Notificaciones
+
 - ✅ **Webhooks de Discord** - Notificaciones en tiempo real
 - ✅ **Embeds Coloreados** - Rojo (pendiente), Verde (aprobado), Naranja (actualizado)
 - ✅ **Detección Automática de Cambios** - Solo notifica si hay cambios
@@ -58,6 +62,7 @@ Una API REST completa y moderna para gestionar mods de **Doki Doki Literature Cl
 - ✅ **Sin Bloqueo** - Usa asyncio para no interrumpir la API
 
 ### 📱 API Moderna
+
 - ✅ **Documentación Interactiva** - Swagger UI y ReDoc
 - ✅ **CRUD Completo** - Mods, Usuarios, Géneros, Imágenes
 - ✅ **Paginación** - Soporte para skip/limit
@@ -69,31 +74,38 @@ Una API REST completa y moderna para gestionar mods de **Doki Doki Literature Cl
 ## 🛠️ Stack Tecnológico
 
 ### Backend
+
 - **FastAPI 0.135.1** - Framework web async
 - **SQLAlchemy 2.0** - ORM para base de datos
 - **Pydantic 2.12** - Validación de datos
 
 ### Base de Datos
+
 - **MySQL 8.0** - Base de datos relacional
 - **PyMySQL** - Driver para MySQL
 
 ### Autenticación
+
 - **python-jose** - JWT tokens
 - **passlib** - Hashing de contraseñas
 - **bcrypt** - Algoritmo de hash seguro
 
 ### Cloud & Almacenamiento
+
 - **boto3** - AWS SDK
 - **AWS S3** - Almacenamiento de imágenes
 
 ### Procesamiento de Imágenes
+
 - **Pillow 10.1** - Manipulación de imágenes
 
 ### Notificaciones
+
 - **aiohttp** - HTTP asincrónico
 - **Discord Webhooks** - Notificaciones en Discord
 
 ### Server & Utilities
+
 - **Uvicorn 0.41** - ASGI server
 - **python-dotenv** - Variables de entorno
 - **uvloop** - Event loop optimizado
@@ -176,6 +188,7 @@ uvicorn main:app --reload
 La API estará disponible en: **http://localhost:8000**
 
 Documentación interactiva:
+
 - **Swagger UI**: http://localhost:8000/docs
 - **ReDoc**: http://localhost:8000/redoc
 
@@ -186,6 +199,7 @@ Documentación interactiva:
 Cuando la base de datos está vacía por primera vez, necesitas crear un usuario OWNER inicial para administrar el sistema. Para esto, usa el endpoint especial `/users/bootstrap`:
 
 ### ⚠️ Importante
+
 - Este endpoint **solo funciona UNA SOLA VEZ** cuando la BD está vacía
 - Una vez creado el primer usuario, retornará error 403
 - El usuario se crea automáticamente con rol **OWNER**
@@ -339,6 +353,7 @@ curl -X POST http://localhost:8000/mod \
 ### 4. Subir Imágenes
 
 #### 4.1 Subir Logo (1 imagen)
+
 ```bash
 curl -X POST http://localhost:8000/images/logo/1 \
   -H "Authorization: Bearer YOUR_TOKEN" \
@@ -346,6 +361,7 @@ curl -X POST http://localhost:8000/images/logo/1 \
 ```
 
 #### 4.2 Subir Imagen Main (1 imagen)
+
 ```bash
 curl -X POST http://localhost:8000/images/main/1 \
   -H "Authorization: Bearer YOUR_TOKEN" \
@@ -353,6 +369,7 @@ curl -X POST http://localhost:8000/images/main/1 \
 ```
 
 #### 4.3 Subir Screenshots (máximo 4 imágenes)
+
 ```bash
 # Screenshot 1
 curl -X POST http://localhost:8000/images/screenshots/1 \
@@ -451,48 +468,50 @@ ddlc-mods-api/
 
 ### Autenticación (`/users`)
 
-| Método | Endpoint | Descripción | Auth |
-|--------|----------|-------------|------|
-| POST | `/users/bootstrap` | Crear primer usuario OWNER | ❌ (solo si BD vacía) |
-| POST | `/users/login` | Autenticar usuario | ❌ |
-| GET | `/users` | Listar usuarios | ✅ |
-| POST | `/users` | Crear usuario | ✅ (EDITOR/OWNER) |
+| Método | Endpoint           | Descripción                | Auth                  |
+| ------ | ------------------ | -------------------------- | --------------------- |
+| POST   | `/users/bootstrap` | Crear primer usuario OWNER | ❌ (solo si BD vacía) |
+| POST   | `/users/login`     | Autenticar usuario         | ❌                    |
+| GET    | `/users`           | Listar usuarios            | ✅                    |
+| POST   | `/users`           | Crear usuario              | ✅ (EDITOR/OWNER)     |
 
 ### Mods (`/mod`)
 
-| Método | Endpoint | Descripción | Auth |
-|--------|----------|-------------|------|
-| GET | `/mod/all` | Listar mods activos | ❌ |
-| GET | `/mod/{id}` | Obtener mod específico | ❌ |
-| POST | `/mod` | Crear nuevo mod | ✅ |
-| PUT | `/mod/{id}` | Actualizar mod | ✅ (EDITOR/OWNER) |
+| Método | Endpoint    | Descripción                | Auth              |
+| ------ | ----------- | -------------------------- | ----------------- |
+| GET    | `/mod/all`  | Listar mods activos        | ❌                |
+| GET    | `/mod/{id}` | Obtener mod específico     | ❌                |
+| POST   | `/mod`      | Crear nuevo mod            | ✅                |
+| PUT    | `/mod/{id}` | Actualizar mod             | ✅ (EDITOR/OWNER) |
 | DELETE | `/mod/{id}` | Eliminar mod (soft delete) | ✅ (EDITOR/OWNER) |
 
 ### Imágenes (`/images`)
 
 #### Rutas Genéricas
-| Método | Endpoint | Descripción | Auth |
-|--------|----------|-------------|------|
-| GET | `/images/mod/{mod_id}` | Listar imágenes de mod | ❌ |
-| GET | `/images/{id}` | Obtener imagen específica | ❌ |
-| DELETE | `/images/{id}` | Eliminar imagen (soft delete) | ✅ (EDITOR/OWNER) |
+
+| Método | Endpoint               | Descripción                   | Auth              |
+| ------ | ---------------------- | ----------------------------- | ----------------- |
+| GET    | `/images/mod/{mod_id}` | Listar imágenes de mod        | ❌                |
+| GET    | `/images/{id}`         | Obtener imagen específica     | ❌                |
+| DELETE | `/images/{id}`         | Eliminar imagen (soft delete) | ✅ (EDITOR/OWNER) |
 
 #### Rutas Específicas por Tipo
-| Método | Endpoint | Descripción | Límite | Auth |
-|--------|----------|-------------|--------|------|
-| POST | `/images/logo/{mod_id}` | Subir logo | 1 imagen | ✅ (EDITOR/OWNER) |
-| POST | `/images/main/{mod_id}` | Subir imagen main | 1 imagen | ✅ (EDITOR/OWNER) |
-| POST | `/images/screenshots/{mod_id}` | Subir screenshot | Máx 4 | ✅ (EDITOR/OWNER) |
+
+| Método | Endpoint                       | Descripción       | Límite   | Auth              |
+| ------ | ------------------------------ | ----------------- | -------- | ----------------- |
+| POST   | `/images/logo/{mod_id}`        | Subir logo        | 1 imagen | ✅ (EDITOR/OWNER) |
+| POST   | `/images/main/{mod_id}`        | Subir imagen main | 1 imagen | ✅ (EDITOR/OWNER) |
+| POST   | `/images/screenshots/{mod_id}` | Subir screenshot  | Máx 4    | ✅ (EDITOR/OWNER) |
 
 ### Géneros (`/genres`)
 
-| Método | Endpoint | Descripción | Auth |
-|--------|----------|-------------|------|
-| GET | `/genres` | Listar géneros | ❌ |
-| GET | `/genres/{id}` | Obtener género específico | ❌ |
-| POST | `/genres` | Crear género | ✅ (EDITOR/OWNER) |
-| PUT | `/genres/{id}` | Actualizar género | ✅ (EDITOR/OWNER) |
-| DELETE | `/genres/{id}` | Eliminar género | ✅ (EDITOR/OWNER) |
+| Método | Endpoint       | Descripción               | Auth              |
+| ------ | -------------- | ------------------------- | ----------------- |
+| GET    | `/genres`      | Listar géneros            | ❌                |
+| GET    | `/genres/{id}` | Obtener género específico | ❌                |
+| POST   | `/genres`      | Crear género              | ✅ (EDITOR/OWNER) |
+| PUT    | `/genres/{id}` | Actualizar género         | ✅ (EDITOR/OWNER) |
+| DELETE | `/genres/{id}` | Eliminar género           | ✅ (EDITOR/OWNER) |
 
 ---
 
@@ -516,6 +535,7 @@ curl -H "Authorization: Bearer YOUR_TOKEN" \
 ### Roles y Permisos
 
 #### 👤 UPLOADER
+
 - ✅ Ver mods (públicos)
 - ✅ Ver imágenes (públicas)
 - ✅ Crear mods (requieren aprobación, `is_active=False`)
@@ -525,6 +545,7 @@ curl -H "Authorization: Bearer YOUR_TOKEN" \
 - ❌ Crear géneros
 
 #### ✏️ EDITOR
+
 - ✅ Ver todo (públicos)
 - ✅ Crear mods (automáticamente aprobados)
 - ✅ Editar/Eliminar mods
@@ -533,6 +554,7 @@ curl -H "Authorization: Bearer YOUR_TOKEN" \
 - ✅ Crear usuarios (solo EDITOR/UPLOADER)
 
 #### 👑 OWNER
+
 - ✅ Acceso total a todos los recursos
 
 ---
@@ -572,6 +594,7 @@ mod.deleted_by = "usuario"
 Cada tipo de imagen tiene su propia ruta con validaciones específicas:
 
 #### Logo (1 imagen máximo)
+
 ```bash
 # Proceso automático:
 # 1. Validación (formato, tamaño)
@@ -596,6 +619,7 @@ curl -X POST http://localhost:8000/images/logo/1 \
 ```
 
 #### Imagen Main (1 imagen máximo)
+
 ```bash
 curl -X POST http://localhost:8000/images/main/1 \
   -H "Authorization: Bearer TOKEN" \
@@ -603,6 +627,7 @@ curl -X POST http://localhost:8000/images/main/1 \
 ```
 
 #### Screenshots (máximo 4 imágenes)
+
 ```bash
 # Puedes subir hasta 4 screenshots
 curl -X POST http://localhost:8000/images/screenshots/1 \
@@ -621,6 +646,7 @@ Automáticamente se envían notificaciones cuando:
 - ✅ Se aprueba un mod
 
 Colores por tipo:
+
 - 🔴 **Rojo**: Mod pendiente aprobación (UPLOADER)
 - 🟢 **Verde**: Mod aprobado automáticamente (EDITOR)
 - 🟠 **Naranja**: Mod actualizado
@@ -707,7 +733,6 @@ AWS_SECRET_ACCESS_KEY=yyy
 - **Soft Delete**: Los registros nunca se eliminan realmente
 - **JWT**: Token válido por 48 horas
 - **Async**: Las notificaciones Discord son asincrónicas (no bloquean la API)
-- **S3 Público**: Las imágenes se suben con ACL público de lectura
 - **WebP**: Todas las imágenes se convierten a WebP automáticamente
 - **ContextVar**: Se usa para auditoría automática sin parámetros adicionales
 
@@ -727,24 +752,24 @@ AWS_SECRET_ACCESS_KEY=yyy
    POST /mod → Según rol:
      - UPLOADER: is_active=False (necesita aprobación)
      - EDITOR: is_active=True (automáticamente aprobado)
-   
+
    → Discord notifica (color rojo/verde según rol)
 
 3. Usuario sube imágenes (3 rutas separadas)
-   
+
    a) Logo (1 imagen obligatoria)
       POST /images/logo/{mod_id} → Rechaza si ya existe logo
-   
+
    b) Imagen Main (1 imagen obligatoria)
       POST /images/main/{mod_id} → Rechaza si ya existe main
-   
+
    c) Screenshots (máximo 4 imágenes)
       POST /images/screenshots/{mod_id} (repetir hasta 4 veces)
-      POST /images/screenshots/{mod_id} 
-      POST /images/screenshots/{mod_id} 
+      POST /images/screenshots/{mod_id}
+      POST /images/screenshots/{mod_id}
       POST /images/screenshots/{mod_id}
       → Rechaza si intenta una 5ta imagen
-   
+
    → Cada imagen se procesa: valida → redimensiona → convierte a WebP → sube a S3
 
 4. Admin aprueba mod (si es UPLOADER)
@@ -772,6 +797,7 @@ Este proyecto está bajo licencia MIT.
 ## 📞 Soporte
 
 Para problemas o preguntas:
+
 1. Revisa [API_GUIDE.md](./API_GUIDE.md) y [DISCORD_SETUP.md](./DISCORD_SETUP.md)
 2. Revisa los logs de la API
 3. Consulta la documentación interactiva en Swagger UI
