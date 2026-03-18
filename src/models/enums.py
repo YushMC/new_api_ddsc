@@ -19,8 +19,8 @@ class DurationEnum(str, Enum):
     VERY_SHORT="very_short"
     SHORT="short"
     MEDIUM="medium"
-    LARGE="large"
-    VERY_LARGE="very_large"
+    LONG="long"
+    VERY_LONG="very_long"
     ENDLESS="endless"
     UNKNOWN="unknown"
 

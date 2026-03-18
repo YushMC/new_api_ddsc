@@ -13,12 +13,21 @@ from src.routes.mod_statistics import router as router_mod_statistics
 from src.routes.collections import router as router_collections
 from src.routes.mods_collections import router as router_mods_collections
 from src.middleware.context import user_context_middleware
+from fastapi.middleware.cors import CORSMiddleware
 
 db = DATABASE_INIT()
 
 app = FastAPI(
     title="DDLC Mods API",
     version="1.0.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Agregar middleware para contexto de usuario
