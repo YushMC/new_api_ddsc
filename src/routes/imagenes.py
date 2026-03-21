@@ -12,7 +12,7 @@ from src.utils.image_processor import ImageProcessor
 from src.utils.s3_manager import S3Manager
 from src.utils.response_builder import ResponseBuilder
 from src.background_tasks import notify_image_uploaded, notify_image_replaced, notify_image_deleted
-from typing import cast
+from typing import cast, List
 
 router = APIRouter()
 db_init = DATABASE_INIT()
@@ -393,6 +393,98 @@ async def upload_screenshot(
         raise HTTPException(
             status_code=500,
             detail=f"Error procesando screenshot: {str(e)}"
+        )
+
+
+@router.post("/screenshots/all/{mod_id}")
+async def upload_screenshots_bulk(
+    mod_id: int,
+    files: List[UploadFile] = File(...),
+    user: TokenUser = Depends(get_current_user),
+    db: Session = Depends(db_init.get_db),
+    background_tasks: BackgroundTasks = BackgroundTasks()
+):
+    """
+    Subir múltiples capturas de pantalla del mod (máximo 4 en total)
+    
+    - Recibe un array de archivos de imagen
+    - Valida que no excedan 4 screenshots en total (existentes + nuevos)
+    - Procesa cada imagen a WebP
+    - Sube cada una a S3
+    
+    Requiere autenticación EDITOR/OWNER
+    """
+    if user.rol == UserRolEnum.UPLOADER:
+        raise HTTPException(status_code=403, detail="No autorizado para subir imágenes")
+    
+    if not files:
+        raise HTTPException(status_code=400, detail="Debe enviar al menos un archivo")
+    
+    try:
+        crud = CRUD_IMAGE(db)
+        
+        # Verificar que el mod existe
+        mod = db.query(Mod).filter(Mod.id == mod_id).first()
+        if not mod:
+            raise HTTPException(status_code=404, detail="Mod no encontrado")
+        
+        # Verificar que no excedan 4 screenshots en total
+        current_count = crud.count_imagenes_by_mod_and_type(mod_id, ImageTypeEnum.SCREENSHOT)
+        total_after = current_count + len(files)
+        if total_after > 4:
+            available = 4 - current_count
+            raise HTTPException(
+                status_code=409,
+                detail=f"Este mod ya tiene {current_count} screenshots. Solo puedes agregar {available} más (máximo 4 en total). Enviaste {len(files)}."
+            )
+        
+        uploaded_images = []
+        s3_manager = S3Manager()
+        
+        for file in files:
+            # Procesar imagen
+            file_content = await file.read()
+            ImageProcessor.validate_image(file_content, file.filename or "screenshot")
+            webp_content = ImageProcessor.process_to_webp(file_content, file.filename or "screenshot")
+            
+            # Subir a S3
+            image_url = s3_manager.upload_file(
+                webp_content,
+                mod_id,
+                ImageTypeEnum.SCREENSHOT.value,
+                file.filename or "screenshot"
+            )
+            
+            # Guardar en BD
+            image_data = {
+                "mod_id": mod_id,
+                "url": image_url,
+                "type": ImageTypeEnum.SCREENSHOT
+            }
+            
+            image = crud.create_imagen(image_data)
+            uploaded_images.append(ImageResponse.model_validate(image).model_dump())
+            
+            # Discord notification por cada imagen
+            background_tasks.add_task(
+                notify_image_uploaded,
+                image=image,
+                mod=mod,
+                user=user
+            )
+        
+        return ResponseBuilder.created(
+            data=uploaded_images,
+            message=f"{len(uploaded_images)} capturas de pantalla subidas exitosamente",
+            db=db
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error procesando screenshots: {str(e)}"
         )
 
 # ============================================================================
