@@ -18,8 +18,8 @@ class ModBase(BaseModel):
     duration: DurationEnum
     character: CharacterEnum = CharacterEnum.MC
 
-    dowload_pc: str | None = None
-    dowload_android: str | None = None
+    download_pc: str | None = None
+    download_android: str | None = None
 
     required_revision: bool = False
 
