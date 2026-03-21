@@ -137,7 +137,12 @@ class DiscordNotifier:
         if hasattr(mod, 'images') and mod.images:
             images_count = len([img for img in mod.images if img.is_active])
         
-        genres = ", ".join([g.name for g in mod.genres]) if mod.genres else "Sin asignar"
+        # Extraer géneros de la relación intermedia mod_genres
+        genres = "Sin asignar"
+        if hasattr(mod, 'mod_genres') and mod.mod_genres:
+            genre_names = [mg.genre.name for mg in mod.mod_genres if mg.is_active and mg.genre]
+            if genre_names:
+                genres = ", ".join(genre_names)
         
         embed = {
             "title": "🎉 MOD COMPLETADO",
@@ -297,7 +302,12 @@ class DiscordNotifier:
             title = "📝 NUEVO MOD - PENDIENTE APROBACIÓN"
             status_text = "⏳ Requiere Revisión"
         
-        genres = ", ".join([g.name for g in mod.genres]) if mod.genres else "Sin asignar"
+        # Extraer géneros de la relación intermedia mod_genres
+        genres = "Sin asignar"
+        if hasattr(mod, 'mod_genres') and mod.mod_genres:
+            genre_names = [mg.genre.name for mg in mod.mod_genres if mg.is_active and mg.genre]
+            if genre_names:
+                genres = ", ".join(genre_names)
         
         embed = {
             "title": title,
