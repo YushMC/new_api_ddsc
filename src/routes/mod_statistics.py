@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from src.conf.database import DATABASE_INIT
 from src.services.mod_statistics import CRUD_MOD_STATISTIC
@@ -14,10 +14,17 @@ db_init = DATABASE_INIT()
 @router.get("")
 def list_statistics(
     db: Session = Depends(db_init.get_db),
-    skip: int = 0,
-    limit: int = 20
+    skip: int = Query(0, ge=0, description="Cantidad de registros a omitir desde el inicio (para paginación). Ejemplo: skip=20 omite los primeros 20 resultados."),
+    limit: int = Query(20, ge=1, le=100, description="Cantidad máxima de registros a retornar (default: 20, max: 100). Ejemplo: limit=10 retorna hasta 10 resultados.")
 ):
-    """Listar todas las estadísticas activas (públicamente disponible)"""
+    """
+    Listar todas las estadísticas activas (públicamente disponible)
+    
+    Soporta paginación mediante los parámetros `skip` y `limit`:
+    - Página 1: skip=0, limit=20 (default)
+    - Página 2: skip=20, limit=20
+    - Página 3: skip=40, limit=20
+    """
     crud = CRUD_MOD_STATISTIC(db)
     statistics = crud.get_statistics(skip, limit)
     return ResponseBuilder.list_response(
@@ -29,11 +36,18 @@ def list_statistics(
 @router.get("/admin/all")
 def list_statistics_admin(
     db: Session = Depends(db_init.get_db),
-    skip: int = 0,
-    limit: int = 20,
+    skip: int = Query(0, ge=0, description="Cantidad de registros a omitir desde el inicio (para paginación). Ejemplo: skip=20 omite los primeros 20 resultados."),
+    limit: int = Query(20, ge=1, le=100, description="Cantidad máxima de registros a retornar (default: 20, max: 100). Ejemplo: limit=10 retorna hasta 10 resultados."),
     user: TokenUser = Depends(verify_admin_role)
 ):
-    """Listar todas las estadísticas incluyendo inactivas (solo OWNER/EDITOR)"""
+    """
+    Listar todas las estadísticas incluyendo inactivas (solo OWNER/EDITOR)
+    
+    Soporta paginación mediante los parámetros `skip` y `limit`:
+    - Página 1: skip=0, limit=20 (default)
+    - Página 2: skip=20, limit=20
+    - Página 3: skip=40, limit=20
+    """
     crud = CRUD_MOD_STATISTIC(db)
     statistics = crud.get_statistics_admin(skip, limit)
     return ResponseBuilder.list_response(
@@ -54,7 +68,8 @@ def get_statistic(
         raise HTTPException(status_code=404, detail="Estadística no encontrada")
     return ResponseBuilder.success(
         data=ModStatisticResponse.model_validate(statistic),
-        message="Estadística obtenida exitosamente"
+        message="Estadística obtenida exitosamente",
+        db=db
     )
 
 
@@ -71,7 +86,8 @@ def get_statistic_admin(
         raise HTTPException(status_code=404, detail="Estadística no encontrada")
     return ResponseBuilder.success(
         data=ModStatisticResponse.model_validate(statistic),
-        message="Estadística obtenida exitosamente"
+        message="Estadística obtenida exitosamente",
+        db=db
     )
 
 
@@ -87,7 +103,8 @@ def get_mod_statistic(
         raise HTTPException(status_code=404, detail="Estadística no encontrada para este mod")
     return ResponseBuilder.success(
         data=ModStatisticResponse.model_validate(statistic),
-        message="Estadística del mod obtenida exitosamente"
+        message="Estadística del mod obtenida exitosamente",
+        db=db
     )
 
 
@@ -114,7 +131,8 @@ def increment_statistic(
     )
     return ResponseBuilder.updated(
         data=ModStatisticResponse.model_validate(statistic),
-        message="Estadísticas incrementadas exitosamente"
+        message="Estadísticas incrementadas exitosamente",
+        db=db
     )
 
 
@@ -130,7 +148,8 @@ def increment_download_pc(
     statistic = crud.increment_download_pc(mod_id)
     return ResponseBuilder.updated(
         data=ModStatisticResponse.model_validate(statistic),
-        message="Descargas PC incrementadas exitosamente"
+        message="Descargas PC incrementadas exitosamente",
+        db=db
     )
 
 
@@ -146,7 +165,8 @@ def increment_download_android(
     statistic = crud.increment_download_android(mod_id)
     return ResponseBuilder.updated(
         data=ModStatisticResponse.model_validate(statistic),
-        message="Descargas Android incrementadas exitosamente"
+        message="Descargas Android incrementadas exitosamente",
+        db=db
     )
 
 
@@ -162,7 +182,8 @@ def increment_searchs(
     statistic = crud.increment_searchs(mod_id)
     return ResponseBuilder.updated(
         data=ModStatisticResponse.model_validate(statistic),
-        message="Búsquedas incrementadas exitosamente"
+        message="Búsquedas incrementadas exitosamente",
+        db=db
     )
 
 
@@ -201,5 +222,6 @@ def reactivate_statistic(
     statistic = crud.reactivate_statistic(statistic_id)
     return ResponseBuilder.updated(
         data=ModStatisticResponse.model_validate(statistic),
-        message="Estadística reactivada exitosamente"
+        message="Estadística reactivada exitosamente",
+        db=db
     )

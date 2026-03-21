@@ -1,5 +1,5 @@
 from src.schemas.mods import ModBase, ModCommplete, ModRejectRequest, ModDeleteRequest, ModGenreAdd
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query
 from src.middleware.jwt import get_current_user, verify_admin_role
 from src.conf.database import DATABASE_INIT
 from src.services.mods import CRUD_MOD
@@ -64,7 +64,8 @@ def list_mods(db: Session = Depends(db_init.get_db)):
         response_structure = ResponseBuilder._create_response_with_info(
             mod_dict, 
             "success", 
-            ""  # Sin mensaje individual, solo para estructura
+            "",  # Sin mensaje individual, solo para estructura
+            db=db
         )
         # Extraer solo la estructura de data
         prepared_mods.append(response_structure["data"])
@@ -78,11 +79,18 @@ def list_mods(db: Session = Depends(db_init.get_db)):
 @router.get("/admin/all")
 def list_mods_admin(
     db: Session = Depends(db_init.get_db),
-    skip: int = 0,
-    limit: int = 20,
+    skip: int = Query(0, ge=0, description="Cantidad de registros a omitir desde el inicio (para paginación). Ejemplo: skip=20 omite los primeros 20 resultados."),
+    limit: int = Query(20, ge=1, le=100, description="Cantidad máxima de registros a retornar (default: 20, max: 100). Ejemplo: limit=10 retorna hasta 10 resultados."),
     user: TokenUser = Depends(verify_admin_role)
 ):
-    """Listar todos los mods incluyendo inactivos (solo para OWNER/EDITOR)"""
+    """
+    Listar todos los mods excluyendo los que requieren revisión (solo para OWNER/EDITOR)
+    
+    Soporta paginación mediante los parámetros `skip` y `limit`:
+    - Página 1: skip=0, limit=20 (default)
+    - Página 2: skip=20, limit=20
+    - Página 3: skip=40, limit=20
+    """
     crud = CRUD_MOD(db)
     mods = crud.get_mods_admin(skip, limit)
     
@@ -96,7 +104,8 @@ def list_mods_admin(
         response_structure = ResponseBuilder._create_response_with_info(
             mod_dict, 
             "success", 
-            ""  # Sin mensaje individual, solo para estructura
+            "",  # Sin mensaje individual, solo para estructura
+            db=db
         )
         # Extraer solo la estructura de data
         prepared_mods.append(response_structure["data"])
@@ -104,6 +113,43 @@ def list_mods_admin(
     return {
         "response": "success",
         "message": "Mods obtenidos exitosamente (incluyendo inactivos)",
+        "data": prepared_mods
+    }
+
+@router.get("/admin/revision")
+def list_mods_pending_revision(
+    db: Session = Depends(db_init.get_db),
+    skip: int = Query(0, ge=0, description="Cantidad de registros a omitir desde el inicio (para paginación). Ejemplo: skip=20 omite los primeros 20 resultados."),
+    limit: int = Query(20, ge=1, le=100, description="Cantidad máxima de registros a retornar (default: 20, max: 100). Ejemplo: limit=10 retorna hasta 10 resultados."),
+    user: TokenUser = Depends(verify_admin_role)
+):
+    """
+    Listar todos los mods que requieren revisión (solo para OWNER/EDITOR)
+    
+    Soporta paginación mediante los parámetros `skip` y `limit`:
+    - Página 1: skip=0, limit=20 (default)
+    - Página 2: skip=20, limit=20
+    - Página 3: skip=40, limit=20
+    """
+    crud = CRUD_MOD(db)
+    mods = crud.get_mods_pending_revision(skip, limit)
+    
+    prepared_mods = []
+    for m in mods:
+        mod_dict = _prepare_mod_response(m, db)
+        
+        from src.utils.response_builder import ResponseBuilder
+        response_structure = ResponseBuilder._create_response_with_info(
+            mod_dict, 
+            "success", 
+            "",
+            db=db
+        )
+        prepared_mods.append(response_structure["data"])
+    
+    return {
+        "response": "success",
+        "message": "Mods pendientes de revisión obtenidos exitosamente",
         "data": prepared_mods
     }
 
@@ -116,7 +162,8 @@ def get_mod(mod_id: int, db: Session = Depends(db_init.get_db)):
         raise HTTPException(status_code=404, detail="Mod no encontrado")
     return ResponseBuilder.success(
         data=_prepare_mod_response(mod, db),
-        message="Mod obtenido exitosamente"
+        message="Mod obtenido exitosamente",
+        db=db
     )
 
 @router.get("/admin/{mod_id}")
@@ -131,7 +178,8 @@ def get_mod_admin(
         raise HTTPException(status_code=404, detail="Mod no encontrado")
     return ResponseBuilder.success(
         data=_prepare_mod_response(mod, db),
-        message="Mod obtenido exitosamente"
+        message="Mod obtenido exitosamente",
+        db=db
     )
 
 @router.post("")
@@ -161,7 +209,8 @@ def create_mod_route(
     
     return ResponseBuilder.created(
         data=_prepare_mod_response(mod, db),
-        message="Mod creado exitosamente"
+        message="Mod creado exitosamente",
+        db=db
     )
 
 @router.put("/{mod_id}")
@@ -181,7 +230,8 @@ def update_mod_route(
     
     return ResponseBuilder.updated(
         data=_prepare_mod_response(mod, db),
-        message="Mod actualizado exitosamente"
+        message="Mod actualizado exitosamente",
+        db=db
     )
 
 @router.delete("/{mod_id}")
@@ -218,7 +268,7 @@ def delete_mod_route(
         )
     
     # Agregar notificación a Discord como background task
-    background_tasks.add_task(DiscordNotifier.notify_mod_deleted, mod, user)
+    background_tasks.add_task(DiscordNotifier.notify_mod_deleted, mod, user, creator.name if creator else None)
     
     return ResponseBuilder.deleted(message="Mod eliminado exitosamente")
 
@@ -248,10 +298,9 @@ def approve_mod_route(
     from src.services.notifications import CRUD_NOTIFICATION
     notification_crud = CRUD_NOTIFICATION(db)
     
-    # El mod tiene el id del usuario que lo creó en created_by, pero necesitamos el user_id
-    # Debemos obtener el usuario que creó el mod
+    # El mod tiene el id del usuario que lo creó en created_by
     from src.models.users import User
-    creator = db.query(User).filter(User.name == mod.created_by).first()
+    creator = db.query(User).filter(User.id == mod.created_by).first()
     if creator:
         notification_crud.notify_mod_approved(
             mod_id=mod_id,
@@ -261,11 +310,12 @@ def approve_mod_route(
         )
     
     # Agregar notificación a Discord como background task
-    background_tasks.add_task(DiscordNotifier.notify_mod_approved, mod, user)
+    background_tasks.add_task(DiscordNotifier.notify_mod_approved, mod, user, creator.name if creator else None)
     
     return ResponseBuilder.updated(
         data=_prepare_mod_response(mod, db),
-        message="Mod aprobado exitosamente"
+        message="Mod aprobado exitosamente",
+        db=db
     )
 
 
@@ -299,7 +349,7 @@ def reject_mod_route(
     
     # Obtener el usuario que creó el mod
     from src.models.users import User
-    creator = db.query(User).filter(User.name == mod.created_by).first()
+    creator = db.query(User).filter(User.id == mod.created_by).first()
     if creator:
         notification_crud.notify_mod_rejected(
             mod_id=mod_id,
@@ -309,11 +359,12 @@ def reject_mod_route(
         )
     
     # Agregar notificación a Discord como background task
-    background_tasks.add_task(DiscordNotifier.notify_mod_rejected, mod, user, request.comments)
+    background_tasks.add_task(DiscordNotifier.notify_mod_rejected, mod, user, creator.name if creator else None)
     
     return ResponseBuilder.updated(
         data=_prepare_mod_response(mod, db),
-        message="Mod rechazado exitosamente"
+        message="Mod rechazado exitosamente",
+        db=db
     )
 
 
@@ -354,11 +405,12 @@ def restore_mod_route(
         )
     
     # Agregar notificación a Discord como background task
-    background_tasks.add_task(DiscordNotifier.notify_mod_restored, mod, user)
+    background_tasks.add_task(DiscordNotifier.notify_mod_restored, mod, user, creator.name if creator else None)
     
     return ResponseBuilder.updated(
         data=_prepare_mod_response(mod, db),
-        message="Mod restaurado exitosamente"
+        message="Mod restaurado exitosamente",
+        db=db
     )
 
 
@@ -387,7 +439,8 @@ def add_genres_to_mod(
     
     return ResponseBuilder.updated(
         data=_prepare_mod_response(mod, db),
-        message="Géneros agregados al mod exitosamente"
+        message="Géneros agregados al mod exitosamente",
+        db=db
     )
 
 
@@ -416,7 +469,8 @@ def remove_genres_from_mod(
     
     return ResponseBuilder.updated(
         data=_prepare_mod_response(mod, db),
-        message="Géneros removidos del mod exitosamente"
+        message="Géneros removidos del mod exitosamente",
+        db=db
     )
 
 

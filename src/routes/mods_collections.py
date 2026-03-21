@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query
 from sqlalchemy.orm import Session
 from src.conf.database import DATABASE_INIT
 from src.services.mods_collections import CRUD_MODS_COLLECTION
@@ -16,10 +16,17 @@ db_init = DATABASE_INIT()
 @router.get("")
 def list_mods_collections(
     db: Session = Depends(db_init.get_db),
-    skip: int = 0,
-    limit: int = 20
+    skip: int = Query(0, ge=0, description="Cantidad de registros a omitir desde el inicio (para paginación). Ejemplo: skip=20 omite los primeros 20 resultados."),
+    limit: int = Query(20, ge=1, le=100, description="Cantidad máxima de registros a retornar (default: 20, max: 100). Ejemplo: limit=10 retorna hasta 10 resultados.")
 ):
-    """Listar todas las relaciones mods-colecciones activas (públicamente disponible)"""
+    """
+    Listar todas las relaciones mods-colecciones activas (públicamente disponible)
+    
+    Soporta paginación mediante los parámetros `skip` y `limit`:
+    - Página 1: skip=0, limit=20 (default)
+    - Página 2: skip=20, limit=20
+    - Página 3: skip=40, limit=20
+    """
     crud = CRUD_MODS_COLLECTION(db)
     mods_collections = crud.get_mods_collections(skip, limit)
     return ResponseBuilder.list_response(
@@ -31,11 +38,18 @@ def list_mods_collections(
 @router.get("/admin/all")
 def list_mods_collections_admin(
     db: Session = Depends(db_init.get_db),
-    skip: int = 0,
-    limit: int = 20,
+    skip: int = Query(0, ge=0, description="Cantidad de registros a omitir desde el inicio (para paginación). Ejemplo: skip=20 omite los primeros 20 resultados."),
+    limit: int = Query(20, ge=1, le=100, description="Cantidad máxima de registros a retornar (default: 20, max: 100). Ejemplo: limit=10 retorna hasta 10 resultados."),
     user: TokenUser = Depends(verify_admin_role)
 ):
-    """Listar todas las relaciones incluyendo inactivas (solo OWNER/EDITOR)"""
+    """
+    Listar todas las relaciones incluyendo inactivas (solo OWNER/EDITOR)
+    
+    Soporta paginación mediante los parámetros `skip` y `limit`:
+    - Página 1: skip=0, limit=20 (default)
+    - Página 2: skip=20, limit=20
+    - Página 3: skip=40, limit=20
+    """
     crud = CRUD_MODS_COLLECTION(db)
     mods_collections = crud.get_mods_collections_admin(skip, limit)
     return ResponseBuilder.list_response(
@@ -56,7 +70,8 @@ def get_mods_collection(
         raise HTTPException(status_code=404, detail="Relación no encontrada")
     return ResponseBuilder.success(
         data=ModsCollectionResponse.model_validate(mods_collection),
-        message="Relación obtenida exitosamente"
+        message="Relación obtenida exitosamente",
+        db=db
     )
 
 
@@ -73,7 +88,8 @@ def get_mods_collection_admin(
         raise HTTPException(status_code=404, detail="Relación no encontrada")
     return ResponseBuilder.success(
         data=ModsCollectionResponse.model_validate(mods_collection),
-        message="Relación obtenida exitosamente"
+        message="Relación obtenida exitosamente",
+        db=db
     )
 
 
@@ -129,7 +145,8 @@ def add_mod_to_collection(
     
     return ResponseBuilder.created(
         data=ModsCollectionResponse.model_validate(mods_collection),
-        message="Mod agregado a colección exitosamente"
+        message="Mod agregado a colección exitosamente",
+        db=db
     )
 
 
@@ -176,5 +193,6 @@ def reactivate_mod_collection(
     mods_collection = crud.reactivate_mod_collection(mods_collection_id)
     return ResponseBuilder.updated(
         data=ModsCollectionResponse.model_validate(mods_collection),
-        message="Mod reactivado en colección exitosamente"
+        message="Mod reactivado en colección exitosamente",
+        db=db
     )

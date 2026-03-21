@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query
 from sqlalchemy.orm import Session
 from src.conf.database import DATABASE_INIT
 from src.services.creditos import CRUD_CREDITS
@@ -94,18 +94,26 @@ def get_credits_by_mod(mod_id: int, db: Session = Depends(db_init.get_db)):
     
     return ResponseBuilder.success(
         data=organized_credits,
-        message="Créditos obtenidos exitosamente"
+        message="Créditos obtenidos exitosamente",
+        db=db
     )
 
 
 @router.get("/admin/all")
 def list_credits_admin(
     db: Session = Depends(db_init.get_db),
-    skip: int = 0,
-    limit: int = 20,
+    skip: int = Query(0, ge=0, description="Cantidad de registros a omitir desde el inicio (para paginación). Ejemplo: skip=20 omite los primeros 20 resultados."),
+    limit: int = Query(20, ge=1, le=100, description="Cantidad máxima de registros a retornar (default: 20, max: 100). Ejemplo: limit=10 retorna hasta 10 resultados."),
     user: TokenUser = Depends(verify_admin_role)
 ):
-    """Listar todos los créditos incluyendo inactivos (solo para OWNER/EDITOR)"""
+    """
+    Listar todos los créditos incluyendo inactivos (solo para OWNER/EDITOR)
+    
+    Soporta paginación mediante los parámetros `skip` y `limit`:
+    - Página 1: skip=0, limit=20 (default)
+    - Página 2: skip=20, limit=20
+    - Página 3: skip=40, limit=20
+    """
     crud = CRUD_CREDITS(db)
     credits = crud.get_credits_admin(skip, limit)
     
@@ -135,7 +143,8 @@ def get_credit(credit_id: int, db: Session = Depends(db_init.get_db)):
     
     return ResponseBuilder.success(
         data=enriched,
-        message="Crédito obtenido exitosamente"
+        message="Crédito obtenido exitosamente",
+        db=db
     )
 
 
@@ -155,7 +164,8 @@ def get_credit_admin(
     
     return ResponseBuilder.success(
         data=enriched,
-        message="Crédito obtenido exitosamente"
+        message="Crédito obtenido exitosamente",
+        db=db
     )
 
 
@@ -188,7 +198,8 @@ def create_credit(
     
     return ResponseBuilder.created(
         data=enriched,
-        message="Crédito creado exitosamente"
+        message="Crédito creado exitosamente",
+        db=db
     )
 
 
@@ -234,7 +245,8 @@ def create_credits_batch(
     
     return ResponseBuilder.created(
         data=enriched_credits,
-        message=f"{len(enriched_credits)} créditos creados exitosamente"
+        message=f"{len(enriched_credits)} créditos creados exitosamente",
+        db=db
     )
 
 
@@ -292,7 +304,8 @@ def update_credit(
     
     return ResponseBuilder.updated(
         data=enriched,
-        message="Crédito actualizado exitosamente"
+        message="Crédito actualizado exitosamente",
+        db=db
     )
 
 

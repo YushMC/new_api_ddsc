@@ -4,16 +4,16 @@ Contexto global para almacenar información del usuario actual durante la ejecuc
 from contextvars import ContextVar
 from typing import Optional
 
-current_user: ContextVar[Optional[str]] = ContextVar("current_user", default=None)
+current_user_id: ContextVar[Optional[int]] = ContextVar("current_user_id", default=None)
 
-def set_current_user(user_name: str) -> None:
-    """Establece el usuario actual en el contexto de la request"""
-    current_user.set(user_name)
+def set_current_user_id(user_id: int) -> None:
+    """Establece el ID del usuario actual en el contexto de la request"""
+    current_user_id.set(user_id)
 
-def get_current_user_name() -> Optional[str]:
-    """Obtiene el nombre del usuario actual"""
-    return current_user.get()
+def get_current_user_id() -> Optional[int]:
+    """Obtiene el ID del usuario actual"""
+    return current_user_id.get()
 
 def clear_current_user() -> None:
     """Limpia el usuario actual del contexto"""
-    current_user.set(None)
+    current_user_id.set(None)

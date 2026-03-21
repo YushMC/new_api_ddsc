@@ -7,8 +7,8 @@ class TimestampBase(BaseModel):
     updated_at: datetime | None = None
    
 
-    created_by: str
-    updated_by: str
+    created_by: int | None = None
+    updated_by: int | None = None
    
 
     is_active: bool = True

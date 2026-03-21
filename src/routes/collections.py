@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query
 from sqlalchemy.orm import Session
 from src.conf.database import DATABASE_INIT
 from src.services.collections import CRUD_COLLECTION
@@ -21,10 +21,17 @@ db_init = DATABASE_INIT()
 @router.get("")
 def list_collections(
     db: Session = Depends(db_init.get_db),
-    skip: int = 0,
-    limit: int = 20
+    skip: int = Query(0, ge=0, description="Cantidad de registros a omitir desde el inicio (para paginación). Ejemplo: skip=20 omite los primeros 20 resultados."),
+    limit: int = Query(20, ge=1, le=100, description="Cantidad máxima de registros a retornar (default: 20, max: 100). Ejemplo: limit=10 retorna hasta 10 resultados.")
 ):
-    """Listar todas las colecciones activas (públicamente disponible)"""
+    """
+    Listar todas las colecciones activas (públicamente disponible)
+    
+    Soporta paginación mediante los parámetros `skip` y `limit`:
+    - Página 1: skip=0, limit=20 (default)
+    - Página 2: skip=20, limit=20
+    - Página 3: skip=40, limit=20
+    """
     crud = CRUD_COLLECTION(db)
     collections = crud.get_collections(skip, limit)
     return ResponseBuilder.list_response(
@@ -36,11 +43,18 @@ def list_collections(
 @router.get("/admin/all")
 def list_collections_admin(
     db: Session = Depends(db_init.get_db),
-    skip: int = 0,
-    limit: int = 20,
+    skip: int = Query(0, ge=0, description="Cantidad de registros a omitir desde el inicio (para paginación). Ejemplo: skip=20 omite los primeros 20 resultados."),
+    limit: int = Query(20, ge=1, le=100, description="Cantidad máxima de registros a retornar (default: 20, max: 100). Ejemplo: limit=10 retorna hasta 10 resultados."),
     user: TokenUser = Depends(verify_admin_role)
 ):
-    """Listar todas las colecciones incluyendo inactivas (solo OWNER/EDITOR)"""
+    """
+    Listar todas las colecciones incluyendo inactivas (solo OWNER/EDITOR)
+    
+    Soporta paginación mediante los parámetros `skip` y `limit`:
+    - Página 1: skip=0, limit=20 (default)
+    - Página 2: skip=20, limit=20
+    - Página 3: skip=40, limit=20
+    """
     crud = CRUD_COLLECTION(db)
     collections = crud.get_collections_admin(skip, limit)
     return ResponseBuilder.list_response(
@@ -61,7 +75,8 @@ def get_collection(
         raise HTTPException(status_code=404, detail="Colección no encontrada")
     return ResponseBuilder.success(
         data=CollectionResponse.model_validate(collection),
-        message="Colección obtenida exitosamente"
+        message="Colección obtenida exitosamente",
+        db=db
     )
 
 
@@ -78,7 +93,8 @@ def get_collection_admin(
         raise HTTPException(status_code=404, detail="Colección no encontrada")
     return ResponseBuilder.success(
         data=CollectionResponse.model_validate(collection),
-        message="Colección obtenida exitosamente"
+        message="Colección obtenida exitosamente",
+        db=db
     )
 
 
@@ -101,7 +117,8 @@ def create_collection(
     
     return ResponseBuilder.created(
         data=CollectionResponse.model_validate(collection),
-        message="Colección creada exitosamente"
+        message="Colección creada exitosamente",
+        db=db
     )
 
 
@@ -126,7 +143,8 @@ def update_collection(
     
     return ResponseBuilder.updated(
         data=CollectionResponse.model_validate(collection),
-        message="Colección actualizada exitosamente"
+        message="Colección actualizada exitosamente",
+        db=db
     )
 
 
@@ -173,5 +191,6 @@ def reactivate_collection(
     
     return ResponseBuilder.updated(
         data=CollectionResponse.model_validate(collection),
-        message="Colección restaurada exitosamente"
+        message="Colección restaurada exitosamente",
+        db=db
     )

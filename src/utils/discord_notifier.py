@@ -5,7 +5,7 @@ import aiohttp
 import asyncio
 from src.conf.discord_config import DiscordConfig
 from src.models.enums import UserRolEnum
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Union
 import logging
 
 logger = logging.getLogger(__name__)
@@ -198,13 +198,14 @@ class DiscordNotifier:
         return {"embeds": [embed]}
     
     @staticmethod
-    async def notify_mod_approved(mod: Any, approved_by: Any) -> bool:
+    async def notify_mod_approved(mod: Any, approved_by: Any, creator_name: Optional[str] = None) -> bool:
         """
         Notifica cuando un mod es aprobado por admin
         
         Args:
             mod: Objeto del mod
             approved_by: Usuario que aprobó (EDITOR/OWNER)
+            creator_name: Nombre del creador del mod (resuelto desde created_by ID)
         
         Returns:
             True si se envió exitosamente
@@ -213,7 +214,7 @@ class DiscordNotifier:
             return False
         
         try:
-            embed = DiscordNotifier._format_embed_approved(mod, approved_by)
+            embed = DiscordNotifier._format_embed_approved(mod, approved_by, creator_name)
             await DiscordNotifier._send_webhook(embed)
             return True
         except Exception as e:
@@ -221,13 +222,14 @@ class DiscordNotifier:
             return False
     
     @staticmethod
-    async def notify_mod_rejected(mod: Any, rejected_by: Any) -> bool:
+    async def notify_mod_rejected(mod: Any, rejected_by: Any, creator_name: Optional[str] = None) -> bool:
         """
         Notifica cuando un mod es rechazado por admin
         
         Args:
             mod: Objeto del mod
             rejected_by: Usuario que rechazó (EDITOR/OWNER)
+            creator_name: Nombre del creador del mod (resuelto desde created_by ID)
         
         Returns:
             True si se envió exitosamente
@@ -236,7 +238,7 @@ class DiscordNotifier:
             return False
         
         try:
-            embed = DiscordNotifier._format_embed_rejected(mod, rejected_by)
+            embed = DiscordNotifier._format_embed_rejected(mod, rejected_by, creator_name)
             await DiscordNotifier._send_webhook(embed)
             return True
         except Exception as e:
@@ -244,13 +246,14 @@ class DiscordNotifier:
             return False
     
     @staticmethod
-    async def notify_mod_deleted(mod: Any, deleted_by: Any) -> bool:
+    async def notify_mod_deleted(mod: Any, deleted_by: Any, creator_name: Optional[str] = None) -> bool:
         """
         Notifica cuando un mod es eliminado (soft delete)
         
         Args:
             mod: Objeto del mod
             deleted_by: Usuario que eliminó
+            creator_name: Nombre del creador del mod (resuelto desde created_by ID)
         
         Returns:
             True si se envió exitosamente
@@ -259,7 +262,7 @@ class DiscordNotifier:
             return False
         
         try:
-            embed = DiscordNotifier._format_embed_deleted(mod, deleted_by)
+            embed = DiscordNotifier._format_embed_deleted(mod, deleted_by, creator_name)
             await DiscordNotifier._send_webhook(embed)
             return True
         except Exception as e:
@@ -267,13 +270,14 @@ class DiscordNotifier:
             return False
     
     @staticmethod
-    async def notify_mod_restored(mod: Any, restored_by: Any) -> bool:
+    async def notify_mod_restored(mod: Any, restored_by: Any, creator_name: Optional[str] = None) -> bool:
         """
         Notifica cuando un mod es restaurado
         
         Args:
             mod: Objeto del mod
             restored_by: Usuario que restauró
+            creator_name: Nombre del creador del mod (resuelto desde created_by ID)
         
         Returns:
             True si se envió exitosamente
@@ -282,7 +286,7 @@ class DiscordNotifier:
             return False
         
         try:
-            embed = DiscordNotifier._format_embed_restored(mod, restored_by)
+            embed = DiscordNotifier._format_embed_restored(mod, restored_by, creator_name)
             await DiscordNotifier._send_webhook(embed)
             return True
         except Exception as e:
@@ -422,11 +426,11 @@ class DiscordNotifier:
         return {"embeds": [embed]}
     
     @staticmethod
-    def _format_embed_approved(mod: Any, approved_by: Any) -> Dict[str, Any]:
+    def _format_embed_approved(mod: Any, approved_by: Any, creator_name: Optional[str] = None) -> Dict[str, Any]:
         """Formatea embed para aprobación de mod"""
         
-        # Obtener el creator del mod si existe
-        creator = mod.created_by if hasattr(mod, 'created_by') else "Desconocido"
+        # Usar creator_name resuelto, o fallback a "Desconocido"
+        creator = creator_name if creator_name else "Desconocido"
         
         embed = {
             "title": "✅ MOD APROBADO",
@@ -467,11 +471,11 @@ class DiscordNotifier:
         return {"embeds": [embed]}
     
     @staticmethod
-    def _format_embed_rejected(mod: Any, rejected_by: Any) -> Dict[str, Any]:
+    def _format_embed_rejected(mod: Any, rejected_by: Any, creator_name: Optional[str] = None) -> Dict[str, Any]:
         """Formatea embed para rechazo de mod"""
         
-        # Obtener el creator del mod si existe
-        creator = mod.created_by if hasattr(mod, 'created_by') else "Desconocido"
+        # Usar creator_name resuelto, o fallback a "Desconocido"
+        creator = creator_name if creator_name else "Desconocido"
         
         embed = {
             "title": "❌ MOD RECHAZADO",
@@ -517,11 +521,11 @@ class DiscordNotifier:
         return {"embeds": [embed]}
     
     @staticmethod
-    def _format_embed_deleted(mod: Any, deleted_by: Any) -> Dict[str, Any]:
+    def _format_embed_deleted(mod: Any, deleted_by: Any, creator_name: Optional[str] = None) -> Dict[str, Any]:
         """Formatea embed para eliminación de mod"""
         
-        # Obtener el creator del mod si existe
-        creator = mod.created_by if hasattr(mod, 'created_by') else "Desconocido"
+        # Usar creator_name resuelto, o fallback a "Desconocido"
+        creator = creator_name if creator_name else "Desconocido"
         
         embed = {
             "title": "🗑️ MOD ELIMINADO",
@@ -562,11 +566,11 @@ class DiscordNotifier:
         return {"embeds": [embed]}
     
     @staticmethod
-    def _format_embed_restored(mod: Any, restored_by: Any) -> Dict[str, Any]:
+    def _format_embed_restored(mod: Any, restored_by: Any, creator_name: Optional[str] = None) -> Dict[str, Any]:
         """Formatea embed para restauración de mod"""
         
-        # Obtener el creator del mod si existe
-        creator = mod.created_by if hasattr(mod, 'created_by') else "Desconocido"
+        # Usar creator_name resuelto, o fallback a "Desconocido"
+        creator = creator_name if creator_name else "Desconocido"
         
         embed = {
             "title": "✅ MOD RESTAURADO",

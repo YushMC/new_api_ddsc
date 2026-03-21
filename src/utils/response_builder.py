@@ -17,6 +17,8 @@ TIMESTAMP_FIELDS = {
     # Específicos de Mods
     'approved_at', 
     'approved_by',
+    'rejected_at',
+    'rejected_by',
     'deleted_at', 
     'deleted_by'
 }
@@ -26,6 +28,59 @@ CREDITS_FIELD = 'credits'
 
 # Campos que NO deben ser extraídos (se mantienen íntegros)
 PRESERVED_FIELDS = {'images'}
+
+# Campos _by que contienen IDs de usuario y deben ser resueltos a objetos de usuario
+USER_ID_FIELDS = {'created_by', 'updated_by', 'approved_by', 'rejected_by', 'deleted_by'}
+
+
+def resolve_user_ids(info_data: dict, db) -> dict:
+    """
+    Resuelve los campos _by (IDs de usuario) a objetos con información del usuario.
+    
+    Convierte:
+        "created_by": 5
+    En:
+        "created_by": {"id": 5, "name": "admin", "logo": "url"}
+    
+    Args:
+        info_data: Dict con campos de info (ya extraídos por _extract_info)
+        db: Session de SQLAlchemy
+    
+    Returns:
+        Dict con los campos _by resueltos a objetos de usuario
+    """
+    if not info_data or not db:
+        return info_data
+    
+    from src.models.users import User
+    
+    # Recolectar todos los IDs de usuario únicos (no None, no 0)
+    user_ids = set()
+    for field in USER_ID_FIELDS:
+        val = info_data.get(field)
+        if val and isinstance(val, int) and val != 0:
+            user_ids.add(val)
+    
+    if not user_ids:
+        return info_data
+    
+    # Una sola query para obtener todos los usuarios necesarios
+    users = db.query(User).filter(User.id.in_(user_ids)).all()
+    user_map = {
+        u.id: {"id": u.id, "name": u.name, "logo": u.logo}
+        for u in users
+    }
+    
+    # Reemplazar IDs por objetos de usuario
+    resolved = dict(info_data)
+    for field in USER_ID_FIELDS:
+        val = resolved.get(field)
+        if val and isinstance(val, int) and val != 0:
+            resolved[field] = user_map.get(val, {"id": val, "name": "Desconocido", "logo": None})
+        elif field in resolved:
+            resolved[field] = None
+    
+    return resolved
 
 class ResponseBuilder:
     """Constructor de respuestas estandarizadas para la API"""
@@ -68,7 +123,7 @@ class ResponseBuilder:
         return resource_data, info_data, credits_data
     
     @staticmethod
-    def _create_response_with_info(data: Any, response_type: str, message: str, force_info: bool = False) -> dict:
+    def _create_response_with_info(data: Any, response_type: str, message: str, force_info: bool = False, db=None) -> dict:
         """
         Crea una respuesta separando timestamp info y credits
         
@@ -77,6 +132,7 @@ class ResponseBuilder:
             response_type: Tipo de respuesta (success, created, updated, etc)
             message: Mensaje descriptivo
             force_info: Si True, siempre crea estructura con info aunque sea vacío
+            db: Session de SQLAlchemy (opcional). Si se proporciona, resuelve IDs de usuario a objetos
             
         Returns:
             Dict con estructura estandarizada
@@ -89,6 +145,10 @@ class ResponseBuilder:
             }
         
         resource_data, info_data, credits_data = ResponseBuilder._extract_info(data)
+        
+        # Resolver IDs de usuario a objetos si se proporciona db
+        if db and info_data:
+            info_data = resolve_user_ids(info_data, db)
         
         # Si no hay campos de timestamp ni credits, retornar sin info (a menos que force_info=True)
         if not info_data and credits_data is None and not force_info:
@@ -116,7 +176,7 @@ class ResponseBuilder:
         }
     
     @staticmethod
-    def success(data: Any = None, message: str = "Operación completada exitosamente", force_info: bool = False) -> dict:
+    def success(data: Any = None, message: str = "Operación completada exitosamente", force_info: bool = False, db=None) -> dict:
         """
         Construir respuesta de éxito
         
@@ -124,14 +184,15 @@ class ResponseBuilder:
             data: Datos a retornar
             message: Mensaje descriptivo
             force_info: Si True, siempre crea estructura con info
+            db: Session de SQLAlchemy (opcional). Si se proporciona, resuelve IDs de usuario a objetos
             
         Returns:
             Dict con estructura estandarizada
         """
-        return ResponseBuilder._create_response_with_info(data, "success", message, force_info=force_info)
+        return ResponseBuilder._create_response_with_info(data, "success", message, force_info=force_info, db=db)
     
     @staticmethod
-    def created(data: Any, message: str = "Recurso creado exitosamente", force_info: bool = False) -> dict:
+    def created(data: Any, message: str = "Recurso creado exitosamente", force_info: bool = False, db=None) -> dict:
         """
         Construir respuesta de creación exitosa
         
@@ -139,14 +200,15 @@ class ResponseBuilder:
             data: Datos del recurso creado
             message: Mensaje descriptivo
             force_info: Si True, siempre crea estructura con info
+            db: Session de SQLAlchemy (opcional). Si se proporciona, resuelve IDs de usuario a objetos
             
         Returns:
             Dict con estructura estandarizada
         """
-        return ResponseBuilder._create_response_with_info(data, "created", message, force_info=force_info)
+        return ResponseBuilder._create_response_with_info(data, "created", message, force_info=force_info, db=db)
     
     @staticmethod
-    def updated(data: Any, message: str = "Recurso actualizado exitosamente", force_info: bool = False) -> dict:
+    def updated(data: Any, message: str = "Recurso actualizado exitosamente", force_info: bool = False, db=None) -> dict:
         """
         Construir respuesta de actualización exitosa
         
@@ -154,11 +216,12 @@ class ResponseBuilder:
             data: Datos del recurso actualizado
             message: Mensaje descriptivo
             force_info: Si True, siempre crea estructura con info
+            db: Session de SQLAlchemy (opcional). Si se proporciona, resuelve IDs de usuario a objetos
             
         Returns:
             Dict con estructura estandarizada
         """
-        return ResponseBuilder._create_response_with_info(data, "updated", message, force_info=force_info)
+        return ResponseBuilder._create_response_with_info(data, "updated", message, force_info=force_info, db=db)
     
     @staticmethod
     def deleted(message: str = "Recurso eliminado exitosamente") -> dict:

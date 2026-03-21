@@ -28,9 +28,9 @@ class ModBase(BaseModel):
     approved_at: datetime | None = None
     rejected_at: datetime | None = None
 
-    deleted_by: str | None = None
-    approved_by: str | None = None
-    rejected_by: str | None = None
+    deleted_by: int | None = None
+    approved_by: int | None = None
+    rejected_by: int | None = None
     comments: str | None = None
 
 class ModCommplete(ModBase, TimestampBase):

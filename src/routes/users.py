@@ -1,6 +1,6 @@
 from typing import cast
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
 from sqlalchemy.orm import Session
 from src.conf.database import DATABASE_INIT
 from src.services.users import CRUD_USERS
@@ -54,7 +54,8 @@ def bootstrap_first_user(user_data: UserCreate, db: Session = Depends(db_init.ge
         
         return ResponseBuilder.created(
             data=response_data,
-            message="Usuario OWNER creado exitosamente"
+            message="Usuario OWNER creado exitosamente",
+            db=db
         )
     except HTTPException:
         raise
@@ -91,17 +92,25 @@ def get_user(user_id: int, db: Session = Depends(db_init.get_db)):
     
     return ResponseBuilder.success(
         data=UserResponse.model_validate(user),
-        message="Usuario obtenido exitosamente"
+        message="Usuario obtenido exitosamente",
+        db=db
     )
 
 @router.get("/admin/all")
 def list_users_admin(
     db: Session = Depends(db_init.get_db),
-    skip: int = 0,
-    limit: int = 20,
+    skip: int = Query(0, ge=0, description="Cantidad de registros a omitir desde el inicio (para paginación). Ejemplo: skip=20 omite los primeros 20 resultados."),
+    limit: int = Query(20, ge=1, le=100, description="Cantidad máxima de registros a retornar (default: 20, max: 100). Ejemplo: limit=10 retorna hasta 10 resultados."),
     user: TokenUser = Depends(verify_admin_role)
 ):
-    """Listar todos los usuarios incluyendo inactivos (solo para OWNER/EDITOR)"""
+    """
+    Listar todos los usuarios incluyendo inactivos (solo para OWNER/EDITOR)
+    
+    Soporta paginación mediante los parámetros `skip` y `limit`:
+    - Página 1: skip=0, limit=20 (default)
+    - Página 2: skip=20, limit=20
+    - Página 3: skip=40, limit=20
+    """
     crud = CRUD_USERS(db)
     users = crud.get_users_admin(skip, limit)
     return ResponseBuilder.list_response(
@@ -131,7 +140,8 @@ def create_user(user_data: UserCreate, user: TokenUser = Depends(get_current_use
     
     return ResponseBuilder.created(
         data=response_data,
-        message="Usuario creado exitosamente. Token generado para login automático."
+        message="Usuario creado exitosamente. Token generado para login automático.",
+        db=db
     )
 
 @router.post("/logo")
@@ -170,7 +180,8 @@ def upload_user_logo(
         
         return ResponseBuilder.updated(
             data=UserResponse.model_validate(updated_user),
-            message="Logo actualizado exitosamente"
+            message="Logo actualizado exitosamente",
+            db=db
         )
     except HTTPException:
         raise
@@ -215,7 +226,8 @@ def update_user_logo(
         
         return ResponseBuilder.updated(
             data=UserResponse.model_validate(updated_user),
-            message="Logo actualizado exitosamente"
+            message="Logo actualizado exitosamente",
+            db=db
         )
     except HTTPException:
         raise
@@ -243,7 +255,8 @@ def update_password(
         )
         return ResponseBuilder.updated(
             data=UserResponse.model_validate(updated_user),
-            message="Contraseña actualizada exitosamente"
+            message="Contraseña actualizada exitosamente",
+            db=db
         )
     except HTTPException:
         raise
@@ -266,7 +279,8 @@ def update_contact(
         updated_user = crud.update_user_contact(current_user.id, contact_data.contact)
         return ResponseBuilder.updated(
             data=UserResponse.model_validate(updated_user),
-            message="Contacto actualizado exitosamente"
+            message="Contacto actualizado exitosamente",
+            db=db
         )
     except HTTPException:
         raise
@@ -293,7 +307,8 @@ def update_profile(
         )
         return ResponseBuilder.updated(
             data=UserResponse.model_validate(updated_user),
-            message="Perfil actualizado exitosamente"
+            message="Perfil actualizado exitosamente",
+            db=db
         )
     except HTTPException:
         raise
@@ -325,7 +340,8 @@ def update_user_role(
         updated_user = crud.update_user_role(user_id, role_data.role)
         return ResponseBuilder.updated(
             data=UserResponse.model_validate(updated_user),
-            message="Rol actualizado exitosamente"
+            message="Rol actualizado exitosamente",
+            db=db
         )
     except HTTPException:
         raise
@@ -350,7 +366,8 @@ def admin_restore_password(
         updated_user = crud.admin_restore_password(user_id, password_data.new_password)
         return ResponseBuilder.updated(
             data=UserResponse.model_validate(updated_user),
-            message="Contraseña restaurada exitosamente"
+            message="Contraseña restaurada exitosamente",
+            db=db
         )
     except HTTPException:
         raise

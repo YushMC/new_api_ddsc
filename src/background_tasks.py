@@ -53,13 +53,14 @@ def notify_mod_updated(mod: Any, user: Any, changes: Dict[str, Dict[str, Any]]) 
         logger.error(f"Error en background task notify_mod_updated: {e}")
 
 
-def notify_mod_approved(mod: Any, approved_by: Any) -> None:
+def notify_mod_approved(mod: Any, approved_by: Any, creator_name: Optional[str] = None) -> None:
     """
     Ejecuta la notificación de aprobación de Discord de forma asincrónica
     
     Args:
         mod: Objeto del mod
         approved_by: Usuario que aprobó
+        creator_name: Nombre del creador del mod
     """
     try:
         try:
@@ -68,7 +69,7 @@ def notify_mod_approved(mod: Any, approved_by: Any) -> None:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
         
-        loop.run_until_complete(DiscordNotifier.notify_mod_approved(mod, approved_by))
+        loop.run_until_complete(DiscordNotifier.notify_mod_approved(mod, approved_by, creator_name))
     except Exception as e:
         logger.error(f"Error en background task notify_mod_approved: {e}")
 

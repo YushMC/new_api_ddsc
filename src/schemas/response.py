@@ -18,29 +18,34 @@ class TimestampInfo(BaseModel):
     
     Campos específicos de Mods:
     - approved_at, approved_by: Aprobación del mod
+    - rejected_at, rejected_by: Rechazo del mod
     - deleted_at, deleted_by: Eliminación (soft delete)
     
     Ejemplo:
     {
         "created_at": "2024-03-16T10:30:00Z",
-        "created_by": "uploader",
+        "created_by": 5,
         "updated_at": "2024-03-16T11:45:00Z",
-        "updated_by": "editor",
+        "updated_by": 3,
         "approved_at": "2024-03-16T12:00:00Z",
-        "approved_by": "owner",
+        "approved_by": 1,
+        "rejected_at": null,
+        "rejected_by": null,
         "deleted_at": null,
         "deleted_by": null,
         "is_active": true
     }
     """
     created_at: Optional[datetime] = Field(None, description="Fecha de creación")
-    created_by: Optional[str] = Field(None, description="Usuario que creó el recurso")
+    created_by: Optional[int] = Field(None, description="ID del usuario que creó el recurso")
     updated_at: Optional[datetime] = Field(None, description="Fecha de última actualización")
-    updated_by: Optional[str] = Field(None, description="Usuario que actualizó el recurso")
+    updated_by: Optional[int] = Field(None, description="ID del usuario que actualizó el recurso")
     approved_at: Optional[datetime] = Field(None, description="Fecha de aprobación (específico de Mods)")
-    approved_by: Optional[str] = Field(None, description="Usuario que aprobó (específico de Mods)")
+    approved_by: Optional[int] = Field(None, description="ID del usuario que aprobó (específico de Mods)")
+    rejected_at: Optional[datetime] = Field(None, description="Fecha de rechazo (específico de Mods)")
+    rejected_by: Optional[int] = Field(None, description="ID del usuario que rechazó (específico de Mods)")
     deleted_at: Optional[datetime] = Field(None, description="Fecha de eliminación (soft delete, específico de Mods)")
-    deleted_by: Optional[str] = Field(None, description="Usuario que eliminó (específico de Mods)")
+    deleted_by: Optional[int] = Field(None, description="ID del usuario que eliminó (específico de Mods)")
     is_active: bool = Field(True, description="Si el recurso está activo")
     
     class Config:

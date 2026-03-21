@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from src.conf.database import DATABASE_INIT
 from src.middleware.jwt import get_current_user, verify_admin_role
@@ -15,18 +15,19 @@ db_init = DATABASE_INIT()
 
 @router.get("")
 def get_notifications(
-    status: Optional[str] = None,
-    skip: int = 0,
-    limit: int = 50,
+    status: Optional[str] = Query(None, description="Filtrar por estado: 'unread' o 'read' (opcional, sin filtro retorna todas)"),
+    skip: int = Query(0, ge=0, description="Cantidad de registros a omitir desde el inicio (para paginación). Ejemplo: skip=50 omite los primeros 50 resultados."),
+    limit: int = Query(50, ge=1, le=100, description="Cantidad máxima de registros a retornar (default: 50, max: 100). Ejemplo: limit=25 retorna hasta 25 resultados."),
     user: TokenUser = Depends(get_current_user),
     db: Session = Depends(db_init.get_db)
 ):
     """
     Obtener notificaciones del usuario autenticado
     
-    - status: 'unread' o 'read' (opcional)
-    - skip: Para paginación
-    - limit: Máximo de resultados (default 50, max 100)
+    Soporta paginación mediante los parámetros `skip` y `limit`:
+    - Página 1: skip=0, limit=50 (default)
+    - Página 2: skip=50, limit=50
+    - Página 3: skip=100, limit=50
     """
     if limit > 100:
         limit = 100
@@ -52,24 +53,33 @@ def get_notifications(
     
     return ResponseBuilder.success(
         data=[NotificationResponse.model_validate(n).model_dump() for n in notifications],
-        message="Notificaciones obtenidas exitosamente"
+        message="Notificaciones obtenidas exitosamente",
+        db=db
     )
 
 
 @router.get("/admin/all")
 def list_notifications_admin(
     db: Session = Depends(db_init.get_db),
-    skip: int = 0,
-    limit: int = 50,
+    skip: int = Query(0, ge=0, description="Cantidad de registros a omitir desde el inicio (para paginación). Ejemplo: skip=50 omite los primeros 50 resultados."),
+    limit: int = Query(50, ge=1, le=100, description="Cantidad máxima de registros a retornar (default: 50, max: 100). Ejemplo: limit=25 retorna hasta 25 resultados."),
     user: TokenUser = Depends(verify_admin_role)
 ):
-    """Listar todas las notificaciones incluyendo inactivas (solo para OWNER/EDITOR)"""
+    """
+    Listar todas las notificaciones incluyendo inactivas (solo para OWNER/EDITOR)
+    
+    Soporta paginación mediante los parámetros `skip` y `limit`:
+    - Página 1: skip=0, limit=50 (default)
+    - Página 2: skip=50, limit=50
+    - Página 3: skip=100, limit=50
+    """
     crud = CRUD_NOTIFICATION(db)
     notifications = crud.get_notifications_admin(skip, limit)
     
     return ResponseBuilder.success(
         data=[NotificationResponse.model_validate(n).model_dump() for n in notifications],
-        message="Notificaciones obtenidas exitosamente (incluyendo inactivas)"
+        message="Notificaciones obtenidas exitosamente (incluyendo inactivas)",
+        db=db
     )
 
 
@@ -100,7 +110,8 @@ def mark_notification_as_read(
     
     return ResponseBuilder.updated(
         data=NotificationResponse.model_validate(notification).model_dump(),
-        message="Notificación marcada como leída"
+        message="Notificación marcada como leída",
+        db=db
     )
 
 
@@ -150,5 +161,6 @@ def update_notification_type(
     
     return ResponseBuilder.updated(
         data=NotificationResponse.model_validate(notification).model_dump(),
-        message="Tipo de notificación actualizado exitosamente"
+        message="Tipo de notificación actualizado exitosamente",
+        db=db
     )

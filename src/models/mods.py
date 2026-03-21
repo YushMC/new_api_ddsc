@@ -22,12 +22,12 @@ class Mod(__Base, TimestampMixin):
     dowload_pc=Column(String(500))
     dowload_android=Column(String(500))
     required_revision = Column(Boolean, default=False)
-    approved_by = Column(String(100))
+    approved_by = Column(Integer)
     approved_at = Column(DateTime)
-    rejected_by = Column(String(100))
+    rejected_by = Column(Integer)
     rejected_at = Column(DateTime)
     comments = Column(Text, nullable=True)
-    deleted_by = Column(String(100))
+    deleted_by = Column(Integer)
     deleted_at = Column(DateTime)
     images = relationship(
         "Image",

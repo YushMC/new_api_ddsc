@@ -104,8 +104,8 @@ class CRUD_MOD:
 
         mod.required_revision = user.rol == UserRolEnum.UPLOADER
         mod.is_active = user.rol != UserRolEnum.UPLOADER
-        mod.created_by = str(user.name)
-        mod.updated_by = str(user.name)
+        mod.created_by = user.id
+        mod.updated_by = user.id
 
         self.__db.add(mod)
         self.__db.commit()
@@ -121,8 +121,12 @@ class CRUD_MOD:
         return self.__db.query(Mod).filter(Mod.is_active == True).offset(skip).limit(limit).all()
     
     def get_mods_admin(self, skip: int = 0, limit: int = 20):
-        """Obtener todos los mods (incluyendo inactivos) - Solo para administradores"""
-        return self.__db.query(Mod).offset(skip).limit(limit).all()
+        """Obtener todos los mods (incluyendo inactivos) excluyendo los que requieren revisión - Solo para administradores"""
+        return self.__db.query(Mod).filter(Mod.required_revision == False).offset(skip).limit(limit).all()
+    
+    def get_mods_pending_revision(self, skip: int = 0, limit: int = 20):
+        """Obtener todos los mods que requieren revisión - Solo para administradores"""
+        return self.__db.query(Mod).filter(Mod.required_revision == True).offset(skip).limit(limit).all()
     
     def update_mod(self, mod_id: int, data: ModBase, user: TokenUser):
         if user.rol == UserRolEnum.UPLOADER:
@@ -177,7 +181,7 @@ class CRUD_MOD:
             if old_val == True and new_val == False:
                 mod.approved_at = datetime.now(UTC) # type: ignore
         
-        mod.updated_by = str(user.name)
+        mod.updated_by = user.id
 
         self.__db.commit()
         self.__db.refresh(mod)
@@ -195,7 +199,7 @@ class CRUD_MOD:
             raise HTTPException(status_code=404, detail="Mod no encontrado")
 
         mod.is_active = False
-        mod.deleted_by = str(user.name) # type: ignore
+        mod.deleted_by = user.id # type: ignore
         mod.deleted_at = datetime.now(UTC)  # type: ignore
         if reason:
             mod.comments = reason  # type: ignore
@@ -257,9 +261,9 @@ class CRUD_MOD:
         }
         
         mod.required_revision = False #type: ignore
-        mod.approved_by = str(user.name) # type: ignore
+        mod.approved_by = user.id # type: ignore
         mod.approved_at = datetime.now(UTC)  # type: ignore
-        mod.updated_by = str(user.name)
+        mod.updated_by = user.id
         
         self.__db.commit()
         self.__db.refresh(mod)
@@ -301,10 +305,10 @@ class CRUD_MOD:
         }
         
         mod.required_revision = False #type: ignore
-        mod.rejected_by = str(user.name) # type: ignore
+        mod.rejected_by = user.id # type: ignore
         mod.rejected_at = datetime.now(UTC)  # type: ignore
         mod.comments = comments  # type: ignore
-        mod.updated_by = str(user.name)
+        mod.updated_by = user.id
         
         self.__db.commit()
         self.__db.refresh(mod)

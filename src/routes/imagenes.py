@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Form, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Form, BackgroundTasks, Query
 from sqlalchemy.orm import Session
 from src.conf.database import DATABASE_INIT
 from src.services.imagenes import CRUD_IMAGE
@@ -35,7 +35,8 @@ def get_images_by_mod(mod_id: int, db: Session = Depends(db_init.get_db)):
             ImageResponse.model_validate(img),
             "success",
             "",
-            force_info=True
+            force_info=True,
+            db=db
         )
         prepared_images.append(img_dict["data"])
     
@@ -48,11 +49,18 @@ def get_images_by_mod(mod_id: int, db: Session = Depends(db_init.get_db)):
 @router.get("/admin/all")
 def list_images_admin(
     db: Session = Depends(db_init.get_db),
-    skip: int = 0,
-    limit: int = 20,
+    skip: int = Query(0, ge=0, description="Cantidad de registros a omitir desde el inicio (para paginación). Ejemplo: skip=20 omite los primeros 20 resultados."),
+    limit: int = Query(20, ge=1, le=100, description="Cantidad máxima de registros a retornar (default: 20, max: 100). Ejemplo: limit=10 retorna hasta 10 resultados."),
     user: TokenUser = Depends(verify_admin_role)
 ):
-    """Listar todas las imágenes incluyendo inactivas (solo para OWNER/EDITOR)"""
+    """
+    Listar todas las imágenes incluyendo inactivas (solo para OWNER/EDITOR)
+    
+    Soporta paginación mediante los parámetros `skip` y `limit`:
+    - Página 1: skip=0, limit=20 (default)
+    - Página 2: skip=20, limit=20
+    - Página 3: skip=40, limit=20
+    """
     crud = CRUD_IMAGE(db)
     images = crud.get_imagenes_admin(skip, limit)
     
@@ -63,7 +71,8 @@ def list_images_admin(
             ImageResponse.model_validate(img),
             "success",
             "",
-            force_info=True
+            force_info=True,
+            db=db
         )
         prepared_images.append(img_dict["data"])
     
@@ -84,7 +93,8 @@ def get_image(image_id: int, db: Session = Depends(db_init.get_db)):
     return ResponseBuilder.success(
         data=ImageResponse.model_validate(image),
         message="Imagen obtenida exitosamente",
-        force_info=True
+        force_info=True,
+        db=db
     )
 
 @router.get("/admin/{image_id}")
@@ -100,7 +110,8 @@ def get_image_admin(
     return ResponseBuilder.success(
         data=ImageResponse.model_validate(image),
         message="Imagen obtenida exitosamente",
-        force_info=True
+        force_info=True,
+        db=db
     )
 
 @router.delete("/{image_id}")
@@ -208,7 +219,8 @@ async def upload_logo(
         return ResponseBuilder.created(
             data=ImageResponse.model_validate(image),
             message="Logo subido exitosamente",
-            force_info=True
+            force_info=True,
+            db=db
         )
         
     except HTTPException:
@@ -289,7 +301,8 @@ async def upload_main(
         return ResponseBuilder.created(
             data=ImageResponse.model_validate(image),
             message="Imagen principal subida exitosamente",
-            force_info=True
+            force_info=True,
+            db=db
         )
         
     except HTTPException:
@@ -370,7 +383,8 @@ async def upload_screenshot(
         return ResponseBuilder.created(
             data=ImageResponse.model_validate(image),
             message="Captura de pantalla subida exitosamente",
-            force_info=True
+            force_info=True,
+            db=db
         )
         
     except HTTPException:
@@ -451,7 +465,8 @@ async def update_logo(
         return ResponseBuilder.updated(
             data=ImageResponse.model_validate(image),
             message="Logo actualizado exitosamente",
-            force_info=True
+            force_info=True,
+            db=db
         )
         
     except HTTPException:
@@ -528,7 +543,8 @@ async def update_main(
         return ResponseBuilder.updated(
             data=ImageResponse.model_validate(image),
             message="Imagen principal actualizada exitosamente",
-            force_info=True
+            force_info=True,
+            db=db
         )
         
     except HTTPException:
@@ -605,7 +621,8 @@ async def update_screenshot(
         return ResponseBuilder.updated(
             data=ImageResponse.model_validate(image),
             message="Screenshot actualizada exitosamente",
-            force_info=True
+            force_info=True,
+            db=db
         )
         
     except HTTPException:

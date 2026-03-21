@@ -1,7 +1,7 @@
-from sqlalchemy import Boolean, Column, DateTime, String
+from sqlalchemy import Boolean, Column, DateTime, Integer
 from sqlalchemy.orm import declared_attr
 from datetime import datetime, UTC
-from src.conf.context import get_current_user_name
+from src.conf.context import get_current_user_id
 
 class TimestampMixin:
 
@@ -18,10 +18,10 @@ class TimestampMixin:
 
     @declared_attr
     def created_by(cls):
-        return Column(String(100), default=lambda: get_current_user_name() or "system")
+        return Column(Integer, default=lambda: get_current_user_id() or 0)
 
     @declared_attr
     def updated_by(cls):
-        return Column(String(100), default=lambda: get_current_user_name() or "system", onupdate=lambda: get_current_user_name() or "system")
+        return Column(Integer, default=lambda: get_current_user_id() or 0, onupdate=lambda: get_current_user_id() or 0)
 
     is_active = Column(Boolean, default=True)
