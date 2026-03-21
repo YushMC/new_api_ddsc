@@ -16,6 +16,19 @@ class CreditCreate(CreditBase):
     pass
 
 
+class CreditBatchItem(BaseModel):
+    """Schema para un crédito individual en la creación por lotes"""
+    id_user: Optional[int] = Field(None, description="ID del usuario (si está registrado)")
+    name: Optional[str] = Field(None, max_length=100, description="Nombre del crédito (si no está registrado)")
+    type: CreditsTypeEnum = Field(..., description="Tipo de crédito: original_creator, translator, porter")
+
+
+class CreditBatchCreate(BaseModel):
+    """Schema para crear múltiples créditos de una vez"""
+    id_mod: int = Field(..., description="ID del mod")
+    credits: list[CreditBatchItem] = Field(..., description="Lista de créditos a crear", min_items=1)
+
+
 class CreditUserInfo(BaseModel):
     """Info del usuario asociado al crédito (similar a UserResponse)"""
     id: Optional[int] = Field(None, description="ID del usuario")

@@ -120,15 +120,77 @@ class CRUD_CREDITS:
         
         return credit
     
-    def delete_credit(self, credit_id: int):
-        """Eliminar un crédito (soft delete)"""
-        credit = self.__db.query(Credit).filter(Credit.id == credit_id).first()
+    def create_credits_batch(self, id_mod: int, credits_data: list[dict]):
+        """Crear múltiples créditos para un mod en una sola operación
         
-        if not credit:
-            raise HTTPException(status_code=404, detail="Crédito no encontrado")
+        Args:
+            id_mod: ID del mod
+            credits_data: Lista de diccionarios con {id_user, name, type}
         
-        credit.is_active = False #type: ignore
+        Returns:
+            Lista de créditos creados
+        """
+        # Verificar que el mod existe
+        mod = self.__db.query(Mod).filter(Mod.id == id_mod).first()
+        if not mod:
+            raise HTTPException(status_code=404, detail="Mod no encontrado")
+        
+        created_credits = []
+        porter_count = 0
+        
+        # Validar y procesar cada crédito antes de crear
+        for credit_data in credits_data:
+            id_user = credit_data.get("id_user")
+            name = credit_data.get("name")
+            credit_type = credit_data.get("type")
+            
+            # Validar que al menos id_user o name esté presente
+            if id_user is None and name is None:
+                raise HTTPException(status_code=400, detail="Cada crédito debe tener id_user o name")
+            
+            # Si id_user está presente, verificar que el usuario existe
+            if id_user is not None:
+                user = self.__db.query(User).filter(User.id == id_user).first()
+                if not user:
+                    raise HTTPException(status_code=404, detail=f"Usuario {id_user} no encontrado")
+            
+            # Contar porters
+            if credit_type == CreditsTypeEnum.PORTER:
+                porter_count += 1
+        
+        # Verificar que no haya múltiples porters
+        if porter_count > 1:
+            raise HTTPException(status_code=400, detail="No se pueden crear múltiples porters en un lote")
+        
+        # Si hay un porter, verificar que no exista otro en el mod
+        if porter_count == 1:
+            existing_porter = self.__db.query(Credit).filter(
+                Credit.id_mod == id_mod,
+                Credit.type == CreditsTypeEnum.PORTER,
+                Credit.is_active == True
+            ).first()
+            
+            if existing_porter:
+                raise HTTPException(status_code=400, detail="Este mod ya tiene un porteador")
+        
+        # Crear todos los créditos
+        for credit_data in credits_data:
+            credit = Credit(
+                id_mod=id_mod,
+                id_user=credit_data.get("id_user"),
+                name=credit_data.get("name"),
+                type=credit_data.get("type")
+            )
+            
+            self.__db.add(credit)
+            created_credits.append(credit)
+        
+        # Hacer commit una sola vez
         self.__db.commit()
-        self.__db.refresh(credit)
         
-        return credit
+        # Refresh all credits
+        for credit in created_credits:
+            self.__db.refresh(credit)
+        
+        return created_credits
+    

@@ -6,7 +6,7 @@ from src.services.mods import CRUD_MOD
 from src.middleware.jwt import get_current_user, verify_admin_role
 from src.services.token import TokenUser
 from src.models.credits import Credit
-from src.schemas.credits import CreditCreate, CreditResponse
+from src.schemas.credits import CreditCreate, CreditResponse, CreditBatchCreate
 from src.utils.response_builder import ResponseBuilder
 from src.background_tasks import notify_mod_completed
 from pydantic import BaseModel
@@ -189,6 +189,52 @@ def create_credit(
     return ResponseBuilder.created(
         data=enriched,
         message="Crédito creado exitosamente"
+    )
+
+
+@router.post("/batch")
+def create_credits_batch(
+    data: CreditBatchCreate,
+    user: TokenUser = Depends(get_current_user),
+    db: Session = Depends(db_init.get_db),
+    background_tasks: BackgroundTasks = BackgroundTasks()
+):
+    """
+    Crear múltiples créditos de una vez para un mod
+    
+    Estructura esperada:
+    {
+        "id_mod": 5,
+        "credits": [
+            {"id_user": 1, "type": "original_creator"},
+            {"name": "Juan Pérez", "type": "translator"},
+            {"id_user": 3, "name": null, "type": "porter"}
+        ]
+    }
+    """
+    crud = CRUD_CREDITS(db)
+    
+    # Convertir los créditos batch a diccionarios
+    credits_data = [credit.model_dump() for credit in data.credits]
+    
+    # Crear todos los créditos
+    created_credits = crud.create_credits_batch(data.id_mod, credits_data)
+    
+    # Enriquecer cada crédito con la información del usuario
+    enriched_credits = [_enrich_credit_with_user(credit, db) for credit in created_credits]
+    
+    # Verificar si el mod está completo (tiene imágenes y créditos)
+    crud_mod = CRUD_MOD(db)
+    if crud_mod.is_mod_complete(data.id_mod):
+        # Obtener el mod completo
+        mod = crud_mod.get_mod(data.id_mod)
+        if mod:
+            # Agregar notificación a Discord como background task
+            background_tasks.add_task(notify_mod_completed, mod)
+    
+    return ResponseBuilder.created(
+        data=enriched_credits,
+        message=f"{len(enriched_credits)} créditos creados exitosamente"
     )
 
 

@@ -72,15 +72,25 @@ def login(credentials: UserLogin, db: Session = Depends(db_init.get_db)):
 
 @router.get("")
 def list_users(user: TokenUser = Depends(get_current_user), db: Session = Depends(db_init.get_db)):
-    """Listar todos los usuarios activos (requiere autenticación OWNER/EDITOR)"""
-    if user.rol == UserRolEnum.UPLOADER:
-        raise HTTPException(status_code=403, detail="No autorizado para listar usuarios")
-    
+    """Listar todos los usuarios activos (requiere token válido - cualquier rol)"""
     crud = CRUD_USERS(db)
     users = crud.get_users()
     return ResponseBuilder.list_response(
         data=[UserResponse.model_validate(u) for u in users],
         message="Usuarios obtenidos exitosamente"
+    )
+
+@router.get("/{user_id}")
+def get_user(user_id: int, db: Session = Depends(db_init.get_db)):
+    """Obtener un usuario específico (públicamente disponible sin autenticación)"""
+    crud = CRUD_USERS(db)
+    user = crud.get_user_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    return ResponseBuilder.success(
+        data=UserResponse.model_validate(user),
+        message="Usuario obtenido exitosamente"
     )
 
 @router.get("/admin/all")
