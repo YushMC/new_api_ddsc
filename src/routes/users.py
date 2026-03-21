@@ -300,7 +300,7 @@ def update_profile(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error actualizando perfil: {str(e)}")
 
-@router.patch("/admin/{user_id}/role")
+@router.patch("/admin/role/{user_id}")
 def update_user_role(
     user_id: int,
     role_data: UpdateRoleRequest,
