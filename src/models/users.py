@@ -22,6 +22,6 @@ class User(__Base):
 
     contact=Column(String(500))
 
-    about_me = Column(Text, nullable=True)
+    about_me = Column(String(500))
 
     is_active = Column(Boolean, default=True)

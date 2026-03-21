@@ -19,6 +19,7 @@ class JWT_TOKEN:
             "name": user.name,
             "role": user.role,
             "logo": user.logo,
+            "about_me": user.about_me,
             "exp": datetime.now(UTC) + timedelta(hours=48)
         }
 
