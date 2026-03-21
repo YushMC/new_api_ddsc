@@ -189,6 +189,56 @@ def upload_user_logo(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error subiendo logo: {str(e)}")
 
+@router.patch("/{user_id}/logo")
+def update_user_logo(
+    user_id: int,
+    file: UploadFile = File(...),
+    current_user: TokenUser = Depends(get_current_user),
+    db: Session = Depends(db_init.get_db)
+):
+    """
+    Actualizar logo de usuario en AWS S3
+    
+    - Solo el usuario dueño o OWNER pueden actualizar su logo
+    - Formato soportado: JPEG, PNG, WebP, GIF
+    - Tamaño máximo: 10 MB
+    - Elimina el logo anterior si existe
+    """
+    try:
+        from src.models.enums import UserRolEnum
+        if current_user.id != user_id and current_user.rol != UserRolEnum.OWNER:
+            raise HTTPException(status_code=403, detail="No autorizado para actualizar este logo")
+        
+        crud = CRUD_USERS(db)
+        user = crud.get_user_by_id(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        
+        file_content = file.file.read()
+        
+        ImageProcessor.validate_image(file_content, file.filename or "logo")
+        
+        webp_content = ImageProcessor.process_to_webp(file_content, file.filename or "logo")
+        
+        s3_manager = S3Manager()
+        
+        # Eliminar logo anterior si existe
+        if cast(str, user.logo):
+            s3_manager.delete_file(cast(str, user.logo))
+        
+        logo_url = s3_manager.upload_user_logo(webp_content, user_id, file.filename or "logo")
+        
+        updated_user = crud.update_user_logo(user_id, logo_url)
+        
+        return ResponseBuilder.updated(
+            data=UserResponse.model_validate(updated_user),
+            message="Logo actualizado exitosamente"
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error actualizando logo: {str(e)}")
+
 @router.patch("/{user_id}/password")
 def update_password(
     user_id: int,
