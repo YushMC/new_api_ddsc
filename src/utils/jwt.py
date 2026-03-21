@@ -18,6 +18,7 @@ class JWT_TOKEN:
             "sub": str(user.id),  # JWT spec requires 'sub' to be a string
             "name": user.name,
             "role": user.role,
+            "logo": user.logo,
             "exp": datetime.now(UTC) + timedelta(hours=48)
         }
 
