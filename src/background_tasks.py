@@ -90,3 +90,183 @@ def notify_mod_completed(mod: Any) -> None:
         loop.run_until_complete(DiscordNotifier.notify_mod_completed(mod))
     except Exception as e:
         logger.error(f"Error en background task notify_mod_completed: {e}")
+
+
+def notify_genres_added(mod: Any, genres: list, user: Any) -> None:
+    """
+    Ejecuta la notificación de adición de géneros de forma asincrónica
+    
+    Args:
+        mod: Objeto del mod
+        genres: Lista de géneros agregados
+        user: Usuario que agregó los géneros
+    """
+    try:
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        
+        loop.run_until_complete(DiscordNotifier.notify_genres_added(mod, genres, user))
+    except Exception as e:
+        logger.error(f"Error en background task notify_genres_added: {e}")
+
+
+def notify_genres_removed(mod: Any, genres: list, user: Any) -> None:
+    """
+    Ejecuta la notificación de remoción de géneros de forma asincrónica
+    
+    Args:
+        mod: Objeto del mod
+        genres: Lista de géneros removidos
+        user: Usuario que removió los géneros
+    """
+    try:
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        
+        loop.run_until_complete(DiscordNotifier.notify_genres_removed(mod, genres, user))
+    except Exception as e:
+        logger.error(f"Error en background task notify_genres_removed: {e}")
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# NOTIFICACIONES PARA COLECCIONES
+# ═════════════════════════════════════════════════════════════════════════════
+
+def notify_collection_created(collection: Any, user: Any) -> None:
+    """Notifica creación de colección"""
+    try:
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        
+        loop.run_until_complete(DiscordNotifier.notify_collection_created(collection, user))
+    except Exception as e:
+        logger.error(f"Error en background task notify_collection_created: {e}")
+
+
+def notify_collection_updated(collection: Any, user: Any, changes: Dict[str, Dict[str, Any]]) -> None:
+    """Notifica actualización de colección"""
+    try:
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        
+        loop.run_until_complete(DiscordNotifier.notify_collection_updated(collection, user, changes))
+    except Exception as e:
+        logger.error(f"Error en background task notify_collection_updated: {e}")
+
+
+def notify_collection_deleted(collection: Any, user: Any) -> None:
+    """Notifica eliminación de colección"""
+    try:
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        
+        loop.run_until_complete(DiscordNotifier.notify_collection_deleted(collection, user))
+    except Exception as e:
+        logger.error(f"Error en background task notify_collection_deleted: {e}")
+
+
+def notify_collection_reactivated(collection: Any, user: Any) -> None:
+    """Notifica restauración de colección"""
+    try:
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        
+        loop.run_until_complete(DiscordNotifier.notify_collection_reactivated(collection, user))
+    except Exception as e:
+        logger.error(f"Error en background task notify_collection_reactivated: {e}")
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# NOTIFICACIONES PARA MODS EN COLECCIONES
+# ═════════════════════════════════════════════════════════════════════════════
+
+def notify_mod_added_to_collection(mod: Any, collection: Any, user: Any) -> None:
+    """Notifica adición de mod a colección"""
+    try:
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        
+        loop.run_until_complete(DiscordNotifier.notify_mod_added_to_collection(mod, collection, user))
+    except Exception as e:
+        logger.error(f"Error en background task notify_mod_added_to_collection: {e}")
+
+
+def notify_mod_removed_from_collection(mod: Any, collection: Any, user: Any) -> None:
+    """Notifica remoción de mod de colección"""
+    try:
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        
+        loop.run_until_complete(DiscordNotifier.notify_mod_removed_from_collection(mod, collection, user))
+    except Exception as e:
+        logger.error(f"Error en background task notify_mod_removed_from_collection: {e}")
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# NOTIFICACIONES PARA IMÁGENES
+# ═════════════════════════════════════════════════════════════════════════════
+
+def notify_image_uploaded(image: Any, mod: Any, user: Any) -> None:
+    """Notifica carga de imagen"""
+    try:
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        
+        loop.run_until_complete(DiscordNotifier.notify_image_uploaded(image, mod, user))
+    except Exception as e:
+        logger.error(f"Error en background task notify_image_uploaded: {e}")
+
+
+def notify_image_replaced(image: Any, mod: Any, user: Any) -> None:
+    """Notifica reemplazo de imagen"""
+    try:
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        
+        loop.run_until_complete(DiscordNotifier.notify_image_replaced(image, mod, user))
+    except Exception as e:
+        logger.error(f"Error en background task notify_image_replaced: {e}")
+
+
+def notify_image_deleted(image: Any, mod: Any, user: Any) -> None:
+    """Notifica eliminación de imagen"""
+    try:
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        
+        loop.run_until_complete(DiscordNotifier.notify_image_deleted(image, mod, user))
+    except Exception as e:
+        logger.error(f"Error en background task notify_image_deleted: {e}")

@@ -59,6 +59,8 @@ class CRUD_COLLECTION:
         if not collection:
             raise HTTPException(status_code=404, detail="Colección no encontrada")
         
+        changes = {}
+        
         # Verificar que el nuevo nombre no existe en otra colección
         if name and name != collection.name:
             existing = self.__db.query(Collection).filter(
@@ -67,17 +69,18 @@ class CRUD_COLLECTION:
             ).first()
             if existing:
                 raise HTTPException(status_code=400, detail="Ya existe una colección con este nombre")
-        
-        # Actualizar campos
-        if name:
+            
+            changes["name"] = {"old": collection.name, "new": name}
             collection.name = name
-        if description is not None:
+            
+        if description is not None and description != collection.description:
+            changes["description"] = {"old": collection.description, "new": description}
             collection.description = description
         
         self.__db.commit()
         self.__db.refresh(collection)
         
-        return collection
+        return (collection, changes)
     
     def delete_collection(self, collection_id: int):
         """Soft delete de colección (solo OWNER/EDITOR)"""

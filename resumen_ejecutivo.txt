@@ -1,0 +1,249 @@
+================================================================================
+RESUMEN EJECUTIVO: ANÁLISIS DE RUTAS, NOTIFICACIONES Y SERVICIOS DE MODS
+================================================================================
+
+FECHA: 2026-03-20
+ARCHIVOS ANALIZADOS:
+  - src/routes/mods.py (432 líneas)
+  - src/services/mods.py (414 líneas)
+  - src/utils/discord_notifier.py (642 líneas)
+  - src/services/notifications.py (325 líneas)
+  - src/background_tasks.py (92 líneas)
+  - src/conf/discord_config.py (32 líneas)
+
+================================================================================
+1. RESUMEN DE RUTAS
+================================================================================
+
+TOTAL: 9 rutas (5 POST + 1 PUT + 2 DELETE + 1 GET de géneros)
+
+POST (Creación/Acciones):
+  1. POST /api/mods → create_mod_route()
+  2. POST /api/mods/{mod_id}/approve → approve_mod_route()
+  3. POST /api/mods/{mod_id}/rejected → reject_mod_route()
+  4. POST /api/mods/{mod_id}/restore → restore_mod_route()
+  5. POST /api/mods/{mod_id}/genres → add_genres_to_mod()
+
+PUT (Actualizaciones):
+  1. PUT /api/mods/{mod_id} → update_mod_route()
+
+DELETE (Eliminaciones):
+  1. DELETE /api/mods/{mod_id} → delete_mod_route()
+  2. DELETE /api/mods/{mod_id}/genres → remove_genres_from_mod()
+
+GET (Lectura):
+  1. GET /api/mods/{mod_id}/genres → get_mod_genres()
+
+================================================================================
+2. NOTIFICACIONES DISCORD: ARQUITECTURA
+================================================================================
+
+COMPONENTES:
+  - DiscordNotifier (utils/discord_notifier.py): Métodos async para formatear y enviar
+  - background_tasks.py: Wrappers síncronos para ejecutar en BackgroundTasks
+  - DiscordConfig: Configuración centralizada (webhook, colores, URLs)
+
+MÉTODOS DISCORD (7 total):
+  1. notify_mod_created() → Rojo (pendiente) o Verde (aprobado)
+  2. notify_mod_updated() → Naranja + Cambios detallados
+  3. notify_mod_approved() → Verde oscuro
+  4. notify_mod_rejected() → Rojo con comentarios
+  5. notify_mod_deleted() → Gris con razón
+  6. notify_mod_restored() → Verde oscuro
+  7. notify_mod_completed() → Verde (cuando tiene imágenes + créditos)
+
+FLUJO EJECUCIÓN:
+  Ruta HTTP
+    ↓
+  CRUD (servicio)
+    ↓
+  background_tasks.add_task()
+    ↓
+  src/background_tasks.py (wrapper síncrono)
+    ↓
+  asyncio.new_event_loop()
+    ↓
+  DiscordNotifier.método_async()
+    ↓
+  DiscordNotifier._send_webhook()
+    ↓
+  aiohttp.post(WEBHOOK_URL) → Discord
+
+MANEJO ERRORES:
+  - Try-catch en cada método async
+  - Retorna False si falla (NO interrumpe API)
+  - Logs de error, no excepciones
+  - Valida configuración Discord
+
+================================================================================
+3. LLAMADAS A NOTIFICACIONES DISCORD
+================================================================================
+
+LÍNEA | ACCIÓN              | MÉTODO DISCORD              | CUANDO
+-----|---------------------|-----------------------------|-----------
+160  | POST create         | notify_mod_created          | Siempre
+180  | PUT update          | notify_mod_updated          | Siempre
+221  | DELETE mod          | notify_mod_deleted          | Siempre
+264  | POST approve        | notify_mod_approved         | Siempre
+312  | POST reject         | notify_mod_rejected         | Siempre
+357  | POST restore        | notify_mod_restored         | Siempre
+N/A  | Agregar crédito     | notify_mod_completed        | Cuando mod completo
+
+TODAS UTILIZAN: background_tasks.add_task() (ejecución NO bloqueante)
+
+================================================================================
+4. PATRÓN DE CAPTURA DE CAMBIOS
+================================================================================
+
+MÉTODO: CRUD_MOD.update_mod()
+  Estructura retornada:
+  {
+    "campo": {
+      "old": valor_anterior,
+      "new": valor_nuevo
+    }
+  }
+
+CARACTERÍSTICAS:
+  - Solo retorna cambios (old != new)
+  - Valida campos requeridos (name, status, duration, character)
+  - Normaliza slug
+  - Excluye campos auditoría: created_by, updated_by, created_at, is_active
+  - Retorna tuple: (mod, changes_dict)
+
+OTROS MÉTODOS CON CAPTURA:
+  - approve_mod(): Retorna dict con required_revision (True→False)
+  - reject_mod(): Retorna dict con required_revision + rejected flag
+  - create_mod(): NO retorna cambios (es creación)
+  - delete_mod(): NO retorna cambios (solo marca is_active=False)
+
+CAMPOS DE AUDITORÍA GUARDADOS:
+  - created_by, created_at
+  - updated_by, updated_at
+  - deleted_by, deleted_at (parcial)
+  - approved_by, approved_at
+  - rejected_by, rejected_at
+  - comments (razón rechazo O eliminación)
+
+================================================================================
+5. MÉTODOS CRUD EN src/services/mods.py
+================================================================================
+
+CREAR (1):
+  create_mod(data, user) → Mod
+    - Si UPLOADER: required_revision=True, is_active=False
+    - Si EDITOR/OWNER: required_revision=False, is_active=True
+
+LEER (4):
+  get_mod(mod_id) → Mod | None (solo activos)
+  get_mods(skip, limit) → List[Mod] (públicos, activos)
+  get_mods_admin(skip, limit) → List[Mod] (incluyendo inactivos)
+  get_mod_genres(mod_id) → List[Genre] (géneros activos)
+
+ACTUALIZAR (5):
+  update_mod(mod_id, data, user) → (Mod, Dict[changes])
+  approve_mod(mod_id, user) → (Mod, Dict[changes])
+  reject_mod(mod_id, user, comments) → (Mod, Dict[changes])
+  add_genres_to_mod(mod_id, genre_ids) → Mod
+  remove_genres_from_mod(mod_id, genre_ids) → Mod
+
+ELIMINAR (1):
+  delete_mod(mod_id, user) → Mod (soft delete)
+
+UTILIDADES (2):
+  _organize_credits(mod, db) → Dict organizado por tipo
+  _enrich_credit_with_user(credit, db) → Dict enriquecido
+  is_mod_complete(mod_id) → bool
+
+TOTAL MÉTODOS PÚBLICOS: 12
+
+================================================================================
+6. PROBLEMAS IDENTIFICADOS
+================================================================================
+
+CRÍTICOS:
+
+1. ❌ MÉTODO FALTANTE: restore_mod()
+   Ubicación: Llamado en routes/mods.py línea 339
+   Problema: NO existe en CRUD_MOD
+   Impacto: POST /api/mods/{mod_id}/restore fallará en runtime
+   Solución: Implementar método en CRUD_MOD
+
+2. ❌ MÉTODOS FALTANTES EN NOTIFICATIONS:
+   - notify_mod_deleted() - Llamado línea 213
+   - notify_mod_restored() - Llamado línea 349
+   Problema: Llamadas a métodos no existentes
+   Impacto: Errores AttributeError en runtime
+   Solución: Implementar métodos o remover llamadas
+
+INCONSISTENCIAS:
+
+3. ⚠️ RAZÓN DE ELIMINACIÓN EN RUTA, NO EN SERVICIO
+   delete_mod() no toma parámetro "reason"
+   La razón se guarda en mod.comments EN LA RUTA (línea 203 - NO visible)
+   Problema: Lógica de negocio en capas incorrectas
+   Solución: Mover guardado de reason a delete_mod() en servicio
+
+4. ⚠️ BUSCAR DE CREATOR POR NOMBRE vs ID
+   routes/mods.py usa: filter(User.name == mod.created_by) - línea 302
+   Problema: mod.created_by es string, búsqueda ineficiente
+   Solución: Usar mod.created_by como ID o cambiar estructura
+
+5. ⚠️ NOTIFICACIONES BD INCONSISTENTES
+   - POST create: notify_mod_pending_review() ✅
+   - PUT update: NO hay notificación ❌
+   - DELETE: notify_mod_deleted() NO EXISTE ❌
+   - POST restore: notify_mod_restored() NO EXISTE ❌
+   Problema: Falta sincronización BD vs Discord
+   Solución: Implementar métodos faltantes o documentar patrón
+
+================================================================================
+7. RECOMENDACIONES
+================================================================================
+
+PRIORIDAD ALTA:
+  1. Implementar restore_mod() en CRUD_MOD
+  2. Implementar notify_mod_deleted() en CRUD_NOTIFICATION
+  3. Implementar notify_mod_restored() en CRUD_NOTIFICATION
+  4. Mover lógica de guardado de reason a servicio (delete_mod)
+  5. Refactorizar búsqueda de creator por ID en lugar de nombre
+
+PRIORIDAD MEDIA:
+  6. Agregar notificación BD en update_mod() si hay cambios significativos
+  7. Documentar patrón de captura de cambios
+  8. Considerar usar event pattern para cambios de mod
+  9. Agregar logging más detallado en background tasks
+
+PRIORIDAD BAJA:
+  10. Refactorizar _prepare_mod_response() para evitar repetición
+  11. Centralizar lógica de géneros en estructura
+  12. Considerar caché para queries de géneros frecuentes
+
+================================================================================
+8. PATRÓN CONSISTENTE IDENTIFICADO
+================================================================================
+
+PATRÓN ESTABLECIDO: Update + Changes + Discord
+
+1. CRUD SERVICE retorna:
+   - Métodos simples (create, delete, delete_genre): Solo objeto
+   - Métodos complejos (update, approve, reject): Tuple (objeto, cambios_dict)
+
+2. RUTA recibe cambios y:
+   - Agrega tarea background con cambios
+   - Prepara respuesta
+   - Retorna al cliente
+
+3. BACKGROUND TASK:
+   - Ejecuta DiscordNotifier.método() sin bloquear
+   - Maneja errores silenciosamente
+   - NO devuelve valor a cliente
+
+4. DISCORD NOTIFIER:
+   - Método async que formatea embed
+   - Envía webhook
+   - Captura excepciones localmente
+
+ESTE PATRÓN FUNCIONA PARA: create, update, approve, reject, delete, restore
+
+================================================================================

@@ -185,7 +185,7 @@ class CRUD_MOD:
         # Retornar tuple (mod, changes) para que la ruta lo pase a BackgroundTasks
         return (mod, changes)
     
-    def delete_mod(self, mod_id: int, user: TokenUser):
+    def delete_mod(self, mod_id: int, user: TokenUser, reason: str = ""):
         if user.rol == UserRolEnum.UPLOADER:
             raise HTTPException(status_code=403, detail="Sin autorización")
         
@@ -196,6 +196,9 @@ class CRUD_MOD:
 
         mod.is_active = False
         mod.deleted_by = str(user.name) # type: ignore
+        mod.deleted_at = datetime.now(UTC)  # type: ignore
+        if reason:
+            mod.comments = reason  # type: ignore
         self.__db.commit()
         self.__db.refresh(mod)
 
@@ -320,7 +323,7 @@ class CRUD_MOD:
             genre_ids: Lista de IDs de géneros a agregar
         
         Returns:
-            Mod actualizado con los nuevos géneros
+            Tuple (mod, genres_added) con el mod y lista de géneros agregados
         """
         from src.models.generos import Genre
         
@@ -333,6 +336,10 @@ class CRUD_MOD:
         genres = self.__db.query(Genre).filter(Genre.id.in_(genre_ids)).all()
         if len(genres) != len(genre_ids):
             raise HTTPException(status_code=400, detail="Algunos géneros no existen")
+        
+        # Crear un diccionario {id: genre} para acceso rápido
+        genre_dict = {g.id: g for g in genres}
+        genres_added = []
         
         # Agregar géneros al mod (evitar duplicados activos)
         for genre_id in genre_ids:
@@ -347,6 +354,7 @@ class CRUD_MOD:
                 if not existing.is_active:
                     existing.is_active = True
                     self.__db.commit()
+                    genres_added.append(genre_dict[genre_id])
                 # Si ya está activo, no hacer nada
             else:
                 # Crear nueva asociación
@@ -357,10 +365,11 @@ class CRUD_MOD:
                 )
                 self.__db.add(new_association)
                 self.__db.commit()
+                genres_added.append(genre_dict[genre_id])
         
         self.__db.refresh(mod)
         
-        return mod
+        return (mod, genres_added)
     
     def remove_genres_from_mod(self, mod_id: int, genre_ids: list[int]):
         """
@@ -371,12 +380,17 @@ class CRUD_MOD:
             genre_ids: Lista de IDs de géneros a remover
         
         Returns:
-            Mod actualizado sin los géneros removidos
+            Tuple (mod, genres_removed) con el mod y lista de géneros removidos
         """
+        from src.models.generos import Genre
+        
         # Verificar que el mod existe
         mod = self.__db.query(Mod).filter(Mod.id == mod_id).first()
         if not mod:
             raise HTTPException(status_code=404, detail="Mod no encontrado")
+        
+        # Obtener la información de los géneros a remover
+        genres_to_remove = self.__db.query(Genre).filter(Genre.id.in_(genre_ids)).all()
         
         # Soft delete: marcar las asociaciones como inactivas
         mod_genres = self.__db.query(ModGenre).filter(
@@ -390,7 +404,7 @@ class CRUD_MOD:
         self.__db.commit()
         self.__db.refresh(mod)
         
-        return mod
+        return (mod, genres_to_remove)
     
     def get_mod_genres(self, mod_id: int):
         """

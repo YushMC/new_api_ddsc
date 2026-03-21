@@ -47,7 +47,10 @@ class CRUD_MODS_COLLECTION:
         ).all()
     
     def add_mod_to_collection(self, mod_id: int, collection_id: int):
-        """Agregar un mod a una colección (solo OWNER/EDITOR)"""
+        """Agregar un mod a una colección (solo OWNER/EDITOR)
+        
+        Retorna: Tuple (mod, collection, mods_collection)
+        """
         # Verificar que el mod existe
         mod = self.__db.query(Mod).filter(Mod.id == mod_id).first()
         if not mod:
@@ -81,7 +84,7 @@ class CRUD_MODS_COLLECTION:
             existing_inactive.is_active = True
             self.__db.commit()
             self.__db.refresh(existing_inactive)
-            return existing_inactive
+            return (mod, collection, existing_inactive)
         
         # Crear nueva relación
         mods_collection = ModsCollection(
@@ -92,10 +95,13 @@ class CRUD_MODS_COLLECTION:
         self.__db.commit()
         self.__db.refresh(mods_collection)
         
-        return mods_collection
+        return (mod, collection, mods_collection)
     
     def remove_mod_from_collection(self, mods_collection_id: int):
-        """Remover un mod de una colección (soft delete - solo OWNER/EDITOR)"""
+        """Remover un mod de una colección (soft delete - solo OWNER/EDITOR)
+        
+        Retorna: Tuple (mod, collection)
+        """
         mods_collection = self.__db.query(ModsCollection).filter(
             ModsCollection.id == mods_collection_id
         ).first()
@@ -103,11 +109,15 @@ class CRUD_MODS_COLLECTION:
         if not mods_collection:
             raise HTTPException(status_code=404, detail="Relación no encontrada")
         
+        # Obtener mod y collection antes de marcar como inactivo
+        mod = self.__db.query(Mod).filter(Mod.id == mods_collection.mod_id).first()
+        collection = self.__db.query(Collection).filter(Collection.id == mods_collection.collection_id).first()
+        
         mods_collection.is_active = False
         self.__db.commit()
         self.__db.refresh(mods_collection)
         
-        return mods_collection
+        return (mod, collection)
     
     def reactivate_mod_collection(self, mods_collection_id: int):
         """Reactivar mod en colección (solo OWNER/EDITOR)"""

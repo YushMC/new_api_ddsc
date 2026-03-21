@@ -4,7 +4,7 @@ from src.middleware.jwt import get_current_user, verify_admin_role
 from src.conf.database import DATABASE_INIT
 from src.services.mods import CRUD_MOD
 from src.services.token import TokenUser
-from src.background_tasks import notify_mod_created, notify_mod_updated
+from src.background_tasks import notify_mod_created, notify_mod_updated, notify_genres_added, notify_genres_removed
 from src.utils.response_builder import ResponseBuilder
 from src.utils.discord_notifier import DiscordNotifier
 from src.models.enums import UserRolEnum
@@ -367,7 +367,8 @@ def add_genres_to_mod(
     mod_id: int,
     data: ModGenreAdd,
     user: TokenUser = Depends(get_current_user),
-    db: Session = Depends(db_init.get_db)
+    db: Session = Depends(db_init.get_db),
+    background_tasks: BackgroundTasks = BackgroundTasks()
 ):
     """
     Agrega géneros a un mod
@@ -378,7 +379,11 @@ def add_genres_to_mod(
     Requiere autenticación (cualquier usuario con token válido)
     """
     crud = CRUD_MOD(db)
-    mod = crud.add_genres_to_mod(mod_id, data.genre_ids)
+    mod, genres_added = crud.add_genres_to_mod(mod_id, data.genre_ids)
+    
+    # Solo enviar notificación si se agregaron géneros
+    if genres_added:
+        background_tasks.add_task(notify_genres_added, mod, genres_added, user)
     
     return ResponseBuilder.updated(
         data=_prepare_mod_response(mod, db),
@@ -391,7 +396,8 @@ def remove_genres_from_mod(
     mod_id: int,
     data: ModGenreAdd,
     user: TokenUser = Depends(get_current_user),
-    db: Session = Depends(db_init.get_db)
+    db: Session = Depends(db_init.get_db),
+    background_tasks: BackgroundTasks = BackgroundTasks()
 ):
     """
     Remueve géneros de un mod
@@ -402,7 +408,11 @@ def remove_genres_from_mod(
     Requiere autenticación (cualquier usuario con token válido)
     """
     crud = CRUD_MOD(db)
-    mod = crud.remove_genres_from_mod(mod_id, data.genre_ids)
+    mod, genres_removed = crud.remove_genres_from_mod(mod_id, data.genre_ids)
+    
+    # Solo enviar notificación si se removieron géneros
+    if genres_removed:
+        background_tasks.add_task(notify_genres_removed, mod, genres_removed, user)
     
     return ResponseBuilder.updated(
         data=_prepare_mod_response(mod, db),

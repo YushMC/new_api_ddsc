@@ -607,6 +607,627 @@ class DiscordNotifier:
         return {"embeds": [embed]}
     
     @staticmethod
+    async def notify_genres_added(mod: Any, genres: list, user: Any) -> bool:
+        """
+        Notifica cuando se agregan géneros a un mod
+        
+        Args:
+            mod: Objeto del mod
+            genres: Lista de géneros agregados
+            user: Usuario que agregó los géneros
+        
+        Returns:
+            True si se envió exitosamente, False si falló
+        """
+        if not DiscordConfig.is_configured():
+            return False
+        
+        try:
+            embed = DiscordNotifier._format_embed_genres_added(mod, genres, user)
+            await DiscordNotifier._send_webhook(embed)
+            return True
+        except Exception as e:
+            logger.error(f"Error notificando adición de géneros a Discord: {e}")
+            return False
+    
+    @staticmethod
+    async def notify_genres_removed(mod: Any, genres: list, user: Any) -> bool:
+        """
+        Notifica cuando se remueven géneros de un mod
+        
+        Args:
+            mod: Objeto del mod
+            genres: Lista de géneros removidos
+            user: Usuario que removió los géneros
+        
+        Returns:
+            True si se envió exitosamente, False si falló
+        """
+        if not DiscordConfig.is_configured():
+            return False
+        
+        try:
+            embed = DiscordNotifier._format_embed_genres_removed(mod, genres, user)
+            await DiscordNotifier._send_webhook(embed)
+            return True
+        except Exception as e:
+            logger.error(f"Error notificando remoción de géneros a Discord: {e}")
+            return False
+    
+    @staticmethod
+    def _format_embed_genres_added(mod: Any, genres: list, user: Any) -> Dict[str, Any]:
+        """Formatea embed para adición de géneros"""
+        
+        genres_text = ", ".join([g if isinstance(g, str) else g.name for g in genres])
+        
+        embed = {
+            "title": "🏷️ GÉNEROS AGREGADOS",
+            "color": 0x7B68EE,  # Medium Purple
+            "description": f"Se han agregado nuevos géneros al mod",
+            "fields": [
+                {
+                    "name": "📛 Mod",
+                    "value": mod.name,
+                    "inline": True
+                },
+                {
+                    "name": "👤 Actualizado por",
+                    "value": f"{user.name}",
+                    "inline": True
+                },
+                {
+                    "name": "📚 Géneros Agregados",
+                    "value": genres_text,
+                    "inline": False
+                },
+                {
+                    "name": "🔗 Ver Mod",
+                    "value": f"[Ir al mod]({DiscordConfig.get_mod_url(mod.slug)})",
+                    "inline": False
+                }
+            ],
+            "footer": {
+                "text": f"ID: {mod.id} • Actualizado: {mod.updated_at.strftime('%d/%m/%Y %H:%M UTC') if hasattr(mod.updated_at, 'strftime') else mod.updated_at}"
+            }
+        }
+        
+        return {"embeds": [embed]}
+    
+    @staticmethod
+    def _format_embed_genres_removed(mod: Any, genres: list, user: Any) -> Dict[str, Any]:
+        """Formatea embed para remoción de géneros"""
+        
+        genres_text = ", ".join([g if isinstance(g, str) else g.name for g in genres])
+        
+        embed = {
+            "title": "🏷️ GÉNEROS REMOVIDOS",
+            "color": 0xFF69B4,  # Hot Pink
+            "description": f"Se han removido géneros del mod",
+            "fields": [
+                {
+                    "name": "📛 Mod",
+                    "value": mod.name,
+                    "inline": True
+                },
+                {
+                    "name": "👤 Actualizado por",
+                    "value": f"{user.name}",
+                    "inline": True
+                },
+                {
+                    "name": "📚 Géneros Removidos",
+                    "value": genres_text,
+                    "inline": False
+                },
+                {
+                    "name": "🔗 Ver Mod",
+                    "value": f"[Ir al mod]({DiscordConfig.get_mod_url(mod.slug)})",
+                    "inline": False
+                }
+            ],
+            "footer": {
+                "text": f"ID: {mod.id} • Actualizado: {mod.updated_at.strftime('%d/%m/%Y %H:%M UTC') if hasattr(mod.updated_at, 'strftime') else mod.updated_at}"
+            }
+        }
+        
+        return {"embeds": [embed]}
+    
+    # ═════════════════════════════════════════════════════════════════════════════
+    # NOTIFICACIONES PARA COLECCIONES
+    # ═════════════════════════════════════════════════════════════════════════════
+    
+    @staticmethod
+    async def notify_collection_created(collection: Any, user: Any) -> bool:
+        """Notifica cuando se crea una colección"""
+        if not DiscordConfig.is_configured():
+            return False
+        
+        try:
+            embed = DiscordNotifier._format_embed_collection_created(collection, user)
+            await DiscordNotifier._send_webhook(embed)
+            return True
+        except Exception as e:
+            logger.error(f"Error notificando creación de colección: {e}")
+            return False
+    
+    @staticmethod
+    async def notify_collection_updated(collection: Any, user: Any, changes: Dict[str, Dict[str, Any]]) -> bool:
+        """Notifica cuando se actualiza una colección"""
+        if not DiscordConfig.is_configured():
+            return False
+        
+        try:
+            embed = DiscordNotifier._format_embed_collection_updated(collection, user, changes)
+            await DiscordNotifier._send_webhook(embed)
+            return True
+        except Exception as e:
+            logger.error(f"Error notificando actualización de colección: {e}")
+            return False
+    
+    @staticmethod
+    async def notify_collection_deleted(collection: Any, user: Any) -> bool:
+        """Notifica cuando se elimina una colección"""
+        if not DiscordConfig.is_configured():
+            return False
+        
+        try:
+            embed = DiscordNotifier._format_embed_collection_deleted(collection, user)
+            await DiscordNotifier._send_webhook(embed)
+            return True
+        except Exception as e:
+            logger.error(f"Error notificando eliminación de colección: {e}")
+            return False
+    
+    @staticmethod
+    async def notify_collection_reactivated(collection: Any, user: Any) -> bool:
+        """Notifica cuando se restaura una colección"""
+        if not DiscordConfig.is_configured():
+            return False
+        
+        try:
+            embed = DiscordNotifier._format_embed_collection_reactivated(collection, user)
+            await DiscordNotifier._send_webhook(embed)
+            return True
+        except Exception as e:
+            logger.error(f"Error notificando restauración de colección: {e}")
+            return False
+    
+    @staticmethod
+    def _format_embed_collection_created(collection: Any, user: Any) -> Dict[str, Any]:
+        """Formatea embed para creación de colección"""
+        embed = {
+            "title": "🎁 NUEVA COLECCIÓN",
+            "color": 0x00AA00,  # Verde
+            "description": collection.description[:200] + "..." if len(collection.description or "") > 200 else collection.description,
+            "fields": [
+                {
+                    "name": "👤 Creador",
+                    "value": f"{user.name}",
+                    "inline": True
+                },
+                {
+                    "name": "📦 Colección",
+                    "value": collection.name,
+                    "inline": True
+                },
+                {
+                    "name": "🔗 Ver Colección",
+                    "value": f"[Ir a la colección](https://ddsc.io/colecciones/{collection.id})",
+                    "inline": False
+                }
+            ],
+            "footer": {
+                "text": f"ID: {collection.id} • Creado: {collection.created_at.strftime('%d/%m/%Y %H:%M UTC') if hasattr(collection.created_at, 'strftime') else collection.created_at}"
+            }
+        }
+        return {"embeds": [embed]}
+    
+    @staticmethod
+    def _format_embed_collection_updated(collection: Any, user: Any, changes: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
+        """Formatea embed para actualización de colección"""
+        display_changes = {k: v for k, v in changes.items() 
+                          if k not in ['created_by', 'updated_by', 'created_at', 'is_active']}
+        
+        fields = [
+            {
+                "name": "👤 Actualizado por",
+                "value": f"{user.name}",
+                "inline": True
+            },
+            {
+                "name": "📦 Colección",
+                "value": collection.name,
+                "inline": True
+            }
+        ]
+        
+        if display_changes:
+            changes_text = ""
+            for field, change in display_changes.items():
+                old_val = change["old"]
+                new_val = change["new"]
+                changes_text += f"• **{field}**: `{old_val}` → `{new_val}`\n"
+            
+            fields.append({
+                "name": "📝 Cambios",
+                "value": changes_text,
+                "inline": False
+            })
+        
+        fields.append({
+            "name": "🔗 Ver Colección",
+            "value": f"[Ir a la colección](https://ddsc.io/colecciones/{collection.id})",
+            "inline": False
+        })
+        
+        embed = {
+            "title": "🔄 COLECCIÓN ACTUALIZADA",
+            "color": 0x0099FF,  # Azul
+            "fields": fields,
+            "footer": {
+                "text": f"ID: {collection.id} • Actualizado: {collection.updated_at.strftime('%d/%m/%Y %H:%M UTC') if hasattr(collection.updated_at, 'strftime') else collection.updated_at}"
+            }
+        }
+        return {"embeds": [embed]}
+    
+    @staticmethod
+    def _format_embed_collection_deleted(collection: Any, user: Any) -> Dict[str, Any]:
+        """Formatea embed para eliminación de colección"""
+        embed = {
+            "title": "🗑️ COLECCIÓN ELIMINADA",
+            "color": 0x808080,  # Gris
+            "description": "Esta colección ha sido eliminada",
+            "fields": [
+                {
+                    "name": "📦 Colección",
+                    "value": collection.name,
+                    "inline": True
+                },
+                {
+                    "name": "👤 Eliminada por",
+                    "value": f"{user.name}",
+                    "inline": True
+                },
+                {
+                    "name": "📝 Descripción",
+                    "value": collection.description[:150] + "..." if len(collection.description or "") > 150 else collection.description,
+                    "inline": False
+                }
+            ],
+            "footer": {
+                "text": f"ID: {collection.id} • Eliminado: {collection.updated_at.strftime('%d/%m/%Y %H:%M UTC') if hasattr(collection.updated_at, 'strftime') else collection.updated_at}"
+            }
+        }
+        return {"embeds": [embed]}
+    
+    @staticmethod
+    def _format_embed_collection_reactivated(collection: Any, user: Any) -> Dict[str, Any]:
+        """Formatea embed para restauración de colección"""
+        embed = {
+            "title": "✅ COLECCIÓN RESTAURADA",
+            "color": 0x00DD00,  # Verde oscuro
+            "description": "Esta colección ha sido restaurada",
+            "fields": [
+                {
+                    "name": "📦 Colección",
+                    "value": collection.name,
+                    "inline": True
+                },
+                {
+                    "name": "👤 Restaurada por",
+                    "value": f"{user.name}",
+                    "inline": True
+                },
+                {
+                    "name": "🔗 Ver Colección",
+                    "value": f"[Ir a la colección](https://ddsc.io/colecciones/{collection.id})",
+                    "inline": False
+                }
+            ],
+            "footer": {
+                "text": f"ID: {collection.id} • Restaurado: {collection.updated_at.strftime('%d/%m/%Y %H:%M UTC') if hasattr(collection.updated_at, 'strftime') else collection.updated_at}"
+            }
+        }
+        return {"embeds": [embed]}
+    
+    # ═════════════════════════════════════════════════════════════════════════════
+    # NOTIFICACIONES PARA MODS EN COLECCIONES
+    # ═════════════════════════════════════════════════════════════════════════════
+    
+    @staticmethod
+    async def notify_mod_added_to_collection(mod: Any, collection: Any, user: Any) -> bool:
+        """Notifica cuando se agrega un mod a una colección"""
+        if not DiscordConfig.is_configured():
+            return False
+        
+        try:
+            embed = DiscordNotifier._format_embed_mod_added_to_collection(mod, collection, user)
+            await DiscordNotifier._send_webhook(embed)
+            return True
+        except Exception as e:
+            logger.error(f"Error notificando adición de mod a colección: {e}")
+            return False
+    
+    @staticmethod
+    async def notify_mod_removed_from_collection(mod: Any, collection: Any, user: Any) -> bool:
+        """Notifica cuando se remueve un mod de una colección"""
+        if not DiscordConfig.is_configured():
+            return False
+        
+        try:
+            embed = DiscordNotifier._format_embed_mod_removed_from_collection(mod, collection, user)
+            await DiscordNotifier._send_webhook(embed)
+            return True
+        except Exception as e:
+            logger.error(f"Error notificando remoción de mod de colección: {e}")
+            return False
+    
+    @staticmethod
+    def _format_embed_mod_added_to_collection(mod: Any, collection: Any, user: Any) -> Dict[str, Any]:
+        """Formatea embed para adición de mod a colección"""
+        embed = {
+            "title": "📌 MOD AGREGADO A COLECCIÓN",
+            "color": 0x00AA00,  # Verde
+            "fields": [
+                {
+                    "name": "📛 Mod",
+                    "value": mod.name,
+                    "inline": True
+                },
+                {
+                    "name": "📦 Colección",
+                    "value": collection.name,
+                    "inline": True
+                },
+                {
+                    "name": "👤 Actualizado por",
+                    "value": f"{user.name}",
+                    "inline": True
+                },
+                {
+                    "name": "🔗 Ver Mod",
+                    "value": f"[Ir al mod]({DiscordConfig.get_mod_url(mod.slug)})",
+                    "inline": False
+                }
+            ],
+            "footer": {
+                "text": f"Mod ID: {mod.id} • Colección ID: {collection.id}"
+            }
+        }
+        return {"embeds": [embed]}
+    
+    @staticmethod
+    def _format_embed_mod_removed_from_collection(mod: Any, collection: Any, user: Any) -> Dict[str, Any]:
+        """Formatea embed para remoción de mod de colección"""
+        embed = {
+            "title": "📌 MOD REMOVIDO DE COLECCIÓN",
+            "color": 0xFF69B4,  # Rosa
+            "fields": [
+                {
+                    "name": "📛 Mod",
+                    "value": mod.name,
+                    "inline": True
+                },
+                {
+                    "name": "📦 Colección",
+                    "value": collection.name,
+                    "inline": True
+                },
+                {
+                    "name": "👤 Actualizado por",
+                    "value": f"{user.name}",
+                    "inline": True
+                },
+                {
+                    "name": "🔗 Ver Mod",
+                    "value": f"[Ir al mod]({DiscordConfig.get_mod_url(mod.slug)})",
+                    "inline": False
+                }
+            ],
+            "footer": {
+                "text": f"Mod ID: {mod.id} • Colección ID: {collection.id}"
+            }
+        }
+        return {"embeds": [embed]}
+    
+    # ═════════════════════════════════════════════════════════════════════════════
+    # NOTIFICACIONES PARA IMÁGENES
+    # ═════════════════════════════════════════════════════════════════════════════
+    
+    @staticmethod
+    async def notify_image_uploaded(image: Any, mod: Any, user: Any) -> bool:
+        """Notifica cuando se sube una imagen"""
+        if not DiscordConfig.is_configured():
+            return False
+        
+        try:
+            embed = DiscordNotifier._format_embed_image_uploaded(image, mod, user)
+            await DiscordNotifier._send_webhook(embed)
+            return True
+        except Exception as e:
+            logger.error(f"Error notificando carga de imagen: {e}")
+            return False
+    
+    @staticmethod
+    async def notify_image_replaced(image: Any, mod: Any, user: Any) -> bool:
+        """Notifica cuando se reemplaza una imagen"""
+        if not DiscordConfig.is_configured():
+            return False
+        
+        try:
+            embed = DiscordNotifier._format_embed_image_replaced(image, mod, user)
+            await DiscordNotifier._send_webhook(embed)
+            return True
+        except Exception as e:
+            logger.error(f"Error notificando reemplazo de imagen: {e}")
+            return False
+    
+    @staticmethod
+    async def notify_image_deleted(image: Any, mod: Any, user: Any) -> bool:
+        """Notifica cuando se elimina una imagen"""
+        if not DiscordConfig.is_configured():
+            return False
+        
+        try:
+            embed = DiscordNotifier._format_embed_image_deleted(image, mod, user)
+            await DiscordNotifier._send_webhook(embed)
+            return True
+        except Exception as e:
+            logger.error(f"Error notificando eliminación de imagen: {e}")
+            return False
+    
+    @staticmethod
+    def _get_image_type_emoji(image_type: str) -> str:
+        """Obtiene emoji según tipo de imagen"""
+        type_map = {
+            "logo": "🎭",
+            "main": "🖼️",
+            "screenshot": "📸"
+        }
+        return type_map.get(image_type, "🖼️")
+    
+    @staticmethod
+    def _get_image_type_name(image_type: str) -> str:
+        """Obtiene nombre legible del tipo de imagen"""
+        type_map = {
+            "logo": "Logo",
+            "main": "Imagen Principal",
+            "screenshot": "Captura de Pantalla"
+        }
+        return type_map.get(image_type, image_type)
+    
+    @staticmethod
+    def _format_embed_image_uploaded(image: Any, mod: Any, user: Any) -> Dict[str, Any]:
+        """Formatea embed para carga de imagen"""
+        img_type = DiscordNotifier._get_image_type_name(image.type)
+        img_emoji = DiscordNotifier._get_image_type_emoji(image.type)
+        
+        embed = {
+            "title": f"{img_emoji} IMAGEN SUBIDA",
+            "color": 0x00AA00,  # Verde
+            "fields": [
+                {
+                    "name": "📛 Mod",
+                    "value": mod.name,
+                    "inline": True
+                },
+                {
+                    "name": "🖼️ Tipo",
+                    "value": img_type,
+                    "inline": True
+                },
+                {
+                    "name": "👤 Subida por",
+                    "value": f"{user.name}",
+                    "inline": True
+                },
+                {
+                    "name": "🔗 Ver Imagen",
+                    "value": f"[Ver]({image.url})",
+                    "inline": False
+                },
+                {
+                    "name": "🔗 Ver Mod",
+                    "value": f"[Ir al mod]({DiscordConfig.get_mod_url(mod.slug)})",
+                    "inline": False
+                }
+            ],
+            "thumbnail": {
+                "url": image.url,
+                "height": 100,
+                "width": 100
+            },
+            "footer": {
+                "text": f"ID: {image.id} • Creado: {image.created_at.strftime('%d/%m/%Y %H:%M UTC') if hasattr(image.created_at, 'strftime') else image.created_at}"
+            }
+        }
+        return {"embeds": [embed]}
+    
+    @staticmethod
+    def _format_embed_image_replaced(image: Any, mod: Any, user: Any) -> Dict[str, Any]:
+        """Formatea embed para reemplazo de imagen"""
+        img_type = DiscordNotifier._get_image_type_name(image.type)
+        img_emoji = DiscordNotifier._get_image_type_emoji(image.type)
+        
+        embed = {
+            "title": f"{img_emoji} IMAGEN REEMPLAZADA",
+            "color": 0x0099FF,  # Azul
+            "fields": [
+                {
+                    "name": "📛 Mod",
+                    "value": mod.name,
+                    "inline": True
+                },
+                {
+                    "name": "🖼️ Tipo",
+                    "value": img_type,
+                    "inline": True
+                },
+                {
+                    "name": "👤 Reemplazada por",
+                    "value": f"{user.name}",
+                    "inline": True
+                },
+                {
+                    "name": "🔗 Ver Imagen",
+                    "value": f"[Ver]({image.url})",
+                    "inline": False
+                },
+                {
+                    "name": "🔗 Ver Mod",
+                    "value": f"[Ir al mod]({DiscordConfig.get_mod_url(mod.slug)})",
+                    "inline": False
+                }
+            ],
+            "thumbnail": {
+                "url": image.url,
+                "height": 100,
+                "width": 100
+            },
+            "footer": {
+                "text": f"ID: {image.id} • Actualizado: {image.updated_at.strftime('%d/%m/%Y %H:%M UTC') if hasattr(image.updated_at, 'strftime') else image.updated_at}"
+            }
+        }
+        return {"embeds": [embed]}
+    
+    @staticmethod
+    def _format_embed_image_deleted(image: Any, mod: Any, user: Any) -> Dict[str, Any]:
+        """Formatea embed para eliminación de imagen"""
+        img_type = DiscordNotifier._get_image_type_name(image.type)
+        img_emoji = DiscordNotifier._get_image_type_emoji(image.type)
+        
+        embed = {
+            "title": f"{img_emoji} IMAGEN ELIMINADA",
+            "color": 0x808080,  # Gris
+            "fields": [
+                {
+                    "name": "📛 Mod",
+                    "value": mod.name,
+                    "inline": True
+                },
+                {
+                    "name": "🖼️ Tipo",
+                    "value": img_type,
+                    "inline": True
+                },
+                {
+                    "name": "👤 Eliminada por",
+                    "value": f"{user.name}",
+                    "inline": True
+                },
+                {
+                    "name": "🔗 Ver Mod",
+                    "value": f"[Ir al mod]({DiscordConfig.get_mod_url(mod.slug)})",
+                    "inline": False
+                }
+            ],
+            "footer": {
+                "text": f"ID: {image.id} • Eliminado: {image.updated_at.strftime('%d/%m/%Y %H:%M UTC') if hasattr(image.updated_at, 'strftime') else image.updated_at}"
+            }
+        }
+        return {"embeds": [embed]}
+    
+    @staticmethod
     async def _send_webhook(payload: Dict[str, Any]) -> bool:
         """
         Envía el webhook a Discord

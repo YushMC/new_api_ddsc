@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from src.conf.database import DATABASE_INIT
 from src.services.collections import CRUD_COLLECTION
@@ -7,6 +7,12 @@ from src.services.token import TokenUser
 from src.schemas.collections import CollectionResponse, CollectionCreate, CollectionUpdate
 from src.utils.response_builder import ResponseBuilder
 from src.models.enums import UserRolEnum
+from src.background_tasks import (
+    notify_collection_created, 
+    notify_collection_updated, 
+    notify_collection_deleted, 
+    notify_collection_reactivated
+)
 
 router = APIRouter()
 db_init = DATABASE_INIT()
@@ -80,7 +86,8 @@ def get_collection_admin(
 def create_collection(
     data: CollectionCreate,
     user: TokenUser = Depends(get_current_user),
-    db: Session = Depends(db_init.get_db)
+    db: Session = Depends(db_init.get_db),
+    background_tasks: BackgroundTasks = BackgroundTasks()
 ):
     """Crear nueva colección (solo OWNER/EDITOR)"""
     if user.rol == UserRolEnum.UPLOADER:
@@ -88,6 +95,10 @@ def create_collection(
     
     crud = CRUD_COLLECTION(db)
     collection = crud.create_collection(data.name, data.description)
+    
+    # Agregar notificación a Discord
+    background_tasks.add_task(notify_collection_created, collection, user)
+    
     return ResponseBuilder.created(
         data=CollectionResponse.model_validate(collection),
         message="Colección creada exitosamente"
@@ -99,14 +110,20 @@ def update_collection(
     collection_id: int,
     data: CollectionUpdate,
     user: TokenUser = Depends(get_current_user),
-    db: Session = Depends(db_init.get_db)
+    db: Session = Depends(db_init.get_db),
+    background_tasks: BackgroundTasks = BackgroundTasks()
 ):
     """Actualizar colección (solo OWNER/EDITOR)"""
     if user.rol == UserRolEnum.UPLOADER:
         raise HTTPException(status_code=403, detail="No autorizado para actualizar colecciones")
     
     crud = CRUD_COLLECTION(db)
-    collection = crud.update_collection(collection_id, data.name, data.description)
+    collection, changes = crud.update_collection(collection_id, data.name, data.description)
+    
+    # Agregar notificación a Discord si hay cambios
+    if changes:
+        background_tasks.add_task(notify_collection_updated, collection, user, changes)
+    
     return ResponseBuilder.updated(
         data=CollectionResponse.model_validate(collection),
         message="Colección actualizada exitosamente"
@@ -117,7 +134,8 @@ def update_collection(
 def delete_collection(
     collection_id: int,
     user: TokenUser = Depends(get_current_user),
-    db: Session = Depends(db_init.get_db)
+    db: Session = Depends(db_init.get_db),
+    background_tasks: BackgroundTasks = BackgroundTasks()
 ):
     """
     Eliminar colección (soft delete - solo OWNER/EDITOR)
@@ -128,7 +146,11 @@ def delete_collection(
         raise HTTPException(status_code=403, detail="No autorizado para eliminar colecciones")
     
     crud = CRUD_COLLECTION(db)
-    crud.delete_collection(collection_id)
+    collection = crud.delete_collection(collection_id)
+    
+    # Agregar notificación a Discord
+    background_tasks.add_task(notify_collection_deleted, collection, user)
+    
     return ResponseBuilder.deleted(message="Colección eliminada exitosamente")
 
 
@@ -136,7 +158,8 @@ def delete_collection(
 def reactivate_collection(
     collection_id: int,
     user: TokenUser = Depends(get_current_user),
-    db: Session = Depends(db_init.get_db)
+    db: Session = Depends(db_init.get_db),
+    background_tasks: BackgroundTasks = BackgroundTasks()
 ):
     """Reactivar una colección (solo OWNER/EDITOR)"""
     if user.rol == UserRolEnum.UPLOADER:
@@ -144,7 +167,11 @@ def reactivate_collection(
     
     crud = CRUD_COLLECTION(db)
     collection = crud.reactivate_collection(collection_id)
+    
+    # Agregar notificación a Discord
+    background_tasks.add_task(notify_collection_reactivated, collection, user)
+    
     return ResponseBuilder.updated(
         data=CollectionResponse.model_validate(collection),
-        message="Colección reactivada exitosamente"
+        message="Colección restaurada exitosamente"
     )

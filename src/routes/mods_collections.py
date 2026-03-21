@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from src.conf.database import DATABASE_INIT
 from src.services.mods_collections import CRUD_MODS_COLLECTION
@@ -7,6 +7,7 @@ from src.services.token import TokenUser
 from src.schemas.mods_collections import ModsCollectionResponse, ModsCollectionCreate
 from src.utils.response_builder import ResponseBuilder
 from src.models.enums import UserRolEnum
+from src.background_tasks import notify_mod_added_to_collection, notify_mod_removed_from_collection
 
 router = APIRouter()
 db_init = DATABASE_INIT()
@@ -108,14 +109,24 @@ def get_collection_mods(
 def add_mod_to_collection(
     data: ModsCollectionCreate,
     user: TokenUser = Depends(get_current_user),
-    db: Session = Depends(db_init.get_db)
+    db: Session = Depends(db_init.get_db),
+    background_tasks: BackgroundTasks = BackgroundTasks()
 ):
     """Agregar un mod a una colección (solo OWNER/EDITOR)"""
     if user.rol == UserRolEnum.UPLOADER:
         raise HTTPException(status_code=403, detail="No autorizado para agregar mods a colecciones")
     
     crud = CRUD_MODS_COLLECTION(db)
-    mods_collection = crud.add_mod_to_collection(data.mod_id, data.collection_id)
+    mod, collection, mods_collection = crud.add_mod_to_collection(data.mod_id, data.collection_id)
+    
+    # Send Discord notification (non-blocking)
+    background_tasks.add_task(
+        notify_mod_added_to_collection,
+        mod=mod,
+        collection=collection,
+        user=user
+    )
+    
     return ResponseBuilder.created(
         data=ModsCollectionResponse.model_validate(mods_collection),
         message="Mod agregado a colección exitosamente"
@@ -126,7 +137,8 @@ def add_mod_to_collection(
 def remove_mod_from_collection(
     mods_collection_id: int,
     user: TokenUser = Depends(get_current_user),
-    db: Session = Depends(db_init.get_db)
+    db: Session = Depends(db_init.get_db),
+    background_tasks: BackgroundTasks = BackgroundTasks()
 ):
     """
     Remover un mod de una colección (soft delete - solo OWNER/EDITOR)
@@ -137,7 +149,16 @@ def remove_mod_from_collection(
         raise HTTPException(status_code=403, detail="No autorizado para remover mods de colecciones")
     
     crud = CRUD_MODS_COLLECTION(db)
-    crud.remove_mod_from_collection(mods_collection_id)
+    mod, collection = crud.remove_mod_from_collection(mods_collection_id)
+    
+    # Send Discord notification (non-blocking)
+    background_tasks.add_task(
+        notify_mod_removed_from_collection,
+        mod=mod,
+        collection=collection,
+        user=user
+    )
+    
     return ResponseBuilder.deleted(message="Mod removido de colección exitosamente")
 
 
