@@ -134,50 +134,38 @@ def create_user(user_data: UserCreate, user: TokenUser = Depends(get_current_use
         message="Usuario creado exitosamente. Token generado para login automático."
     )
 
-@router.post("/{user_id}/logo")
+@router.post("/logo")
 def upload_user_logo(
-    user_id: int,
     file: UploadFile = File(...),
     current_user: TokenUser = Depends(get_current_user),
     db: Session = Depends(db_init.get_db)
 ):
     """
-    Subir o actualizar logo de usuario a AWS S3
+    Subir logo de usuario a AWS S3
     
-    - Solo el usuario dueño o OWNER pueden actualizar su propio logo
+    - El usuario se identifica desde el token
     - Formato soportado: JPEG, PNG, WebP, GIF
     - Tamaño máximo: 10 MB
     """
     try:
-        # Verificar autorización: solo el usuario o OWNER pueden actualizar su propio logo
-        from src.models.enums import UserRolEnum
-        if current_user.id != user_id and current_user.rol != UserRolEnum.OWNER:
-            raise HTTPException(status_code=403, detail="No autorizado para actualizar este logo")
-        
-        # Verificar que el usuario existe
+        user_id = current_user.id
         crud = CRUD_USERS(db)
         user = crud.get_user_by_id(user_id)
         if not user:
             raise HTTPException(status_code=404, detail="Usuario no encontrado")
         
-        # Leer contenido del archivo
         file_content = file.file.read()
         
-        # Validar imagen
         ImageProcessor.validate_image(file_content, file.filename or "logo")
         
-        # Procesar imagen a WebP
         webp_content = ImageProcessor.process_to_webp(file_content, file.filename or "logo")
         
-        # Subir a S3
         s3_manager = S3Manager()
         logo_url = s3_manager.upload_user_logo(webp_content, user_id, file.filename or "logo")
         
-        # Eliminar logo anterior si existe
-        if cast(str,user.logo):
-            s3_manager.delete_file(cast(str,user.logo))
+        if cast(str, user.logo):
+            s3_manager.delete_file(cast(str, user.logo))
         
-        # Actualizar en BD
         updated_user = crud.update_user_logo(user_id, logo_url)
         
         return ResponseBuilder.updated(
@@ -189,9 +177,8 @@ def upload_user_logo(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error subiendo logo: {str(e)}")
 
-@router.patch("/{user_id}/logo")
+@router.patch("/logo")
 def update_user_logo(
-    user_id: int,
     file: UploadFile = File(...),
     current_user: TokenUser = Depends(get_current_user),
     db: Session = Depends(db_init.get_db)
@@ -199,16 +186,13 @@ def update_user_logo(
     """
     Actualizar logo de usuario en AWS S3
     
-    - Solo el usuario dueño o OWNER pueden actualizar su logo
+    - El usuario se identifica desde el token
     - Formato soportado: JPEG, PNG, WebP, GIF
     - Tamaño máximo: 10 MB
     - Elimina el logo anterior si existe
     """
     try:
-        from src.models.enums import UserRolEnum
-        if current_user.id != user_id and current_user.rol != UserRolEnum.OWNER:
-            raise HTTPException(status_code=403, detail="No autorizado para actualizar este logo")
-        
+        user_id = current_user.id
         crud = CRUD_USERS(db)
         user = crud.get_user_by_id(user_id)
         if not user:
@@ -222,7 +206,6 @@ def update_user_logo(
         
         s3_manager = S3Manager()
         
-        # Eliminar logo anterior si existe
         if cast(str, user.logo):
             s3_manager.delete_file(cast(str, user.logo))
         
@@ -239,9 +222,8 @@ def update_user_logo(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error actualizando logo: {str(e)}")
 
-@router.patch("/{user_id}/password")
+@router.patch("/password")
 def update_password(
-    user_id: int,
     password_data: UpdatePasswordRequest,
     current_user: TokenUser = Depends(get_current_user),
     db: Session = Depends(db_init.get_db)
@@ -249,18 +231,13 @@ def update_password(
     """
     Actualizar contraseña del usuario
     
-    - Solo el usuario dueño o OWNER pueden actualizar su contraseña
+    - El usuario se identifica desde el token
     - Se requiere la contraseña actual para validación
     """
     try:
-        # Verificar autorización: solo el usuario o OWNER pueden actualizar su propia contraseña
-        from src.models.enums import UserRolEnum
-        if current_user.id != user_id and current_user.rol != UserRolEnum.OWNER:
-            raise HTTPException(status_code=403, detail="No autorizado para actualizar esta contraseña")
-        
         crud = CRUD_USERS(db)
         updated_user = crud.update_user_password(
-            user_id,
+            current_user.id,
             password_data.current_password,
             password_data.new_password
         )
@@ -273,9 +250,8 @@ def update_password(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error actualizando contraseña: {str(e)}")
 
-@router.patch("/{user_id}/contact")
+@router.patch("/contact")
 def update_contact(
-    user_id: int,
     contact_data: UpdateContactRequest,
     current_user: TokenUser = Depends(get_current_user),
     db: Session = Depends(db_init.get_db)
@@ -283,16 +259,11 @@ def update_contact(
     """
     Actualizar contacto del usuario
     
-    - Solo el usuario dueño o OWNER pueden actualizar su contacto
+    - El usuario se identifica desde el token
     """
     try:
-        # Verificar autorización: solo el usuario o OWNER pueden actualizar su propio contacto
-        from src.models.enums import UserRolEnum
-        if current_user.id != user_id and current_user.rol != UserRolEnum.OWNER:
-            raise HTTPException(status_code=403, detail="No autorizado para actualizar este contacto")
-        
         crud = CRUD_USERS(db)
-        updated_user = crud.update_user_contact(user_id, contact_data.contact)
+        updated_user = crud.update_user_contact(current_user.id, contact_data.contact)
         return ResponseBuilder.updated(
             data=UserResponse.model_validate(updated_user),
             message="Contacto actualizado exitosamente"
@@ -302,9 +273,8 @@ def update_contact(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error actualizando contacto: {str(e)}")
 
-@router.put("/{user_id}/profile")
+@router.put("/profile")
 def update_profile(
-    user_id: int,
     profile_data: UpdateProfileRequest,
     current_user: TokenUser = Depends(get_current_user),
     db: Session = Depends(db_init.get_db)
@@ -312,16 +282,12 @@ def update_profile(
     """
     Actualizar perfil del usuario (name y about_me)
     
-    - Solo el usuario dueño o OWNER pueden actualizar su perfil
+    - El usuario se identifica desde el token
     """
     try:
-        from src.models.enums import UserRolEnum
-        if current_user.id != user_id and current_user.rol != UserRolEnum.OWNER:
-            raise HTTPException(status_code=403, detail="No autorizado para actualizar este perfil")
-        
         crud = CRUD_USERS(db)
         updated_user = crud.update_user_profile(
-            user_id,
+            current_user.id,
             profile_data.name,
             profile_data.about_me
         )
