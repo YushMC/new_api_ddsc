@@ -7,6 +7,7 @@ class UserBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     contact: Optional[str] = Field(None, max_length=500)
     logo: Optional[str] = Field(None, max_length=500)
+    about_me: Optional[str] = Field(None)
     role: UserRolEnum
 
 class UserCreate(UserBase):
@@ -25,6 +26,7 @@ class UserResponse(BaseModel):
     role: UserRolEnum
     logo: Optional[str] = None
     contact: Optional[str] = None
+    about_me: Optional[str] = None
     is_active: bool
 
     class Config:
@@ -64,3 +66,16 @@ class UpdateUserLogoResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class UpdateProfileRequest(BaseModel):
+    """Schema para actualizar perfil (name y about_me)"""
+    name: str = Field(..., min_length=1, max_length=100)
+    about_me: Optional[str] = Field(None)
+
+class UpdateRoleRequest(BaseModel):
+    """Schema para actualizar el rol de un usuario"""
+    role: UserRolEnum
+
+class AdminRestorePasswordRequest(BaseModel):
+    """Schema para que un admin restaure la contraseña de un usuario"""
+    new_password: str = Field(..., min_length=6)

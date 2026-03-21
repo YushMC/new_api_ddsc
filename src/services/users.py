@@ -139,3 +139,43 @@ class CRUD_USERS:
         self.__db.commit()
         self.__db.refresh(user)
         return user
+
+    def update_user_profile(self, user_id: int, name: str, about_me: str | None):
+        """Actualizar name y about_me del usuario"""
+        user = self.get_user_by_id(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        
+        # Verificar que el nuevo nombre no esté en uso por otro usuario
+        existing_user = self.__db.query(User).filter(User.name == name, User.id != user_id).first()
+        if existing_user:
+            raise HTTPException(status_code=400, detail="El nombre de usuario ya está en uso")
+        
+        setattr(user, "name", name)
+        setattr(user, "about_me", about_me)
+        self.__db.commit()
+        self.__db.refresh(user)
+        return user
+
+    def update_user_role(self, user_id: int, role: UserRolEnum):
+        """Actualizar el rol de un usuario"""
+        user = self.get_user_by_id(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        
+        setattr(user, "role", role)
+        self.__db.commit()
+        self.__db.refresh(user)
+        return user
+
+    def admin_restore_password(self, user_id: int, new_password: str):
+        """Restaurar contraseña de un usuario (solo admin)"""
+        user = self.get_user_by_id(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        
+        hash_handler = HASH_DATA()
+        setattr(user, "password", hash_handler.hash_string(new_password))
+        self.__db.commit()
+        self.__db.refresh(user)
+        return user

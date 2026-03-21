@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, Enum
+from sqlalchemy import Column, Integer, String, Boolean, Enum, Text
 from src.models.enums import UserRolEnum
 from src.conf.database import DATABASE_INIT
 from src.conf.all_keys import TABLE_NAMES
@@ -21,5 +21,7 @@ class User(__Base):
     logo= Column(String(500))
 
     contact=Column(String(500))
+
+    about_me = Column(Text, nullable=True)
 
     is_active = Column(Boolean, default=True)

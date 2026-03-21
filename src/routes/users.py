@@ -9,7 +9,8 @@ from src.services.token import TokenUser
 from src.models.enums import UserRolEnum
 from src.schemas.users import (
     UserCreate, UserLogin, UserResponse, TokenResponse, BootstrapResponse,
-    UpdatePasswordRequest, UpdateContactRequest, UpdateUserLogoResponse
+    UpdatePasswordRequest, UpdateContactRequest, UpdateUserLogoResponse,
+    UpdateProfileRequest, UpdateRoleRequest, AdminRestorePasswordRequest
 )
 from src.utils.jwt import JWT_TOKEN
 from src.utils.image_processor import ImageProcessor
@@ -250,3 +251,92 @@ def update_contact(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error actualizando contacto: {str(e)}")
+
+@router.put("/{user_id}/profile")
+def update_profile(
+    user_id: int,
+    profile_data: UpdateProfileRequest,
+    current_user: TokenUser = Depends(get_current_user),
+    db: Session = Depends(db_init.get_db)
+):
+    """
+    Actualizar perfil del usuario (name y about_me)
+    
+    - Solo el usuario dueño o OWNER pueden actualizar su perfil
+    """
+    try:
+        from src.models.enums import UserRolEnum
+        if current_user.id != user_id and current_user.rol != UserRolEnum.OWNER:
+            raise HTTPException(status_code=403, detail="No autorizado para actualizar este perfil")
+        
+        crud = CRUD_USERS(db)
+        updated_user = crud.update_user_profile(
+            user_id,
+            profile_data.name,
+            profile_data.about_me
+        )
+        return ResponseBuilder.updated(
+            data=UserResponse.model_validate(updated_user),
+            message="Perfil actualizado exitosamente"
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error actualizando perfil: {str(e)}")
+
+@router.patch("/admin/{user_id}/role")
+def update_user_role(
+    user_id: int,
+    role_data: UpdateRoleRequest,
+    current_user: TokenUser = Depends(verify_admin_role),
+    db: Session = Depends(db_init.get_db)
+):
+    """
+    Actualizar el rol de un usuario (solo OWNER/EDITOR)
+    
+    - Solo usuarios con rol OWNER o EDITOR pueden cambiar roles
+    - No se puede asignar el rol OWNER
+    """
+    try:
+        from src.models.enums import UserRolEnum
+        if role_data.role == UserRolEnum.OWNER:
+            raise HTTPException(status_code=400, detail="No se puede asignar el rol OWNER")
+        
+        if current_user.id == user_id:
+            raise HTTPException(status_code=400, detail="No puedes cambiar tu propio rol")
+        
+        crud = CRUD_USERS(db)
+        updated_user = crud.update_user_role(user_id, role_data.role)
+        return ResponseBuilder.updated(
+            data=UserResponse.model_validate(updated_user),
+            message="Rol actualizado exitosamente"
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error actualizando rol: {str(e)}")
+
+@router.patch("/admin/restore/password/{user_id}")
+def admin_restore_password(
+    user_id: int,
+    password_data: AdminRestorePasswordRequest,
+    current_user: TokenUser = Depends(verify_admin_role),
+    db: Session = Depends(db_init.get_db)
+):
+    """
+    Restaurar contraseña de un usuario (solo OWNER/EDITOR)
+    
+    - Permite a un administrador establecer una nueva contraseña para un usuario
+    - No requiere la contraseña actual del usuario
+    """
+    try:
+        crud = CRUD_USERS(db)
+        updated_user = crud.admin_restore_password(user_id, password_data.new_password)
+        return ResponseBuilder.updated(
+            data=UserResponse.model_validate(updated_user),
+            message="Contraseña restaurada exitosamente"
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error restaurando contraseña: {str(e)}")
