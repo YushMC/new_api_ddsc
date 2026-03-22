@@ -57,6 +57,27 @@ def list_statistics_admin(
     )
 
 
+@router.get("/my-statistics")
+def get_my_statistics(
+    db: Session = Depends(db_init.get_db),
+    user: TokenUser = Depends(get_current_user),
+    skip: int = Query(0, ge=0, description="Cantidad de registros a omitir desde el inicio (para paginación). Ejemplo: skip=20 omite los primeros 20 resultados."),
+    limit: int = Query(20, ge=1, le=100, description="Cantidad máxima de registros a retornar (default: 20, max: 100). Ejemplo: limit=10 retorna hasta 10 resultados.")
+):
+    """
+    Obtener todas las estadísticas de mods creados por el usuario autenticado (cualquier rol)
+    
+    Soporta paginación mediante los parámetros `skip` y `limit`
+    """
+    crud = CRUD_MOD_STATISTIC(db)
+    statistics = crud.get_statistics_by_creator(user.id, skip, limit)
+    
+    return ResponseBuilder.list_response(
+        data=[ModStatisticResponse.model_validate(s) for s in statistics],
+        message="Estadísticas del usuario obtenidas exitosamente"
+    )
+
+
 @router.get("/{statistic_id}")
 def get_statistic(
     statistic_id: int,
@@ -128,27 +149,6 @@ def get_statistics_by_mods(
     return ResponseBuilder.list_response(
         data=[ModStatisticResponse.model_validate(s) for s in statistics],
         message="Estadísticas obtenidas exitosamente"
-    )
-
-
-@router.get("/my-statistics")
-def get_my_statistics(
-    db: Session = Depends(db_init.get_db),
-    user: TokenUser = Depends(get_current_user),
-    skip: int = Query(0, ge=0, description="Cantidad de registros a omitir desde el inicio (para paginación). Ejemplo: skip=20 omite los primeros 20 resultados."),
-    limit: int = Query(20, ge=1, le=100, description="Cantidad máxima de registros a retornar (default: 20, max: 100). Ejemplo: limit=10 retorna hasta 10 resultados.")
-):
-    """
-    Obtener todas las estadísticas de mods creados por el usuario autenticado (cualquier rol)
-    
-    Soporta paginación mediante los parámetros `skip` y `limit`
-    """
-    crud = CRUD_MOD_STATISTIC(db)
-    statistics = crud.get_statistics_by_creator(user.id, skip, limit)
-    
-    return ResponseBuilder.list_response(
-        data=[ModStatisticResponse.model_validate(s) for s in statistics],
-        message="Estadísticas del usuario obtenidas exitosamente"
     )
 
 
