@@ -44,4 +44,23 @@ class ModStatisticsRequest(BaseModel):
 class ModStatisticResponse(ModStatisticBase, TimestampBase):
     """Schema para respuesta de estadísticas"""
     id: int
-    mod_id: int
+    mod_name: str
+
+
+def transform_statistic_to_response(statistic_obj) -> dict:
+    """
+    Transforma un objeto ModStatistic a diccionario compatible con ModStatisticResponse
+    Reemplaza mod_id con mod_name del objeto relacionado
+    """
+    return {
+        "id": statistic_obj.id,
+        "mod_name": statistic_obj.mod.name if statistic_obj.mod else None,
+        "download_pc": statistic_obj.download_pc,
+        "download_android": statistic_obj.download_android,
+        "searchs": statistic_obj.searchs,
+        "created_by": statistic_obj.created_by,
+        "created_at": statistic_obj.created_at,
+        "updated_by": statistic_obj.updated_by,
+        "updated_at": statistic_obj.updated_at,
+        "is_active": statistic_obj.is_active if hasattr(statistic_obj, 'is_active') else None
+    }

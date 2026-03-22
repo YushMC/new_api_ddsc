@@ -4,7 +4,7 @@ from src.conf.database import DATABASE_INIT
 from src.services.mod_statistics import CRUD_MOD_STATISTIC
 from src.middleware.jwt import get_current_user, verify_admin_role
 from src.services.token import TokenUser
-from src.schemas.mod_statistics import ModStatisticResponse, ModStatisticStatusRequest, ModStatisticsRequest, ModStatisticCreateRequest
+from src.schemas.mod_statistics import ModStatisticResponse, ModStatisticStatusRequest, ModStatisticsRequest, ModStatisticCreateRequest, transform_statistic_to_response
 from src.utils.response_builder import ResponseBuilder
 from src.models.enums import UserRolEnum
 
@@ -28,10 +28,22 @@ def list_statistics(
     """
     crud = CRUD_MOD_STATISTIC(db)
     statistics = crud.get_statistics(skip, limit)
-    return ResponseBuilder.list_response(
-        data=[ModStatisticResponse.model_validate(s) for s in statistics],
-        message="Estadísticas obtenidas exitosamente"
-    )
+    
+    prepared = []
+    for s in statistics:
+        response_structure = ResponseBuilder._create_response_with_info(
+            ModStatisticResponse.model_validate(transform_statistic_to_response(s)),
+            "success",
+            "",
+            db=db
+        )
+        prepared.append(response_structure["data"])
+    
+    return {
+        "response": "success",
+        "message": "Estadísticas obtenidas exitosamente",
+        "data": prepared
+    }
 
 
 @router.get("/admin/all")
@@ -51,10 +63,22 @@ def list_statistics_admin(
     """
     crud = CRUD_MOD_STATISTIC(db)
     statistics = crud.get_statistics_admin(skip, limit)
-    return ResponseBuilder.list_response(
-        data=[ModStatisticResponse.model_validate(s) for s in statistics],
-        message="Estadísticas obtenidas exitosamente (incluyendo inactivas)"
-    )
+    
+    prepared = []
+    for s in statistics:
+        response_structure = ResponseBuilder._create_response_with_info(
+            ModStatisticResponse.model_validate(transform_statistic_to_response(s)),
+            "success",
+            "",
+            db=db
+        )
+        prepared.append(response_structure["data"])
+    
+    return {
+        "response": "success",
+        "message": "Estadísticas obtenidas exitosamente (incluyendo inactivas)",
+        "data": prepared
+    }
 
 
 @router.get("/my-statistics")
@@ -72,10 +96,21 @@ def get_my_statistics(
     crud = CRUD_MOD_STATISTIC(db)
     statistics = crud.get_statistics_by_creator(user.id, skip, limit)
     
-    return ResponseBuilder.list_response(
-        data=[ModStatisticResponse.model_validate(s) for s in statistics],
-        message="Estadísticas del usuario obtenidas exitosamente"
-    )
+    prepared = []
+    for s in statistics:
+        response_structure = ResponseBuilder._create_response_with_info(
+            ModStatisticResponse.model_validate(transform_statistic_to_response(s)),
+            "success",
+            "",
+            db=db
+        )
+        prepared.append(response_structure["data"])
+    
+    return {
+        "response": "success",
+        "message": "Estadísticas del usuario obtenidas exitosamente",
+        "data": prepared
+    }
 
 
 @router.post("")
@@ -93,7 +128,7 @@ def create_statistic(
     statistic = crud.create_statistic(data.mod_id)
     
     return ResponseBuilder.created(
-        data=ModStatisticResponse.model_validate(statistic),
+        data=ModStatisticResponse.model_validate(transform_statistic_to_response(statistic)),
         message="Estadística creada exitosamente",
         db=db
     )
@@ -110,7 +145,7 @@ def get_statistic(
     if not statistic:
         raise HTTPException(status_code=404, detail="Estadística no encontrada")
     return ResponseBuilder.success(
-        data=ModStatisticResponse.model_validate(statistic),
+        data=ModStatisticResponse.model_validate(transform_statistic_to_response(statistic)),
         message="Estadística obtenida exitosamente",
         db=db
     )
@@ -128,7 +163,7 @@ def get_statistic_admin(
     if not statistic:
         raise HTTPException(status_code=404, detail="Estadística no encontrada")
     return ResponseBuilder.success(
-        data=ModStatisticResponse.model_validate(statistic),
+        data=ModStatisticResponse.model_validate(transform_statistic_to_response(statistic)),
         message="Estadística obtenida exitosamente",
         db=db
     )
@@ -145,7 +180,7 @@ def get_mod_statistic(
     if not statistic:
         raise HTTPException(status_code=404, detail="Estadística no encontrada para este mod")
     return ResponseBuilder.success(
-        data=ModStatisticResponse.model_validate(statistic),
+        data=ModStatisticResponse.model_validate(transform_statistic_to_response(statistic)),
         message="Estadística del mod obtenida exitosamente",
         db=db
     )
@@ -167,10 +202,22 @@ def get_statistics_by_mods(
     
     crud = CRUD_MOD_STATISTIC(db)
     statistics = crud.get_statistics_by_mods(data.mod_ids)
-    return ResponseBuilder.list_response(
-        data=[ModStatisticResponse.model_validate(s) for s in statistics],
-        message="Estadísticas obtenidas exitosamente"
-    )
+    
+    prepared = []
+    for s in statistics:
+        response_structure = ResponseBuilder._create_response_with_info(
+            ModStatisticResponse.model_validate(transform_statistic_to_response(s)),
+            "success",
+            "",
+            db=db
+        )
+        prepared.append(response_structure["data"])
+    
+    return {
+        "response": "success",
+        "message": "Estadísticas obtenidas exitosamente",
+        "data": prepared
+    }
 
 
 
@@ -186,7 +233,7 @@ def increment_download_pc(
     crud = CRUD_MOD_STATISTIC(db)
     statistic = crud.increment_download_pc(mod_id)
     return ResponseBuilder.updated(
-        data=ModStatisticResponse.model_validate(statistic),
+        data=ModStatisticResponse.model_validate(transform_statistic_to_response(statistic)),
         message="Descargas PC incrementadas exitosamente",
         db=db
     )
@@ -203,7 +250,7 @@ def increment_download_android(
     crud = CRUD_MOD_STATISTIC(db)
     statistic = crud.increment_download_android(mod_id)
     return ResponseBuilder.updated(
-        data=ModStatisticResponse.model_validate(statistic),
+        data=ModStatisticResponse.model_validate(transform_statistic_to_response(statistic)),
         message="Descargas Android incrementadas exitosamente",
         db=db
     )
@@ -220,7 +267,7 @@ def increment_searchs(
     crud = CRUD_MOD_STATISTIC(db)
     statistic = crud.increment_searchs(mod_id)
     return ResponseBuilder.updated(
-        data=ModStatisticResponse.model_validate(statistic),
+        data=ModStatisticResponse.model_validate(transform_statistic_to_response(statistic)),
         message="Búsquedas incrementadas exitosamente",
         db=db
     )
@@ -246,7 +293,7 @@ def update_statistic_status(
     
     status_text = "activada" if data.is_active else "desactivada"
     return ResponseBuilder.updated(
-        data=ModStatisticResponse.model_validate(statistic),
+        data=ModStatisticResponse.model_validate(transform_statistic_to_response(statistic)),
         message=f"Estadística {status_text} exitosamente",
         db=db
     )
