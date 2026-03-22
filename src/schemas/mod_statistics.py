@@ -26,6 +26,11 @@ class ModStatisticIncrement(BaseModel):
     pass  # No necesita parámetros, siempre suma 1
 
 
+class ModStatisticStatusRequest(BaseModel):
+    """Schema para activar/desactivar una estadística"""
+    is_active: bool
+
+
 class ModStatisticResponse(ModStatisticBase, TimestampBase):
     """Schema para respuesta de estadísticas"""
     id: int

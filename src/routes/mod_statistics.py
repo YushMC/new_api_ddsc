@@ -4,8 +4,9 @@ from src.conf.database import DATABASE_INIT
 from src.services.mod_statistics import CRUD_MOD_STATISTIC
 from src.middleware.jwt import get_current_user, verify_admin_role
 from src.services.token import TokenUser
-from src.schemas.mod_statistics import ModStatisticResponse, ModStatisticCreate, ModStatisticUpdate
+from src.schemas.mod_statistics import ModStatisticResponse, ModStatisticStatusRequest
 from src.utils.response_builder import ResponseBuilder
+from src.models.enums import UserRolEnum
 
 router = APIRouter()
 db_init = DATABASE_INIT()
@@ -108,34 +109,6 @@ def get_mod_statistic(
     )
 
 
-@router.post("/mod/{mod_id}/increment")
-def increment_statistic(
-    mod_id: int,
-    data: ModStatisticUpdate,
-    db: Session = Depends(db_init.get_db)
-):
-    """
-    Incrementar estadísticas de un mod (público, sin token)
-    
-    Parámetros:
-    - download_pc: cantidad a incrementar descargas PC
-    - download_android: cantidad a incrementar descargas Android
-    - searchs: cantidad a incrementar búsquedas
-    """
-    crud = CRUD_MOD_STATISTIC(db)
-    statistic = crud.increment_statistic(
-        mod_id,
-        data.download_pc,
-        data.download_android,
-        data.searchs
-    )
-    return ResponseBuilder.updated(
-        data=ModStatisticResponse.model_validate(statistic),
-        message="Estadísticas incrementadas exitosamente",
-        db=db
-    )
-
-
 @router.post("/mod/{mod_id}/increment-download-pc")
 def increment_download_pc(
     mod_id: int,
@@ -187,41 +160,27 @@ def increment_searchs(
     )
 
 
-@router.delete("/{statistic_id}")
-def delete_statistic(
+@router.patch("/status/{statistic_id}")
+def update_statistic_status(
     statistic_id: int,
+    data: ModStatisticStatusRequest,
     user: TokenUser = Depends(get_current_user),
     db: Session = Depends(db_init.get_db)
 ):
     """
-    Eliminar estadística (soft delete - solo OWNER/EDITOR)
+    Activar/desactivar estadística (solo OWNER/EDITOR)
     
-    Nota: La estadística se marca como inactiva pero se mantiene en BD
+    Enviar { "is_active": true } para activar o { "is_active": false } para desactivar
     """
-    from src.models.enums import UserRolEnum
     if user.rol == UserRolEnum.UPLOADER:
-        raise HTTPException(status_code=403, detail="No autorizado para eliminar estadísticas")
+        raise HTTPException(status_code=403, detail="No autorizado para cambiar estado de estadísticas")
     
     crud = CRUD_MOD_STATISTIC(db)
-    statistic = crud.delete_statistic(statistic_id)
-    return ResponseBuilder.deleted(message="Estadística eliminada exitosamente")
-
-
-@router.post("/{statistic_id}/reactivate")
-def reactivate_statistic(
-    statistic_id: int,
-    user: TokenUser = Depends(get_current_user),
-    db: Session = Depends(db_init.get_db)
-):
-    """Reactivar una estadística (solo OWNER/EDITOR)"""
-    from src.models.enums import UserRolEnum
-    if user.rol == UserRolEnum.UPLOADER:
-        raise HTTPException(status_code=403, detail="No autorizado para reactivar estadísticas")
+    statistic = crud.update_statistic_status(statistic_id, data.is_active)
     
-    crud = CRUD_MOD_STATISTIC(db)
-    statistic = crud.reactivate_statistic(statistic_id)
+    status_text = "activada" if data.is_active else "desactivada"
     return ResponseBuilder.updated(
         data=ModStatisticResponse.model_validate(statistic),
-        message="Estadística reactivada exitosamente",
+        message=f"Estadística {status_text} exitosamente",
         db=db
     )

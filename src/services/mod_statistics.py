@@ -130,8 +130,8 @@ class CRUD_MOD_STATISTIC:
         self.__db.refresh(statistic)
         return statistic
     
-    def delete_statistic(self, statistic_id: int):
-        """Soft delete de estadística (solo OWNER/EDITOR)"""
+    def update_statistic_status(self, statistic_id: int, is_active: bool):
+        """Activar/desactivar estadística (solo OWNER/EDITOR)"""
         statistic = self.__db.query(ModStatistic).filter(
             ModStatistic.id == statistic_id
         ).first()
@@ -139,22 +139,11 @@ class CRUD_MOD_STATISTIC:
         if not statistic:
             raise HTTPException(status_code=404, detail="Estadística no encontrada")
         
-        statistic.is_active = False
-        self.__db.commit()
-        self.__db.refresh(statistic)
+        if statistic.is_active == is_active:
+            status_text = "activa" if is_active else "inactiva"
+            raise HTTPException(status_code=400, detail=f"La estadística ya se encuentra {status_text}")
         
-        return statistic
-    
-    def reactivate_statistic(self, statistic_id: int):
-        """Reactivar estadística (solo OWNER/EDITOR)"""
-        statistic = self.__db.query(ModStatistic).filter(
-            ModStatistic.id == statistic_id
-        ).first()
-        
-        if not statistic:
-            raise HTTPException(status_code=404, detail="Estadística no encontrada")
-        
-        statistic.is_active = True
+        statistic.is_active = is_active
         self.__db.commit()
         self.__db.refresh(statistic)
         
