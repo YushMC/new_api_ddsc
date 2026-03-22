@@ -816,7 +816,7 @@ class DiscordNotifier:
                 },
                 {
                     "name": "🔗 Ver Colección",
-                    "value": f"[Ir a la colección](https://ddsc.io/colecciones/{collection.id})",
+                    "value": f"[Ir a la colección]({DiscordConfig.FRONTEND_BASE_URL}/colecciones/{collection.id})",
                     "inline": False
                 }
             ],
@@ -860,7 +860,7 @@ class DiscordNotifier:
         
         fields.append({
             "name": "🔗 Ver Colección",
-            "value": f"[Ir a la colección](https://ddsc.io/colecciones/{collection.id})",
+            "value": f"[Ir a la colección]({DiscordConfig.FRONTEND_BASE_URL}/colecciones/{collection.id})",
             "inline": False
         })
         
@@ -924,7 +924,7 @@ class DiscordNotifier:
                 },
                 {
                     "name": "🔗 Ver Colección",
-                    "value": f"[Ir a la colección](https://ddsc.io/colecciones/{collection.id})",
+                    "value": f"[Ir a la colección]({DiscordConfig.FRONTEND_BASE_URL}/colecciones/{collection.id})",
                     "inline": False
                 }
             ],
