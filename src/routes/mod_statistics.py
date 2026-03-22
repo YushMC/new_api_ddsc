@@ -4,7 +4,7 @@ from src.conf.database import DATABASE_INIT
 from src.services.mod_statistics import CRUD_MOD_STATISTIC
 from src.middleware.jwt import get_current_user, verify_admin_role
 from src.services.token import TokenUser
-from src.schemas.mod_statistics import ModStatisticResponse, ModStatisticStatusRequest, ModStatisticsRequest
+from src.schemas.mod_statistics import ModStatisticResponse, ModStatisticStatusRequest, ModStatisticsRequest, ModStatisticCreateRequest
 from src.utils.response_builder import ResponseBuilder
 from src.models.enums import UserRolEnum
 
@@ -75,6 +75,27 @@ def get_my_statistics(
     return ResponseBuilder.list_response(
         data=[ModStatisticResponse.model_validate(s) for s in statistics],
         message="Estadísticas del usuario obtenidas exitosamente"
+    )
+
+
+@router.post("")
+def create_statistic(
+    data: ModStatisticCreateRequest,
+    user: TokenUser = Depends(get_current_user),
+    db: Session = Depends(db_init.get_db)
+):
+    """
+    Crear una nueva estadística para un mod (requiere autenticación, cualquier rol)
+    
+    Solo requiere mod_id. El created_by se auto-popula del token del usuario autenticado.
+    """
+    crud = CRUD_MOD_STATISTIC(db)
+    statistic = crud.create_statistic(data.mod_id)
+    
+    return ResponseBuilder.created(
+        data=ModStatisticResponse.model_validate(statistic),
+        message="Estadística creada exitosamente",
+        db=db
     )
 
 

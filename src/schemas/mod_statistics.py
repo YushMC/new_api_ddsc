@@ -14,6 +14,11 @@ class ModStatisticCreate(ModStatisticBase):
     mod_id: int
 
 
+class ModStatisticCreateRequest(BaseModel):
+    """Schema para crear estadísticas de un mod (solo requiere mod_id)"""
+    mod_id: int
+
+
 class ModStatisticUpdate(BaseModel):
     """Schema para actualizar estadísticas (incremental)"""
     download_pc: int = 0
