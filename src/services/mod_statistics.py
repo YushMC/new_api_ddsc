@@ -37,6 +37,14 @@ class CRUD_MOD_STATISTIC:
             ModStatistic.mod_id.in_(mod_ids)
         ).all()
     
+    def get_statistics_by_creator(self, user_id: int, skip: int = 0, limit: int = 20):
+        """Obtener todas las estadísticas de mods creados por un usuario específico"""
+        return self.__db.query(ModStatistic).join(
+            Mod, ModStatistic.mod_id == Mod.id
+        ).filter(
+            Mod.created_by == user_id
+        ).offset(skip).limit(limit).all()
+    
     def get_statistics(self, skip: int = 0, limit: int = 20):
         """Obtener todas las estadísticas activas (paginado)"""
         return self.__db.query(ModStatistic).filter(
