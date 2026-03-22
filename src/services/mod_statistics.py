@@ -28,6 +28,15 @@ class CRUD_MOD_STATISTIC:
             ModStatistic.is_active == True
         ).first()
     
+    def get_statistics_by_mods(self, mod_ids: list[int]):
+        """Obtener estadísticas de múltiples mods"""
+        if not mod_ids:
+            return []
+        
+        return self.__db.query(ModStatistic).filter(
+            ModStatistic.mod_id.in_(mod_ids)
+        ).all()
+    
     def get_statistics(self, skip: int = 0, limit: int = 20):
         """Obtener todas las estadísticas activas (paginado)"""
         return self.__db.query(ModStatistic).filter(

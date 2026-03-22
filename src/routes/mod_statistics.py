@@ -4,7 +4,7 @@ from src.conf.database import DATABASE_INIT
 from src.services.mod_statistics import CRUD_MOD_STATISTIC
 from src.middleware.jwt import get_current_user, verify_admin_role
 from src.services.token import TokenUser
-from src.schemas.mod_statistics import ModStatisticResponse, ModStatisticStatusRequest
+from src.schemas.mod_statistics import ModStatisticResponse, ModStatisticStatusRequest, ModStatisticsRequest
 from src.utils.response_builder import ResponseBuilder
 from src.models.enums import UserRolEnum
 
@@ -106,6 +106,29 @@ def get_mod_statistic(
         data=ModStatisticResponse.model_validate(statistic),
         message="Estadística del mod obtenida exitosamente",
         db=db
+    )
+
+
+@router.post("/by-mods")
+def get_statistics_by_mods(
+    data: ModStatisticsRequest,
+    user: TokenUser = Depends(get_current_user),
+    db: Session = Depends(db_init.get_db)
+):
+    """
+    Obtener estadísticas de múltiples mods (requiere autenticación, cualquier rol)
+    
+    Enviar array de mod_ids en el body: { "mod_ids": [1, 2, 3] }
+    """
+    if not data.mod_ids:
+        raise HTTPException(status_code=400, detail="mod_ids no puede estar vacío")
+    
+    crud = CRUD_MOD_STATISTIC(db)
+    statistics = crud.get_statistics_by_mods(data.mod_ids)
+    
+    return ResponseBuilder.list_response(
+        data=[ModStatisticResponse.model_validate(s) for s in statistics],
+        message="Estadísticas obtenidas exitosamente"
     )
 
 

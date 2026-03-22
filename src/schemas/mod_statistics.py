@@ -31,6 +31,11 @@ class ModStatisticStatusRequest(BaseModel):
     is_active: bool
 
 
+class ModStatisticsRequest(BaseModel):
+    """Schema para obtener estadísticas de múltiples mods"""
+    mod_ids: list[int]
+
+
 class ModStatisticResponse(ModStatisticBase, TimestampBase):
     """Schema para respuesta de estadísticas"""
     id: int
