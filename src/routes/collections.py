@@ -132,7 +132,7 @@ def create_collection(
         raise HTTPException(status_code=403, detail="No autorizado para crear colecciones")
     
     crud = CRUD_COLLECTION(db)
-    collection = crud.create_collection(data.name, data.description)
+    collection = crud.create_collection(data.name, data.description, data.is_seasonal, data.start_date, data.end_date)
     
     # Agregar notificación a Discord
     background_tasks.add_task(notify_collection_created, collection, user)

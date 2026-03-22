@@ -31,7 +31,7 @@ class CRUD_COLLECTION:
         """Obtener todas las colecciones incluyendo inactivas (paginado)"""
         return self.__db.query(Collection).offset(skip).limit(limit).all()
     
-    def create_collection(self, name: str, description: str | None = None):
+    def create_collection(self, name: str, description: str | None = None, is_seasonal: bool = False, start_date: date_type | None = None, end_date: date_type | None = None):
         """Crear nueva colección (solo OWNER/EDITOR)"""
         # Verificar que no existe una colección con el mismo nombre
         existing = self.__db.query(Collection).filter(
@@ -40,10 +40,16 @@ class CRUD_COLLECTION:
         if existing:
             raise HTTPException(status_code=400, detail="Ya existe una colección con este nombre")
         
+        if start_date and end_date and start_date > end_date:
+            raise HTTPException(status_code=400, detail="La fecha de inicio no puede ser posterior a la fecha final")
+        
         # Crear nueva colección
         collection = Collection(
             name=name,
-            description=description
+            description=description,
+            is_seasonal=is_seasonal,
+            start_date=start_date,
+            end_date=end_date
         )
         self.__db.add(collection)
         self.__db.commit()
