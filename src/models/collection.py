@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, Boolean, Date
 from sqlalchemy.orm import relationship
 from src.conf.database import DATABASE_INIT
 from src.conf.all_keys import TABLE_NAMES
@@ -14,3 +14,6 @@ class Collection(__Base, TimestampMixin):
     id = Column(Integer, primary_key=True, index=True, autoincrement="auto")
     name= Column(String(255), nullable=False, unique=True, index=True)
     description = Column(String(500), nullable=True)
+    is_seasonal = Column(Boolean, default=False, nullable=False)
+    start_date = Column(Date, nullable=True)
+    end_date = Column(Date, nullable=True)

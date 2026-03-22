@@ -4,14 +4,12 @@ from src.conf.database import DATABASE_INIT
 from src.services.collections import CRUD_COLLECTION
 from src.middleware.jwt import get_current_user, verify_admin_role
 from src.services.token import TokenUser
-from src.schemas.collections import CollectionResponse, CollectionCreate, CollectionUpdate
+from src.schemas.collections import CollectionResponse, CollectionCreate, CollectionUpdate, CollectionSeasonalUpdate, CollectionDatesUpdate, CollectionStatusRequest
 from src.utils.response_builder import ResponseBuilder
 from src.models.enums import UserRolEnum
 from src.background_tasks import (
     notify_collection_created, 
-    notify_collection_updated, 
-    notify_collection_deleted, 
-    notify_collection_reactivated
+    notify_collection_updated
 )
 
 router = APIRouter()
@@ -135,7 +133,7 @@ def update_collection(
         raise HTTPException(status_code=403, detail="No autorizado para actualizar colecciones")
     
     crud = CRUD_COLLECTION(db)
-    collection, changes = crud.update_collection(collection_id, data.name, data.description)
+    collection, changes = crud.update_collection(collection_id, data.name, data.description, data.is_seasonal, data.start_date, data.end_date)
     
     # Agregar notificación a Discord si hay cambios
     if changes:
@@ -148,49 +146,69 @@ def update_collection(
     )
 
 
-@router.delete("/{collection_id}")
-def delete_collection(
+@router.patch("/status/{collection_id}")
+def update_collection_status(
     collection_id: int,
+    data: CollectionStatusRequest,
     user: TokenUser = Depends(get_current_user),
-    db: Session = Depends(db_init.get_db),
-    background_tasks: BackgroundTasks = BackgroundTasks()
+    db: Session = Depends(db_init.get_db)
 ):
     """
-    Eliminar colección (soft delete - solo OWNER/EDITOR)
+    Activar/desactivar colección (solo OWNER/EDITOR)
     
-    Nota: La colección se marca como inactiva pero se mantiene en BD
+    Enviar { "is_active": true } para activar o { "is_active": false } para desactivar
     """
     if user.rol == UserRolEnum.UPLOADER:
-        raise HTTPException(status_code=403, detail="No autorizado para eliminar colecciones")
+        raise HTTPException(status_code=403, detail="No autorizado para cambiar el estado de colecciones")
     
     crud = CRUD_COLLECTION(db)
-    collection = crud.delete_collection(collection_id)
+    collection = crud.update_collection_status(collection_id, data.is_active)
     
-    # Agregar notificación a Discord
-    background_tasks.add_task(notify_collection_deleted, collection, user)
-    
-    return ResponseBuilder.deleted(message="Colección eliminada exitosamente")
+    status_text = "activada" if data.is_active else "desactivada"
+    return ResponseBuilder.updated(
+        data=CollectionResponse.model_validate(collection),
+        message=f"Colección {status_text} exitosamente",
+        db=db
+    )
 
 
-@router.post("/{collection_id}/reactivate")
-def reactivate_collection(
+@router.patch("/seasonal/{collection_id}")
+def update_collection_seasonal(
     collection_id: int,
+    data: CollectionSeasonalUpdate,
     user: TokenUser = Depends(get_current_user),
-    db: Session = Depends(db_init.get_db),
-    background_tasks: BackgroundTasks = BackgroundTasks()
+    db: Session = Depends(db_init.get_db)
 ):
-    """Reactivar una colección (solo OWNER/EDITOR)"""
+    """Actualizar si la colección es por temporada (solo OWNER/EDITOR)"""
     if user.rol == UserRolEnum.UPLOADER:
-        raise HTTPException(status_code=403, detail="No autorizado para reactivar colecciones")
+        raise HTTPException(status_code=403, detail="No autorizado para actualizar colecciones")
     
     crud = CRUD_COLLECTION(db)
-    collection = crud.reactivate_collection(collection_id)
-    
-    # Agregar notificación a Discord
-    background_tasks.add_task(notify_collection_reactivated, collection, user)
+    collection = crud.update_seasonal(collection_id, data.is_seasonal)
     
     return ResponseBuilder.updated(
         data=CollectionResponse.model_validate(collection),
-        message="Colección restaurada exitosamente",
+        message="Estado de temporada actualizado exitosamente",
+        db=db
+    )
+
+
+@router.patch("/dates/{collection_id}")
+def update_collection_dates(
+    collection_id: int,
+    data: CollectionDatesUpdate,
+    user: TokenUser = Depends(get_current_user),
+    db: Session = Depends(db_init.get_db)
+):
+    """Actualizar fechas de temporada de la colección (solo OWNER/EDITOR)"""
+    if user.rol == UserRolEnum.UPLOADER:
+        raise HTTPException(status_code=403, detail="No autorizado para actualizar colecciones")
+    
+    crud = CRUD_COLLECTION(db)
+    collection = crud.update_dates(collection_id, data.start_date, data.end_date)
+    
+    return ResponseBuilder.updated(
+        data=CollectionResponse.model_validate(collection),
+        message="Fechas de temporada actualizadas exitosamente",
         db=db
     )

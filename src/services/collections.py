@@ -1,5 +1,6 @@
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
+from datetime import date as date_type
 from src.models.collection import Collection
 
 
@@ -50,7 +51,7 @@ class CRUD_COLLECTION:
         
         return collection
     
-    def update_collection(self, collection_id: int, name: str | None = None, description: str | None = None):
+    def update_collection(self, collection_id: int, name: str | None = None, description: str | None = None, is_seasonal: bool | None = None, start_date: date_type | None = None, end_date: date_type | None = None):
         """Actualizar colección (solo OWNER/EDITOR)"""
         collection = self.__db.query(Collection).filter(
             Collection.id == collection_id
@@ -77,13 +78,28 @@ class CRUD_COLLECTION:
             changes["description"] = {"old": collection.description, "new": description}
             collection.description = description
         
+        if is_seasonal is not None and is_seasonal != collection.is_seasonal:
+            changes["is_seasonal"] = {"old": collection.is_seasonal, "new": is_seasonal}
+            collection.is_seasonal = is_seasonal
+        
+        if start_date is not None and start_date != collection.start_date:
+            changes["start_date"] = {"old": str(collection.start_date), "new": str(start_date)}
+            collection.start_date = start_date
+        
+        if end_date is not None and end_date != collection.end_date:
+            changes["end_date"] = {"old": str(collection.end_date), "new": str(end_date)}
+            collection.end_date = end_date
+        
+        if start_date and end_date and start_date > end_date:
+            raise HTTPException(status_code=400, detail="La fecha de inicio no puede ser posterior a la fecha final")
+        
         self.__db.commit()
         self.__db.refresh(collection)
         
         return (collection, changes)
     
-    def delete_collection(self, collection_id: int):
-        """Soft delete de colección (solo OWNER/EDITOR)"""
+    def update_collection_status(self, collection_id: int, is_active: bool):
+        """Activar/desactivar colección (solo OWNER/EDITOR)"""
         collection = self.__db.query(Collection).filter(
             Collection.id == collection_id
         ).first()
@@ -91,14 +107,18 @@ class CRUD_COLLECTION:
         if not collection:
             raise HTTPException(status_code=404, detail="Colección no encontrada")
         
-        collection.is_active = False
+        if collection.is_active == is_active:
+            status_text = "activa" if is_active else "inactiva"
+            raise HTTPException(status_code=400, detail=f"La colección ya se encuentra {status_text}")
+        
+        collection.is_active = is_active
         self.__db.commit()
         self.__db.refresh(collection)
         
         return collection
     
-    def reactivate_collection(self, collection_id: int):
-        """Reactivar colección (solo OWNER/EDITOR)"""
+    def update_seasonal(self, collection_id: int, is_seasonal: bool):
+        """Actualizar si la colección es por temporada"""
         collection = self.__db.query(Collection).filter(
             Collection.id == collection_id
         ).first()
@@ -106,7 +126,26 @@ class CRUD_COLLECTION:
         if not collection:
             raise HTTPException(status_code=404, detail="Colección no encontrada")
         
-        collection.is_active = True
+        collection.is_seasonal = is_seasonal
+        self.__db.commit()
+        self.__db.refresh(collection)
+        
+        return collection
+    
+    def update_dates(self, collection_id: int, start_date: date_type | None, end_date: date_type | None):
+        """Actualizar fechas de temporada de la colección"""
+        collection = self.__db.query(Collection).filter(
+            Collection.id == collection_id
+        ).first()
+        
+        if not collection:
+            raise HTTPException(status_code=404, detail="Colección no encontrada")
+        
+        if start_date and end_date and start_date > end_date:
+            raise HTTPException(status_code=400, detail="La fecha de inicio no puede ser posterior a la fecha final")
+        
+        collection.start_date = start_date
+        collection.end_date = end_date
         self.__db.commit()
         self.__db.refresh(collection)
         
