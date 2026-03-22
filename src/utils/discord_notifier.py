@@ -737,6 +737,58 @@ class DiscordNotifier:
         return {"embeds": [embed]}
     
     # ═════════════════════════════════════════════════════════════════════════════
+    # NOTIFICACIONES PARA GÉNEROS
+    # ═════════════════════════════════════════════════════════════════════════════
+    
+    @staticmethod
+    async def notify_genre_status_changed(genre: Any, user: Any, is_active: bool) -> bool:
+        """Notifica cuando se activa o desactiva un género"""
+        if not DiscordConfig.is_configured():
+            return False
+        
+        try:
+            embed = DiscordNotifier._format_embed_genre_status_changed(genre, user, is_active)
+            await DiscordNotifier._send_webhook(embed)
+            return True
+        except Exception as e:
+            logger.error(f"Error notificando cambio de estado de género: {e}")
+            return False
+    
+    @staticmethod
+    def _format_embed_genre_status_changed(genre: Any, user: Any, is_active: bool) -> Dict[str, Any]:
+        """Formatea embed para cambio de estado de género"""
+        if is_active:
+            title = "✅ GÉNERO ACTIVADO"
+            color = 0x00DD00  # Verde
+            description = "Este género ha sido activado"
+        else:
+            title = "🚫 GÉNERO DESACTIVADO"
+            color = 0x808080  # Gris
+            description = "Este género ha sido desactivado"
+        
+        embed = {
+            "title": title,
+            "color": color,
+            "description": description,
+            "fields": [
+                {
+                    "name": "🏷️ Género",
+                    "value": genre.name,
+                    "inline": True
+                },
+                {
+                    "name": "👤 Cambiado por",
+                    "value": f"{user.name}",
+                    "inline": True
+                }
+            ],
+            "footer": {
+                "text": f"ID: {genre.id} • Actualizado: {genre.updated_at.strftime('%d/%m/%Y %H:%M UTC') if hasattr(genre.updated_at, 'strftime') else genre.updated_at}"
+            }
+        }
+        return {"embeds": [embed]}
+    
+    # ═════════════════════════════════════════════════════════════════════════════
     # NOTIFICACIONES PARA COLECCIONES
     # ═════════════════════════════════════════════════════════════════════════════
     

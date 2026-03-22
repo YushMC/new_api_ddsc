@@ -136,6 +136,24 @@ def notify_genres_removed(mod: Any, genres: list, user: Any) -> None:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
+# NOTIFICACIONES PARA GÉNEROS
+# ═════════════════════════════════════════════════════════════════════════════
+
+def notify_genre_status_changed(genre: Any, user: Any, is_active: bool) -> None:
+    """Notifica cambio de estado de género (activado/desactivado)"""
+    try:
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        
+        loop.run_until_complete(DiscordNotifier.notify_genre_status_changed(genre, user, is_active))
+    except Exception as e:
+        logger.error(f"Error en background task notify_genre_status_changed: {e}")
+
+
+# ═════════════════════════════════════════════════════════════════════════════
 # NOTIFICACIONES PARA COLECCIONES
 # ═════════════════════════════════════════════════════════════════════════════
 

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
 from sqlalchemy.orm import Session
 from src.conf.database import DATABASE_INIT
 from src.services.generos import CRUD_GENRE
@@ -9,6 +9,7 @@ from src.models.generos import Genre
 from src.schemas.generos import GenreCreate, GenreResponse, GenreStatusRequest
 from src.schemas.response import ApiResponse, ApiListResponse
 from src.utils.response_builder import ResponseBuilder
+from src.background_tasks import notify_genre_status_changed
 from pydantic import BaseModel
 
 router = APIRouter()
@@ -144,13 +145,23 @@ def update_genre(genre_id: int, genre_data: GenreName, user: TokenUser = Depends
     )
 
 @router.patch("/status/{genre_id}")
-def update_genre_status(genre_id: int, status_data: GenreStatusRequest, user: TokenUser = Depends(get_current_user), db: Session = Depends(db_init.get_db)):
+def update_genre_status(
+    genre_id: int,
+    status_data: GenreStatusRequest,
+    user: TokenUser = Depends(get_current_user),
+    db: Session = Depends(db_init.get_db),
+    background_tasks: BackgroundTasks = BackgroundTasks()
+):
     """Activar o desactivar un género (requiere autenticación EDITOR/OWNER)"""
     if user.rol == UserRolEnum.UPLOADER:
         raise HTTPException(status_code=403, detail="No autorizado para cambiar estado de géneros")
     
     crud = CRUD_GENRE(db)
     updated_genre = crud.update_genre_status(genre_id, status_data.is_active)
+    
+    # Notificar a Discord
+    background_tasks.add_task(notify_genre_status_changed, updated_genre, user, status_data.is_active)
+    
     return ResponseBuilder.updated(
         data=GenreResponse.model_validate(updated_genre),
         message="Estado del género actualizado exitosamente",
