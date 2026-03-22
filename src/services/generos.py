@@ -89,3 +89,16 @@ class CRUD_GENRE:
         self.__db.refresh(genero)
         
         return genero
+
+    def update_genre_status(self, genre_id: int, is_active: bool):
+        """Actualizar el estado de un género (activar/desactivar)"""
+        genero = self.__db.query(Genre).filter(Genre.id == genre_id).first()
+        
+        if not genero:
+            raise HTTPException(status_code=404, detail="Género no encontrado")
+        
+        genero.is_active = is_active  # type: ignore
+        self.__db.commit()
+        self.__db.refresh(genero)
+        
+        return genero

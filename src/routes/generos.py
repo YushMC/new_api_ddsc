@@ -6,7 +6,7 @@ from src.middleware.jwt import get_current_user, verify_admin_role
 from src.services.token import TokenUser
 from src.models.enums import UserRolEnum
 from src.models.generos import Genre
-from src.schemas.generos import GenreCreate, GenreResponse
+from src.schemas.generos import GenreCreate, GenreResponse, GenreStatusRequest
 from src.schemas.response import ApiResponse, ApiListResponse
 from src.utils.response_builder import ResponseBuilder
 from pydantic import BaseModel
@@ -143,12 +143,16 @@ def update_genre(genre_id: int, genre_data: GenreName, user: TokenUser = Depends
         db=db
     )
 
-@router.delete("/{genre_id}")
-def delete_genre(genre_id: int, user: TokenUser = Depends(get_current_user), db: Session = Depends(db_init.get_db)):
-    """Eliminar un género (soft delete, requiere autenticación EDITOR/OWNER)"""
+@router.patch("/status/{genre_id}")
+def update_genre_status(genre_id: int, status_data: GenreStatusRequest, user: TokenUser = Depends(get_current_user), db: Session = Depends(db_init.get_db)):
+    """Activar o desactivar un género (requiere autenticación EDITOR/OWNER)"""
     if user.rol == UserRolEnum.UPLOADER:
-        raise HTTPException(status_code=403, detail="No autorizado para eliminar géneros")
+        raise HTTPException(status_code=403, detail="No autorizado para cambiar estado de géneros")
     
     crud = CRUD_GENRE(db)
-    crud.delete_genero(genre_id)
-    return ResponseBuilder.deleted(message="Género eliminado exitosamente")
+    updated_genre = crud.update_genre_status(genre_id, status_data.is_active)
+    return ResponseBuilder.updated(
+        data=GenreResponse.model_validate(updated_genre),
+        message="Estado del género actualizado exitosamente",
+        db=db
+    )

@@ -10,6 +10,10 @@ class GenreCreate(GenreBase):
     """Schema para crear géneros"""
     pass
 
+class GenreStatusRequest(BaseModel):
+    """Schema para activar/desactivar un género"""
+    is_active: bool
+
 class GenreResponse(GenreBase, TimestampBase):
     """Schema de respuesta de género"""
     id: int
