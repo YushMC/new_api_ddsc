@@ -10,7 +10,8 @@ from src.models.enums import UserRolEnum
 from src.schemas.users import (
     UserCreate, UserLogin, UserResponse, TokenResponse, BootstrapResponse,
     UpdatePasswordRequest, UpdateContactRequest, UpdateUserLogoResponse,
-    UpdateProfileRequest, UpdateRoleRequest, AdminRestorePasswordRequest
+    UpdateProfileRequest, UpdateRoleRequest, AdminRestorePasswordRequest,
+    UpdateStatusRequest
 )
 from src.utils.jwt import JWT_TOKEN
 from src.utils.image_processor import ImageProcessor
@@ -373,3 +374,32 @@ def admin_restore_password(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error restaurando contraseña: {str(e)}")
+
+@router.patch("/admin/status/{user_id}")
+def update_user_status(
+    user_id: int,
+    status_data: UpdateStatusRequest,
+    current_user: TokenUser = Depends(verify_admin_role),
+    db: Session = Depends(db_init.get_db)
+):
+    """
+    Activar o desactivar un usuario (solo OWNER/EDITOR)
+    
+    - Enviar is_active: true para activar, false para desactivar
+    - No se puede cambiar el estado de uno mismo
+    """
+    try:
+        if current_user.id == user_id:
+            raise HTTPException(status_code=400, detail="No puedes cambiar tu propio estado")
+        
+        crud = CRUD_USERS(db)
+        updated_user = crud.update_user_status(user_id, status_data.is_active)
+        return ResponseBuilder.updated(
+            data=UserResponse.model_validate(updated_user),
+            message="Estado del usuario actualizado exitosamente",
+            db=db
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error actualizando estado: {str(e)}")

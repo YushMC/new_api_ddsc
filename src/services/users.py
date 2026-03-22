@@ -179,3 +179,14 @@ class CRUD_USERS:
         self.__db.commit()
         self.__db.refresh(user)
         return user
+
+    def update_user_status(self, user_id: int, is_active: bool):
+        """Activar o desactivar un usuario (solo admin)"""
+        user = self.__db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        
+        user.is_active = is_active  # type: ignore
+        self.__db.commit()
+        self.__db.refresh(user)
+        return user

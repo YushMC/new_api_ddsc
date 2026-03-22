@@ -79,3 +79,7 @@ class UpdateRoleRequest(BaseModel):
 class AdminRestorePasswordRequest(BaseModel):
     """Schema para que un admin restaure la contraseña de un usuario"""
     new_password: str = Field(..., min_length=6)
+
+class UpdateStatusRequest(BaseModel):
+    """Schema para activar/desactivar un usuario"""
+    is_active: bool
