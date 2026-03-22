@@ -80,6 +80,35 @@ def list_mods(
         "data": prepared_mods
     }
 
+@router.get("/my-mods")
+def list_my_mods(
+    db: Session = Depends(db_init.get_db),
+    user: TokenUser = Depends(get_current_user),
+    skip: int = Query(0, ge=0, description="Cantidad de registros a omitir desde el inicio (para paginación). Ejemplo: skip=20 omite los primeros 20 resultados."),
+    limit: int = Query(20, ge=1, le=100, description="Cantidad máxima de registros a retornar (default: 20, max: 100). Ejemplo: limit=10 retorna hasta 10 resultados.")
+):
+    """Listar todos los mods creados por el usuario autenticado (cualquier rol)"""
+    crud = CRUD_MOD(db)
+    mods = crud.get_mods_by_creator(user.id, skip, limit)
+    
+    prepared_mods = []
+    for m in mods:
+        mod_dict = _prepare_mod_response(m, db)
+        
+        response_structure = ResponseBuilder._create_response_with_info(
+            mod_dict,
+            "success",
+            "",
+            db=db
+        )
+        prepared_mods.append(response_structure["data"])
+    
+    return {
+        "response": "success",
+        "message": "Mods del usuario obtenidos exitosamente",
+        "data": prepared_mods
+    }
+
 @router.get("/admin/all")
 def list_mods_admin(
     db: Session = Depends(db_init.get_db),

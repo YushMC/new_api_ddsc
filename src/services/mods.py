@@ -120,6 +120,10 @@ class CRUD_MOD:
     def get_mods(self, skip: int = 0, limit: int = 20):
         return self.__db.query(Mod).filter(Mod.is_active == True).offset(skip).limit(limit).all()
     
+    def get_mods_by_creator(self, user_id: int, skip: int = 0, limit: int = 20):
+        """Obtener todos los mods creados por un usuario específico"""
+        return self.__db.query(Mod).filter(Mod.created_by == user_id).offset(skip).limit(limit).all()
+    
     def get_mods_admin(self, skip: int = 0, limit: int = 20):
         """Obtener todos los mods (incluyendo inactivos) excluyendo los que requieren revisión - Solo para administradores"""
         return self.__db.query(Mod).filter(Mod.required_revision == False).offset(skip).limit(limit).all()
