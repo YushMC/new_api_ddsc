@@ -49,10 +49,14 @@ def _prepare_mod_response(mod, db: Session):
     return mod_dict
 
 @router.get("/all")
-def list_mods(db: Session = Depends(db_init.get_db)):
+def list_mods(
+    db: Session = Depends(db_init.get_db),
+    skip: int = Query(0, ge=0, description="Cantidad de registros a omitir desde el inicio (para paginación). Ejemplo: skip=20 omite los primeros 20 resultados."),
+    limit: int = Query(20, ge=1, le=100, description="Cantidad máxima de registros a retornar (default: 20, max: 100). Ejemplo: limit=10 retorna hasta 10 resultados.")
+):
     """Listar todos los mods activos (públicamente disponible)"""
     crud = CRUD_MOD(db)
-    mods = crud.get_mods()
+    mods = crud.get_mods(skip, limit)
     
     # Preparar respuesta con estructura individual para cada mod
     prepared_mods = []
