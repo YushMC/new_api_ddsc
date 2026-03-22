@@ -9,7 +9,8 @@ from src.utils.response_builder import ResponseBuilder
 from src.models.enums import UserRolEnum
 from src.background_tasks import (
     notify_collection_created, 
-    notify_collection_updated
+    notify_collection_updated,
+    notify_collection_status_changed
 )
 
 router = APIRouter()
@@ -175,7 +176,8 @@ def update_collection_status(
     collection_id: int,
     data: CollectionStatusRequest,
     user: TokenUser = Depends(get_current_user),
-    db: Session = Depends(db_init.get_db)
+    db: Session = Depends(db_init.get_db),
+    background_tasks: BackgroundTasks = BackgroundTasks()
 ):
     """
     Activar/desactivar colección (solo OWNER/EDITOR)
@@ -187,6 +189,9 @@ def update_collection_status(
     
     crud = CRUD_COLLECTION(db)
     collection = crud.update_collection_status(collection_id, data.is_active)
+    
+    # Notificar a Discord
+    background_tasks.add_task(notify_collection_status_changed, collection, user, data.is_active)
     
     status_text = "activada" if data.is_active else "desactivada"
     return ResponseBuilder.updated(

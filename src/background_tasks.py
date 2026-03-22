@@ -167,8 +167,8 @@ def notify_collection_updated(collection: Any, user: Any, changes: Dict[str, Dic
         logger.error(f"Error en background task notify_collection_updated: {e}")
 
 
-def notify_collection_deleted(collection: Any, user: Any) -> None:
-    """Notifica eliminación de colección"""
+def notify_collection_status_changed(collection: Any, user: Any, is_active: bool) -> None:
+    """Notifica cambio de estado de colección (activada/desactivada)"""
     try:
         try:
             loop = asyncio.get_running_loop()
@@ -176,23 +176,12 @@ def notify_collection_deleted(collection: Any, user: Any) -> None:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
         
-        loop.run_until_complete(DiscordNotifier.notify_collection_deleted(collection, user))
+        if is_active:
+            loop.run_until_complete(DiscordNotifier.notify_collection_reactivated(collection, user))
+        else:
+            loop.run_until_complete(DiscordNotifier.notify_collection_deleted(collection, user))
     except Exception as e:
-        logger.error(f"Error en background task notify_collection_deleted: {e}")
-
-
-def notify_collection_reactivated(collection: Any, user: Any) -> None:
-    """Notifica restauración de colección"""
-    try:
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-        
-        loop.run_until_complete(DiscordNotifier.notify_collection_reactivated(collection, user))
-    except Exception as e:
-        logger.error(f"Error en background task notify_collection_reactivated: {e}")
+        logger.error(f"Error en background task notify_collection_status_changed: {e}")
 
 
 # ═════════════════════════════════════════════════════════════════════════════
