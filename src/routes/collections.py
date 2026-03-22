@@ -32,10 +32,22 @@ def list_collections(
     """
     crud = CRUD_COLLECTION(db)
     collections = crud.get_collections(skip, limit)
-    return ResponseBuilder.list_response(
-        data=[CollectionResponse.model_validate(c) for c in collections],
-        message="Colecciones obtenidas exitosamente"
-    )
+    
+    prepared = []
+    for c in collections:
+        response_structure = ResponseBuilder._create_response_with_info(
+            CollectionResponse.model_validate(c),
+            "success",
+            "",
+            db=db
+        )
+        prepared.append(response_structure["data"])
+    
+    return {
+        "response": "success",
+        "message": "Colecciones obtenidas exitosamente",
+        "data": prepared
+    }
 
 
 @router.get("/admin/all")
@@ -55,10 +67,22 @@ def list_collections_admin(
     """
     crud = CRUD_COLLECTION(db)
     collections = crud.get_collections_admin(skip, limit)
-    return ResponseBuilder.list_response(
-        data=[CollectionResponse.model_validate(c) for c in collections],
-        message="Colecciones obtenidas exitosamente (incluyendo inactivas)"
-    )
+    
+    prepared = []
+    for c in collections:
+        response_structure = ResponseBuilder._create_response_with_info(
+            CollectionResponse.model_validate(c),
+            "success",
+            "",
+            db=db
+        )
+        prepared.append(response_structure["data"])
+    
+    return {
+        "response": "success",
+        "message": "Colecciones obtenidas exitosamente (incluyendo inactivas)",
+        "data": prepared
+    }
 
 
 @router.get("/{collection_id}")
