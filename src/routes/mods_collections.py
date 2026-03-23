@@ -5,7 +5,7 @@ from src.conf.database import DATABASE_INIT
 from src.services.mods_collections import CRUD_MODS_COLLECTION
 from src.middleware.jwt import get_current_user, verify_admin_role
 from src.services.token import TokenUser
-from src.schemas.mods_collections import ModsCollectionResponse, ModsCollectionCreate, ModsCollectionResponseWithCollectionName
+from src.schemas.mods_collections import ModsCollectionResponse, ModsCollectionCreate, ModsCollectionResponseWithCollection
 from src.utils.response_builder import ResponseBuilder, resolve_user_ids
 from src.models.enums import UserRolEnum
 from src.background_tasks import notify_mod_added_to_collection, notify_mod_removed_from_collection

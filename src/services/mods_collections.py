@@ -135,15 +135,32 @@ class CRUD_MODS_COLLECTION:
         return mods_collection
     
     def _build_response_with_collection_name(self, mods_collection):
-        """Construir respuesta con collection_name en lugar de collection_id"""
+        """Construir respuesta con objeto completo de la colección en lugar de collection_id"""
         collection = self.__db.query(Collection).filter(
             Collection.id == mods_collection.collection_id
         ).first()
         
+        # Construir objeto de colección
+        collection_data = None
+        if collection:
+            collection_data = {
+                "id": collection.id,
+                "name": collection.name,
+                "description": collection.description,
+                "is_seasonal": collection.is_seasonal,
+                "start_date": collection.start_date,
+                "end_date": collection.end_date,
+                "is_active": collection.is_active,
+                "created_at": collection.created_at,
+                "updated_at": collection.updated_at,
+                "created_by": collection.created_by,
+                "updated_by": collection.updated_by
+            }
+        
         resource = {
             "id": mods_collection.id,
             "mod_id": mods_collection.mod_id,
-            "collection_name": collection.name if collection else "Desconocida"
+            "collection": collection_data
         }
         
         info = {

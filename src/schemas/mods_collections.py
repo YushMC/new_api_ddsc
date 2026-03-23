@@ -18,9 +18,23 @@ class ModsCollectionResponse(ModsCollectionBase, TimestampBase):
     id: int
 
 
-class ModsCollectionResponseWithCollectionName(BaseModel):
-    """Schema para respuesta de relación mods-colecciones con nombre de colección"""
+class CollectionInfo(BaseModel):
+    """Schema para información de colección en respuesta"""
+    id: int
+    name: str
+    description: str | None = None
+    is_seasonal: bool
+    start_date: str | None = None
+    end_date: str | None = None
+    is_active: bool
+    created_at: str
+    updated_at: str
+    created_by: int
+    updated_by: int
+
+
+class ModsCollectionResponseWithCollection(BaseModel):
+    """Schema para respuesta de relación mods-colecciones con objeto completo de colección"""
     id: int
     mod_id: int
-    collection_name: str
-    is_active: bool
+    collection: CollectionInfo | None = None
