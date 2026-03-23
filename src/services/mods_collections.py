@@ -215,6 +215,14 @@ class CRUD_MODS_COLLECTION:
         
         return [self._build_response_with_collection_name(mc) for mc in mods_collections]
     
+    def get_mod_collections_admin_with_collection_name(self, mod_id: int):
+        """Obtener todas las colecciones de un mod (incluyendo inactivas) con collection_name"""
+        mods_collections = self.__db.query(ModsCollection).filter(
+            ModsCollection.mod_id == mod_id
+        ).all()
+        
+        return [self._build_response_with_collection_name(mc) for mc in mods_collections]
+    
     def get_collection_mods_with_collection_name(self, collection_id: int):
         """Obtener todos los mods de una colección (activos) con collection_name"""
         mods_collections = self.__db.query(ModsCollection).filter(

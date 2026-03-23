@@ -164,6 +164,33 @@ def get_mod_collections(
     }
 
 
+@router.get("/admin/mod/{mod_id}")
+def get_mod_collections_admin(
+    mod_id: int,
+    db: Session = Depends(db_init.get_db),
+    user: TokenUser = Depends(verify_admin_role)
+):
+    """Obtener todas las colecciones de un mod incluyendo inactivas (solo OWNER/EDITOR)"""
+    crud = CRUD_MODS_COLLECTION(db)
+    mods_collections = crud.get_mod_collections_admin_with_collection_name(mod_id)
+    
+    # Construir respuesta con structure (resource + info)
+    response_data = []
+    for resource, info in mods_collections:
+        # Resolver IDs de usuario a objetos
+        info_resolved = resolve_user_ids(info, db)
+        response_data.append({
+            "resource": resource,
+            "info": info_resolved
+        })
+    
+    return {
+        "response": "success",
+        "message": "Colecciones del mod obtenidas exitosamente (incluyendo inactivas)",
+        "data": response_data
+    }
+
+
 @router.get("/collection/{collection_id}")
 def get_collection_mods(
     collection_id: int,
