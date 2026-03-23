@@ -5,7 +5,7 @@ from src.conf.database import DATABASE_INIT
 from src.services.mods_collections import CRUD_MODS_COLLECTION
 from src.middleware.jwt import get_current_user, verify_admin_role
 from src.services.token import TokenUser
-from src.schemas.mods_collections import ModsCollectionResponse, ModsCollectionCreate
+from src.schemas.mods_collections import ModsCollectionResponse, ModsCollectionCreate, ModsCollectionResponseWithCollectionName
 from src.utils.response_builder import ResponseBuilder
 from src.models.enums import UserRolEnum
 from src.background_tasks import notify_mod_added_to_collection, notify_mod_removed_from_collection
@@ -33,11 +33,21 @@ def list_mods_collections(
     - Página 3: skip=40, limit=20
     """
     crud = CRUD_MODS_COLLECTION(db)
-    mods_collections = crud.get_mods_collections(skip, limit)
-    return ResponseBuilder.list_response(
-        data=[ModsCollectionResponse.model_validate(mc) for mc in mods_collections],
-        message="Relaciones mods-colecciones obtenidas exitosamente"
-    )
+    mods_collections = crud.get_mods_collections_with_collection_name(skip, limit)
+    
+    # Construir respuesta con structure (resource + info)
+    response_data = []
+    for mc in mods_collections:
+        response_data.append({
+            "resource": mc,
+            "info": {"is_active": mc["is_active"]}
+        })
+    
+    return {
+        "response": "success",
+        "message": "Relaciones mods-colecciones obtenidas exitosamente",
+        "data": response_data
+    }
 
 
 @router.get("/admin/all")
@@ -56,11 +66,21 @@ def list_mods_collections_admin(
     - Página 3: skip=40, limit=20
     """
     crud = CRUD_MODS_COLLECTION(db)
-    mods_collections = crud.get_mods_collections_admin(skip, limit)
-    return ResponseBuilder.list_response(
-        data=[ModsCollectionResponse.model_validate(mc) for mc in mods_collections],
-        message="Relaciones mods-colecciones obtenidas exitosamente (incluyendo inactivas)"
-    )
+    mods_collections = crud.get_mods_collections_admin_with_collection_name(skip, limit)
+    
+    # Construir respuesta con structure (resource + info)
+    response_data = []
+    for mc in mods_collections:
+        response_data.append({
+            "resource": mc,
+            "info": {"is_active": mc["is_active"]}
+        })
+    
+    return {
+        "response": "success",
+        "message": "Relaciones mods-colecciones obtenidas exitosamente (incluyendo inactivas)",
+        "data": response_data
+    }
 
 
 @router.get("/{mods_collection_id}")
@@ -70,13 +90,18 @@ def get_mods_collection(
 ):
     """Obtener una relación mods-colecciones específica (públicamente disponible)"""
     crud = CRUD_MODS_COLLECTION(db)
-    mods_collection = crud.get_mods_collection(mods_collection_id)
+    mods_collection = crud.get_mods_collection_with_collection_name(mods_collection_id)
     if not mods_collection:
         raise HTTPException(status_code=404, detail="Relación no encontrada")
+    
+    response_data = {
+        "resource": mods_collection,
+        "info": {"is_active": mods_collection["is_active"]}
+    }
+    
     return ResponseBuilder.success(
-        data=ModsCollectionResponse.model_validate(mods_collection),
-        message="Relación obtenida exitosamente",
-        db=db
+        data=response_data,
+        message="Relación obtenida exitosamente"
     )
 
 
@@ -88,13 +113,18 @@ def get_mods_collection_admin(
 ):
     """Obtener una relación incluyendo si está inactiva (solo OWNER/EDITOR)"""
     crud = CRUD_MODS_COLLECTION(db)
-    mods_collection = crud.get_mods_collection_admin(mods_collection_id)
+    mods_collection = crud.get_mods_collection_admin_with_collection_name(mods_collection_id)
     if not mods_collection:
         raise HTTPException(status_code=404, detail="Relación no encontrada")
+    
+    response_data = {
+        "resource": mods_collection,
+        "info": {"is_active": mods_collection["is_active"]}
+    }
+    
     return ResponseBuilder.success(
-        data=ModsCollectionResponse.model_validate(mods_collection),
-        message="Relación obtenida exitosamente",
-        db=db
+        data=response_data,
+        message="Relación obtenida exitosamente"
     )
 
 
@@ -105,11 +135,21 @@ def get_mod_collections(
 ):
     """Obtener todas las colecciones de un mod (públicamente disponible)"""
     crud = CRUD_MODS_COLLECTION(db)
-    mods_collections = crud.get_mod_collections(mod_id)
-    return ResponseBuilder.list_response(
-        data=[ModsCollectionResponse.model_validate(mc) for mc in mods_collections],
-        message="Colecciones del mod obtenidas exitosamente"
-    )
+    mods_collections = crud.get_mod_collections_with_collection_name(mod_id)
+    
+    # Construir respuesta con structure (resource + info)
+    response_data = []
+    for mc in mods_collections:
+        response_data.append({
+            "resource": mc,
+            "info": {"is_active": mc["is_active"]}
+        })
+    
+    return {
+        "response": "success",
+        "message": "Colecciones del mod obtenidas exitosamente",
+        "data": response_data
+    }
 
 
 @router.get("/collection/{collection_id}")
@@ -119,11 +159,21 @@ def get_collection_mods(
 ):
     """Obtener todos los mods de una colección (públicamente disponible)"""
     crud = CRUD_MODS_COLLECTION(db)
-    mods_collections = crud.get_collection_mods(collection_id)
-    return ResponseBuilder.list_response(
-        data=[ModsCollectionResponse.model_validate(mc) for mc in mods_collections],
-        message="Mods de la colección obtenidos exitosamente"
-    )
+    mods_collections = crud.get_collection_mods_with_collection_name(collection_id)
+    
+    # Construir respuesta con structure (resource + info)
+    response_data = []
+    for mc in mods_collections:
+        response_data.append({
+            "resource": mc,
+            "info": {"is_active": mc["is_active"]}
+        })
+    
+    return {
+        "response": "success",
+        "message": "Mods de la colección obtenidos exitosamente",
+        "data": response_data
+    }
 
 
 @router.post("")

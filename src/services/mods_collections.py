@@ -133,3 +133,71 @@ class CRUD_MODS_COLLECTION:
         self.__db.refresh(mods_collection)
         
         return mods_collection
+    
+    def _build_response_with_collection_name(self, mods_collection):
+        """Construir respuesta con collection_name en lugar de collection_id"""
+        collection = self.__db.query(Collection).filter(
+            Collection.id == mods_collection.collection_id
+        ).first()
+        
+        return {
+            "id": mods_collection.id,
+            "mod_id": mods_collection.mod_id,
+            "collection_name": collection.name if collection else "Desconocida",
+            "is_active": mods_collection.is_active
+        }
+    
+    def get_mods_collections_with_collection_name(self, skip: int = 0, limit: int = 20):
+        """Obtener todas las relaciones activas con collection_name (paginado)"""
+        mods_collections = self.__db.query(ModsCollection).filter(
+            ModsCollection.is_active == True
+        ).offset(skip).limit(limit).all()
+        
+        return [self._build_response_with_collection_name(mc) for mc in mods_collections]
+    
+    def get_mods_collections_admin_with_collection_name(self, skip: int = 0, limit: int = 20):
+        """Obtener todas las relaciones incluyendo inactivas con collection_name (paginado)"""
+        mods_collections = self.__db.query(ModsCollection).offset(skip).limit(limit).all()
+        
+        return [self._build_response_with_collection_name(mc) for mc in mods_collections]
+    
+    def get_mods_collection_with_collection_name(self, mods_collection_id: int):
+        """Obtener una relación específica (activa) con collection_name"""
+        mods_collection = self.__db.query(ModsCollection).filter(
+            ModsCollection.id == mods_collection_id,
+            ModsCollection.is_active == True
+        ).first()
+        
+        if not mods_collection:
+            return None
+        
+        return self._build_response_with_collection_name(mods_collection)
+    
+    def get_mods_collection_admin_with_collection_name(self, mods_collection_id: int):
+        """Obtener una relación específica (incluyendo inactivas) con collection_name"""
+        mods_collection = self.__db.query(ModsCollection).filter(
+            ModsCollection.id == mods_collection_id
+        ).first()
+        
+        if not mods_collection:
+            return None
+        
+        return self._build_response_with_collection_name(mods_collection)
+    
+    def get_mod_collections_with_collection_name(self, mod_id: int):
+        """Obtener todas las colecciones de un mod (activas) con collection_name"""
+        mods_collections = self.__db.query(ModsCollection).filter(
+            ModsCollection.mod_id == mod_id,
+            ModsCollection.is_active == True
+        ).all()
+        
+        return [self._build_response_with_collection_name(mc) for mc in mods_collections]
+    
+    def get_collection_mods_with_collection_name(self, collection_id: int):
+        """Obtener todos los mods de una colección (activos) con collection_name"""
+        mods_collections = self.__db.query(ModsCollection).filter(
+            ModsCollection.collection_id == collection_id,
+            ModsCollection.is_active == True
+        ).all()
+        
+        return [self._build_response_with_collection_name(mc) for mc in mods_collections]
