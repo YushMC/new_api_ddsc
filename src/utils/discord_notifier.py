@@ -1052,135 +1052,135 @@ class DiscordNotifier:
         }
         return {"embeds": [embed]}
     
-     @staticmethod
-     def _format_embed_mod_removed_from_collection(mod: Any, collection: Any, user: Any) -> Dict[str, Any]:
-         """Formatea embed para remoción de mod de colección"""
-         embed = {
-             "title": "📌 MOD REMOVIDO DE COLECCIÓN",
-             "color": 0xFF69B4,  # Rosa
-             "fields": [
-                 {
-                     "name": "📛 Mod",
-                     "value": mod.name,
-                     "inline": True
-                 },
-                 {
-                     "name": "📦 Colección",
-                     "value": collection.name,
-                     "inline": True
-                 },
-                 {
-                     "name": "👤 Actualizado por",
-                     "value": f"{user.name}",
-                     "inline": True
-                 },
-                 {
-                     "name": "🔗 Ver Mod",
-                     "value": f"[Ir al mod]({DiscordConfig.get_mod_url(mod.slug)})",
-                     "inline": False
-                 }
-             ],
-             "footer": {
-                 "text": f"Mod ID: {mod.id} • Colección ID: {collection.id}"
-             }
-         }
-         return {"embeds": [embed]}
-     
-     @staticmethod
-     async def notify_mods_collection_reactivated(mod: Any, collection: Any, user: Any) -> bool:
-         """Notifica cuando se reactiva un mod en una colección"""
-         if not DiscordConfig.is_configured():
-             return False
-         
-         try:
-             embed = DiscordNotifier._format_embed_mods_collection_reactivated(mod, collection, user)
-             await DiscordNotifier._send_webhook(embed)
-             return True
-         except Exception as e:
-             logger.error(f"Error notificando reactivación de mod en colección: {e}")
-             return False
-     
-     @staticmethod
-     async def notify_mods_collection_deactivated(mod: Any, collection: Any, user: Any) -> bool:
-         """Notifica cuando se desactiva un mod en una colección"""
-         if not DiscordConfig.is_configured():
-             return False
-         
-         try:
-             embed = DiscordNotifier._format_embed_mods_collection_deactivated(mod, collection, user)
-             await DiscordNotifier._send_webhook(embed)
-             return True
-         except Exception as e:
-             logger.error(f"Error notificando desactivación de mod en colección: {e}")
-             return False
-     
-     @staticmethod
-     def _format_embed_mods_collection_reactivated(mod: Any, collection: Any, user: Any) -> Dict[str, Any]:
-         """Formatea embed para reactivación de mod en colección"""
-         embed = {
-             "title": "✅ MOD REACTIVADO EN COLECCIÓN",
-             "color": 0x00AA00,  # Verde
-             "fields": [
-                 {
-                     "name": "📛 Mod",
-                     "value": mod.name,
-                     "inline": True
-                 },
-                 {
-                     "name": "📦 Colección",
-                     "value": collection.name,
-                     "inline": True
-                 },
-                 {
-                     "name": "👤 Actualizado por",
-                     "value": f"{user.name}",
-                     "inline": True
-                 },
-                 {
-                     "name": "🔗 Ver Mod",
-                     "value": f"[Ir al mod]({DiscordConfig.get_mod_url(mod.slug)})",
-                     "inline": False
-                 }
-             ],
-             "footer": {
-                 "text": f"Mod ID: {mod.id} • Colección ID: {collection.id}"
-             }
-         }
-         return {"embeds": [embed]}
-     
-     @staticmethod
-     def _format_embed_mods_collection_deactivated(mod: Any, collection: Any, user: Any) -> Dict[str, Any]:
-         """Formatea embed para desactivación de mod en colección"""
-         embed = {
-             "title": "❌ MOD DESACTIVADO EN COLECCIÓN",
-             "color": 0xFF0000,  # Rojo
-             "fields": [
-                 {
-                     "name": "📛 Mod",
-                     "value": mod.name,
-                     "inline": True
-                 },
-                 {
-                     "name": "📦 Colección",
-                     "value": collection.name,
-                     "inline": True
-                 },
-                 {
-                     "name": "👤 Actualizado por",
-                     "value": f"{user.name}",
-                     "inline": True
-                 },
-                 {
-                     "name": "🔗 Ver Mod",
-                     "value": f"[Ir al mod]({DiscordConfig.get_mod_url(mod.slug)})",
-                     "inline": False
-                 }
-             ],
-             "footer": {
-                 "text": f"Mod ID: {mod.id} • Colección ID: {collection.id}"
-             }
-         }
-         return {"embeds": [embed]}
+    @staticmethod
+    def _format_embed_mod_removed_from_collection(mod: Any, collection: Any, user: Any) -> Dict[str, Any]:
+        """Formatea embed para remoción de mod de colección"""
+        embed = {
+            "title": "📌 MOD REMOVIDO DE COLECCIÓN",
+            "color": 0xFF69B4,  # Rosa
+            "fields": [
+                {
+                    "name": "📛 Mod",
+                    "value": mod.name,
+                    "inline": True
+                },
+                {
+                    "name": "📦 Colección",
+                    "value": collection.name,
+                    "inline": True
+                },
+                {
+                    "name": "👤 Actualizado por",
+                    "value": f"{user.name}",
+                    "inline": True
+                },
+                {
+                    "name": "🔗 Ver Mod",
+                    "value": f"[Ir al mod]({DiscordConfig.get_mod_url(mod.slug)})",
+                    "inline": False
+                }
+            ],
+            "footer": {
+                "text": f"Mod ID: {mod.id} • Colección ID: {collection.id}"
+            }
+        }
+        return {"embeds": [embed]}
+    
+    @staticmethod
+    async def notify_mods_collection_reactivated(mod: Any, collection: Any, user: Any) -> bool:
+        """Notifica cuando se reactiva un mod en una colección"""
+        if not DiscordConfig.is_configured():
+            return False
+        
+        try:
+            embed = DiscordNotifier._format_embed_mods_collection_reactivated(mod, collection, user)
+            await DiscordNotifier._send_webhook(embed)
+            return True
+        except Exception as e:
+            logger.error(f"Error notificando reactivación de mod en colección: {e}")
+            return False
+    
+    @staticmethod
+    async def notify_mods_collection_deactivated(mod: Any, collection: Any, user: Any) -> bool:
+        """Notifica cuando se desactiva un mod en una colección"""
+        if not DiscordConfig.is_configured():
+            return False
+        
+        try:
+            embed = DiscordNotifier._format_embed_mods_collection_deactivated(mod, collection, user)
+            await DiscordNotifier._send_webhook(embed)
+            return True
+        except Exception as e:
+            logger.error(f"Error notificando desactivación de mod en colección: {e}")
+            return False
+    
+    @staticmethod
+    def _format_embed_mods_collection_reactivated(mod: Any, collection: Any, user: Any) -> Dict[str, Any]:
+        """Formatea embed para reactivación de mod en colección"""
+        embed = {
+            "title": "✅ MOD REACTIVADO EN COLECCIÓN",
+            "color": 0x00AA00,  # Verde
+            "fields": [
+                {
+                    "name": "📛 Mod",
+                    "value": mod.name,
+                    "inline": True
+                },
+                {
+                    "name": "📦 Colección",
+                    "value": collection.name,
+                    "inline": True
+                },
+                {
+                    "name": "👤 Actualizado por",
+                    "value": f"{user.name}",
+                    "inline": True
+                },
+                {
+                    "name": "🔗 Ver Mod",
+                    "value": f"[Ir al mod]({DiscordConfig.get_mod_url(mod.slug)})",
+                    "inline": False
+                }
+            ],
+            "footer": {
+                "text": f"Mod ID: {mod.id} • Colección ID: {collection.id}"
+            }
+        }
+        return {"embeds": [embed]}
+    
+    @staticmethod
+    def _format_embed_mods_collection_deactivated(mod: Any, collection: Any, user: Any) -> Dict[str, Any]:
+        """Formatea embed para desactivación de mod en colección"""
+        embed = {
+            "title": "❌ MOD DESACTIVADO EN COLECCIÓN",
+            "color": 0xFF0000,  # Rojo
+            "fields": [
+                {
+                    "name": "📛 Mod",
+                    "value": mod.name,
+                    "inline": True
+                },
+                {
+                    "name": "📦 Colección",
+                    "value": collection.name,
+                    "inline": True
+                },
+                {
+                    "name": "👤 Actualizado por",
+                    "value": f"{user.name}",
+                    "inline": True
+                },
+                {
+                    "name": "🔗 Ver Mod",
+                    "value": f"[Ir al mod]({DiscordConfig.get_mod_url(mod.slug)})",
+                    "inline": False
+                }
+            ],
+            "footer": {
+                "text": f"Mod ID: {mod.id} • Colección ID: {collection.id}"
+            }
+        }
+        return {"embeds": [embed]}
     
     # ═════════════════════════════════════════════════════════════════════════════
     # NOTIFICACIONES PARA IMÁGENES
