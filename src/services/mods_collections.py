@@ -140,7 +140,7 @@ class CRUD_MODS_COLLECTION:
             Collection.id == mods_collection.collection_id
         ).first()
         
-        # Construir objeto de colección
+        # Construir objeto de colección sin metadata de usuario
         collection_data = None
         if collection:
             collection_data = {
@@ -150,11 +150,7 @@ class CRUD_MODS_COLLECTION:
                 "is_seasonal": collection.is_seasonal,
                 "start_date": collection.start_date,
                 "end_date": collection.end_date,
-                "is_active": collection.is_active,
-                "created_at": collection.created_at,
-                "updated_at": collection.updated_at,
-                "created_by": collection.created_by,
-                "updated_by": collection.updated_by
+                "is_active": collection.is_active
             }
         
         resource = {

@@ -27,10 +27,6 @@ class CollectionInfo(BaseModel):
     start_date: str | None = None
     end_date: str | None = None
     is_active: bool
-    created_at: str
-    updated_at: str
-    created_by: int
-    updated_by: int
 
 
 class ModsCollectionResponseWithCollection(BaseModel):
