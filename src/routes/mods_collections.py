@@ -248,17 +248,15 @@ def add_mod_to_collection(
     )
 
 
-@router.patch("/status/{mods_collection_id}")
+@router.patch("/admin/status/{mods_collection_id}")
 def update_mods_collection_status(
     mods_collection_id: int,
     data: UpdateModsCollectionStatus,
-    user: TokenUser = Depends(get_current_user),
+    user: TokenUser = Depends(verify_admin_role),
     db: Session = Depends(db_init.get_db),
     background_tasks: BackgroundTasks = BackgroundTasks()
 ):
     """Actualizar el estado is_active de una relación mods-colecciones (solo OWNER/EDITOR)"""
-    if user.rol == UserRolEnum.UPLOADER:
-        raise HTTPException(status_code=403, detail="No autorizado para actualizar estado de mods en colecciones")
     
     crud = CRUD_MODS_COLLECTION(db)
     mods_collection = crud.update_mods_collection_status(mods_collection_id, data.is_active)

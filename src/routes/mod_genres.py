@@ -248,17 +248,15 @@ def add_genre_to_mod(
     )
 
 
-@router.patch("/status/{mod_genre_id}")
+@router.patch("/admin/status/{mod_genre_id}")
 def update_mod_genre_status(
     mod_genre_id: int,
     data: UpdateModGenreStatus,
-    user: TokenUser = Depends(get_current_user),
+    user: TokenUser = Depends(verify_admin_role),
     db: Session = Depends(db_init.get_db),
     background_tasks: BackgroundTasks = BackgroundTasks()
 ):
     """Actualizar el estado is_active de una relación mod-género (solo OWNER/EDITOR)"""
-    if user.rol == UserRolEnum.UPLOADER:
-        raise HTTPException(status_code=403, detail="No autorizado para actualizar estado de géneros en mods")
     
     crud = CRUD_MOD_GENRE(db)
     mod_genre = crud.update_mod_genre_status(mod_genre_id, data.is_active)
