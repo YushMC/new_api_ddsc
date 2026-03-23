@@ -12,6 +12,7 @@ from src.routes.notifications import router as router_notifications
 from src.routes.mod_statistics import router as router_mod_statistics
 from src.routes.collections import router as router_collections
 from src.routes.mods_collections import router as router_mods_collections
+from src.routes.mod_genres import router as router_mod_genres
 from src.middleware.context import user_context_middleware
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -42,6 +43,7 @@ app.include_router(router_notifications, prefix="/notifications", tags=["notific
 app.include_router(router_mod_statistics, prefix="/statistics", tags=["statistics"])
 app.include_router(router_collections, prefix="/collections", tags=["collections"])
 app.include_router(router_mods_collections, prefix="/mods-collections", tags=["mods-collections"])
+app.include_router(router_mod_genres, prefix="/mods-genres", tags=["mods-genres"])
 
 # Ensure all models are imported before creating tables
 import src.models.generos
@@ -53,6 +55,7 @@ import src.models.notifications
 import src.models.mod_statistic
 import src.models.collection
 import src.models.mods_collection
+import src.models.mod_genre
 
 db.BASE_TYPE.metadata.create_all(bind=db.create_engine())
 
