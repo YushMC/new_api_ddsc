@@ -484,4 +484,18 @@ class CRUD_MOD:
         ).order_by(func.random()).first()
         
         return random_mod
+    
+    def get_all_mods_basic(self):
+        """
+        Obtiene TODOS los mods activos (sin soft delete) con solo nombre, id y slug
+        
+        Returns:
+            Lista de tuplas (id, name, slug) de todos los mods
+        """
+        # Obtener todos los mods activos (no eliminados)
+        mods = self.__db.query(Mod.id, Mod.name, Mod.slug).filter(
+            Mod.deleted_at == None
+        ).all()
+        
+        return mods
 

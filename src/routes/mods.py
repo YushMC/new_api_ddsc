@@ -208,6 +208,37 @@ def get_random_mod(db: Session = Depends(db_init.get_db)):
         message="Mod aleatorio obtenido exitosamente"
     )
 
+@router.get("/search")
+def search_mods(db: Session = Depends(db_init.get_db)):
+    """
+    Obtener TODOS los mods activos con solo nombre, id y slug (sin paginación)
+    
+    Retorna lista completa de todos los mods que no estén eliminados
+    """
+    crud = CRUD_MOD(db)
+    mods = crud.get_all_mods_basic()
+    
+    if not mods:
+        return ResponseBuilder.success(
+            data=[],
+            message="No hay mods disponibles"
+        )
+    
+    # Convertir tuplas a diccionarios
+    mods_list = [
+        {
+            "id": mod[0],
+            "name": mod[1],
+            "slug": mod[2]
+        }
+        for mod in mods
+    ]
+    
+    return ResponseBuilder.success(
+        data=mods_list,
+        message=f"Se obtuvieron {len(mods_list)} mods exitosamente"
+    )
+
 @router.get("/{mod_id}")
 def get_mod(mod_id: int, db: Session = Depends(db_init.get_db)):
     """Obtener un mod específico por ID (públicamente disponible)"""
