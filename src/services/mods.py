@@ -462,10 +462,26 @@ class CRUD_MOD:
         mod = self.__db.query(Mod).filter(Mod.id == mod_id).first()
         if not mod:
             raise HTTPException(status_code=404, detail="Mod no encontrado")
-        
+         
         # Retornar solo los géneros activos
         if hasattr(mod, 'mod_genres') and mod.mod_genres:
             return [mg.genre for mg in mod.mod_genres if mg.is_active]
         
         return []
+    
+    def get_random_mod(self):
+        """
+        Obtiene un mod aleatorio activo (sin soft delete)
+        
+        Returns:
+            Mod aleatorio o None si no hay mods disponibles
+        """
+        from sqlalchemy import func
+        
+        # Obtener un mod aleatorio que no esté eliminado (deleted_at es NULL)
+        random_mod = self.__db.query(Mod).filter(
+            Mod.deleted_at == None
+        ).order_by(func.random()).first()
+        
+        return random_mod
 

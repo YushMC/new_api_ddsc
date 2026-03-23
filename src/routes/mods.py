@@ -182,9 +182,31 @@ def list_mods_pending_revision(
     
     return {
         "response": "success",
-        "message": "Mods pendientes de revisión obtenidos exitosamente",
+         "message": "Mods pendientes de revisión obtenidos exitosamente",
         "data": prepared_mods
     }
+
+@router.get("/random")
+def get_random_mod(db: Session = Depends(db_init.get_db)):
+    """
+    Obtener un mod aleatorio activo con su slug
+    
+    Retorna un mod random que no esté eliminado
+    """
+    crud = CRUD_MOD(db)
+    mod = crud.get_random_mod()
+    
+    if not mod:
+        raise HTTPException(status_code=404, detail="No hay mods disponibles")
+    
+    return ResponseBuilder.success(
+        data={
+            "slug": mod.slug,
+            "id": mod.id,
+            "name": mod.name
+        },
+        message="Mod aleatorio obtenido exitosamente"
+    )
 
 @router.get("/{mod_id}")
 def get_mod(mod_id: int, db: Session = Depends(db_init.get_db)):
