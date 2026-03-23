@@ -140,12 +140,21 @@ class CRUD_MODS_COLLECTION:
             Collection.id == mods_collection.collection_id
         ).first()
         
-        return {
+        resource = {
             "id": mods_collection.id,
             "mod_id": mods_collection.mod_id,
-            "collection_name": collection.name if collection else "Desconocida",
-            "is_active": mods_collection.is_active
+            "collection_name": collection.name if collection else "Desconocida"
         }
+        
+        info = {
+            "is_active": mods_collection.is_active,
+            "created_at": mods_collection.created_at,
+            "updated_at": mods_collection.updated_at,
+            "created_by": mods_collection.created_by,
+            "updated_by": mods_collection.updated_by
+        }
+        
+        return resource, info
     
     def get_mods_collections_with_collection_name(self, skip: int = 0, limit: int = 20):
         """Obtener todas las relaciones activas con collection_name (paginado)"""

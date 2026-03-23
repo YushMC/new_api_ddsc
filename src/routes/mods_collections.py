@@ -6,7 +6,7 @@ from src.services.mods_collections import CRUD_MODS_COLLECTION
 from src.middleware.jwt import get_current_user, verify_admin_role
 from src.services.token import TokenUser
 from src.schemas.mods_collections import ModsCollectionResponse, ModsCollectionCreate, ModsCollectionResponseWithCollectionName
-from src.utils.response_builder import ResponseBuilder
+from src.utils.response_builder import ResponseBuilder, resolve_user_ids
 from src.models.enums import UserRolEnum
 from src.background_tasks import notify_mod_added_to_collection, notify_mod_removed_from_collection
 
@@ -37,10 +37,12 @@ def list_mods_collections(
     
     # Construir respuesta con structure (resource + info)
     response_data = []
-    for mc in mods_collections:
+    for resource, info in mods_collections:
+        # Resolver IDs de usuario a objetos
+        info_resolved = resolve_user_ids(info, db)
         response_data.append({
-            "resource": mc,
-            "info": {"is_active": mc["is_active"]}
+            "resource": resource,
+            "info": info_resolved
         })
     
     return {
@@ -70,10 +72,12 @@ def list_mods_collections_admin(
     
     # Construir respuesta con structure (resource + info)
     response_data = []
-    for mc in mods_collections:
+    for resource, info in mods_collections:
+        # Resolver IDs de usuario a objetos
+        info_resolved = resolve_user_ids(info, db)
         response_data.append({
-            "resource": mc,
-            "info": {"is_active": mc["is_active"]}
+            "resource": resource,
+            "info": info_resolved
         })
     
     return {
@@ -90,13 +94,16 @@ def get_mods_collection(
 ):
     """Obtener una relación mods-colecciones específica (públicamente disponible)"""
     crud = CRUD_MODS_COLLECTION(db)
-    mods_collection = crud.get_mods_collection_with_collection_name(mods_collection_id)
-    if not mods_collection:
+    result = crud.get_mods_collection_with_collection_name(mods_collection_id)
+    if not result:
         raise HTTPException(status_code=404, detail="Relación no encontrada")
     
+    resource, info = result
+    info_resolved = resolve_user_ids(info, db)
+    
     response_data = {
-        "resource": mods_collection,
-        "info": {"is_active": mods_collection["is_active"]}
+        "resource": resource,
+        "info": info_resolved
     }
     
     return ResponseBuilder.success(
@@ -113,13 +120,16 @@ def get_mods_collection_admin(
 ):
     """Obtener una relación incluyendo si está inactiva (solo OWNER/EDITOR)"""
     crud = CRUD_MODS_COLLECTION(db)
-    mods_collection = crud.get_mods_collection_admin_with_collection_name(mods_collection_id)
-    if not mods_collection:
+    result = crud.get_mods_collection_admin_with_collection_name(mods_collection_id)
+    if not result:
         raise HTTPException(status_code=404, detail="Relación no encontrada")
     
+    resource, info = result
+    info_resolved = resolve_user_ids(info, db)
+    
     response_data = {
-        "resource": mods_collection,
-        "info": {"is_active": mods_collection["is_active"]}
+        "resource": resource,
+        "info": info_resolved
     }
     
     return ResponseBuilder.success(
@@ -139,10 +149,12 @@ def get_mod_collections(
     
     # Construir respuesta con structure (resource + info)
     response_data = []
-    for mc in mods_collections:
+    for resource, info in mods_collections:
+        # Resolver IDs de usuario a objetos
+        info_resolved = resolve_user_ids(info, db)
         response_data.append({
-            "resource": mc,
-            "info": {"is_active": mc["is_active"]}
+            "resource": resource,
+            "info": info_resolved
         })
     
     return {
@@ -163,10 +175,12 @@ def get_collection_mods(
     
     # Construir respuesta con structure (resource + info)
     response_data = []
-    for mc in mods_collections:
+    for resource, info in mods_collections:
+        # Resolver IDs de usuario a objetos
+        info_resolved = resolve_user_ids(info, db)
         response_data.append({
-            "resource": mc,
-            "info": {"is_active": mc["is_active"]}
+            "resource": resource,
+            "info": info_resolved
         })
     
     return {
