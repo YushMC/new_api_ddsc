@@ -8,7 +8,9 @@ from src.services.token import TokenUser
 from src.schemas.mods_collections import ModsCollectionResponse, ModsCollectionCreate, ModsCollectionResponseWithCollection
 from src.utils.response_builder import ResponseBuilder, resolve_user_ids
 from src.models.enums import UserRolEnum
-from src.background_tasks import notify_mod_added_to_collection, notify_mod_removed_from_collection
+from src.models.mods import Mod
+from src.models.collection import Collection
+from src.background_tasks import notify_mod_added_to_collection, notify_mod_removed_from_collection, notify_mods_collection_status_changed
 
 router = APIRouter()
 db_init = DATABASE_INIT()
@@ -251,7 +253,8 @@ def update_mods_collection_status(
     mods_collection_id: int,
     data: UpdateModsCollectionStatus,
     user: TokenUser = Depends(get_current_user),
-    db: Session = Depends(db_init.get_db)
+    db: Session = Depends(db_init.get_db),
+    background_tasks: BackgroundTasks = BackgroundTasks()
 ):
     """Actualizar el estado is_active de una relación mods-colecciones (solo OWNER/EDITOR)"""
     if user.rol == UserRolEnum.UPLOADER:
@@ -259,6 +262,20 @@ def update_mods_collection_status(
     
     crud = CRUD_MODS_COLLECTION(db)
     mods_collection = crud.update_mods_collection_status(mods_collection_id, data.is_active)
+    
+    # Get mod and collection for Discord notification
+    mod = db.query(Mod).filter(Mod.id == mods_collection.mod_id).first()
+    collection = db.query(Collection).filter(Collection.id == mods_collection.collection_id).first()
+    
+    # Send Discord notification (non-blocking)
+    background_tasks.add_task(
+        notify_mods_collection_status_changed,
+        mod=mod,
+        collection=collection,
+        user=user,
+        is_active=data.is_active
+    )
+    
     return ResponseBuilder.updated(
         data=ModsCollectionResponse.model_validate(mods_collection),
         message="Estado de la relación actualizado exitosamente",

@@ -234,6 +234,23 @@ def notify_mod_removed_from_collection(mod: Any, collection: Any, user: Any) -> 
         logger.error(f"Error en background task notify_mod_removed_from_collection: {e}")
 
 
+def notify_mods_collection_status_changed(mod: Any, collection: Any, user: Any, is_active: bool) -> None:
+    """Notifica cambio de estado en relación mods-colecciones (activada/desactivada)"""
+    try:
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        
+        if is_active:
+            loop.run_until_complete(DiscordNotifier.notify_mods_collection_reactivated(mod, collection, user))
+        else:
+            loop.run_until_complete(DiscordNotifier.notify_mods_collection_deactivated(mod, collection, user))
+    except Exception as e:
+        logger.error(f"Error en background task notify_mods_collection_status_changed: {e}")
+
+
 # ═════════════════════════════════════════════════════════════════════════════
 # NOTIFICACIONES PARA IMÁGENES
 # ═════════════════════════════════════════════════════════════════════════════
