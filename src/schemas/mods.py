@@ -43,6 +43,11 @@ class ModRejectRequest(BaseModel):
     """Schema para rechazar un mod"""
     comments: str
 
+class ModRequestStatusUpdate(BaseModel):
+    """Schema para actualizar el estado de revisión de un mod (aprobar o rechazar)"""
+    status: str  # "approve" o "reject"
+    comments: str | None = None  # Requerido si status es "reject"
+
 class ModDeleteRequest(BaseModel):
     """Schema para eliminar un mod"""
     reason: str

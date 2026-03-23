@@ -319,6 +319,41 @@ class CRUD_MOD:
         
         return (mod, changes)
     
+    def update_mod_request_status(self, mod_id: int, user: TokenUser, status: str, comments: str | None = None):
+        """
+        Actualiza el estado de revisión de un mod (aprobar o rechazar)
+        
+        Args:
+            mod_id: ID del mod a actualizar
+            user: Usuario que realiza la acción (debe ser EDITOR/OWNER)
+            status: "approve" para aprobar o "reject" para rechazar
+            comments: Comentarios requeridos si status es "reject"
+        
+        Returns:
+            Tuple (mod, changes) con el mod actualizado y los cambios
+        """
+        if user.rol == UserRolEnum.UPLOADER:
+            raise HTTPException(status_code=403, detail="Sin autorización para actualizar estado de mod")
+        
+        if status not in ["approve", "reject"]:
+            raise HTTPException(status_code=400, detail="Estado inválido. Debe ser 'approve' o 'reject'")
+        
+        if status == "reject" and not comments:
+            raise HTTPException(status_code=400, detail="Los comentarios son requeridos para rechazar un mod")
+        
+        mod = self.__db.query(Mod).filter(Mod.id == mod_id).first()
+        
+        if not mod:
+            raise HTTPException(status_code=404, detail="Mod no encontrado")
+        
+        if not mod.required_revision: #type: ignore
+            raise HTTPException(status_code=400, detail="Este mod no requiere revisión")
+        
+        if status == "approve":
+            return self.approve_mod(mod_id, user)
+        else:  # status == "reject"
+            return self.reject_mod(mod_id, user, comments or "")
+    
     def add_genres_to_mod(self, mod_id: int, genre_ids: list[int]):
         """
         Agrega géneros a un mod

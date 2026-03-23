@@ -1,4 +1,4 @@
-from src.schemas.mods import ModBase, ModCommplete, ModRejectRequest, ModDeleteRequest, ModGenreAdd
+from src.schemas.mods import ModBase, ModCommplete, ModRejectRequest, ModDeleteRequest, ModGenreAdd, ModRequestStatusUpdate
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query
 from src.middleware.jwt import get_current_user, verify_admin_role
 from src.conf.database import DATABASE_INIT
@@ -397,6 +397,74 @@ def reject_mod_route(
     return ResponseBuilder.updated(
         data=_prepare_mod_response(mod, db),
         message="Mod rechazado exitosamente",
+        db=db
+    )
+
+
+@router.put("/status/request/{mod_id}")
+def update_mod_request_status(
+    mod_id: int,
+    request: ModRequestStatusUpdate,
+    user: TokenUser = Depends(get_current_user),
+    db: Session = Depends(db_init.get_db),
+    background_tasks: BackgroundTasks = BackgroundTasks()
+):
+    """
+    Actualizar el estado de revisión de un mod (aprobar o rechazar)
+    
+    Endpoint unificado que reemplaza /approve y /rejected
+    
+    Request body:
+    - status: "approve" o "reject"
+    - comments: requerido si status es "reject"
+    
+    Ejemplo:
+    - Aprobar: {"status": "approve"}
+    - Rechazar: {"status": "reject", "comments": "Razón del rechazo"}
+    
+    Solo EDITOR/OWNER pueden acceder
+    """
+    if user.rol == UserRolEnum.UPLOADER:
+        raise HTTPException(status_code=403, detail="No autorizado para actualizar estado de mod")
+    
+    crud = CRUD_MOD(db)
+    mod, changes = crud.update_mod_request_status(mod_id, user, request.status, request.comments)
+    
+    # Crear notificación para el uploader (creador del mod)
+    from src.services.notifications import CRUD_NOTIFICATION
+    notification_crud = CRUD_NOTIFICATION(db)
+    
+    # Obtener el usuario que creó el mod
+    from src.models.users import User
+    creator = db.query(User).filter(User.id == mod.created_by).first()
+    
+    # Enviar notificación según el estado
+    if request.status == "approve":
+        if creator:
+            notification_crud.notify_mod_approved(
+                mod_id=mod_id,
+                mod_name=mod.name,
+                mod_creator_id=creator.id,
+                approved_by=user.name
+            )
+        # Agregar notificación a Discord como background task
+        background_tasks.add_task(DiscordNotifier.notify_mod_approved, mod, user, creator.name if creator else None)
+        message = "Mod aprobado exitosamente"
+    else:  # reject
+        if creator:
+            notification_crud.notify_mod_rejected(
+                mod_id=mod_id,
+                mod_name=mod.name,
+                mod_creator_id=creator.id,
+                rejected_by=user.name
+            )
+        # Agregar notificación a Discord como background task
+        background_tasks.add_task(DiscordNotifier.notify_mod_rejected, mod, user, creator.name if creator else None)
+        message = "Mod rechazado exitosamente"
+    
+    return ResponseBuilder.updated(
+        data=_prepare_mod_response(mod, db),
+        message=message,
         db=db
     )
 
