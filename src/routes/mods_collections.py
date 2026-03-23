@@ -20,6 +20,10 @@ class UpdateModsCollectionStatus(BaseModel):
     is_active: bool
 
 
+class UpdateModsCollectionId(BaseModel):
+    collection_id: int
+
+
 @router.get("")
 def list_mods_collections(
     db: Session = Depends(db_init.get_db),
@@ -277,5 +281,52 @@ def update_mods_collection_status(
     return ResponseBuilder.updated(
         data=ModsCollectionResponse.model_validate(mods_collection),
         message="Estado de la relación actualizado exitosamente",
+        db=db
+    )
+
+
+@router.put("/{mods_collection_id}")
+def update_mods_collection_id(
+    mods_collection_id: int,
+    data: UpdateModsCollectionId,
+    user: TokenUser = Depends(verify_admin_role),
+    db: Session = Depends(db_init.get_db),
+    background_tasks: BackgroundTasks = BackgroundTasks()
+):
+    """Actualizar el id_collection de una relación mods-colecciones (solo OWNER/EDITOR)"""
+    
+    crud = CRUD_MODS_COLLECTION(db)
+    
+    # Obtener la relación antigua para obtener la colección anterior
+    old_mods_collection = crud.get_mods_collection_admin(mods_collection_id)
+    if not old_mods_collection:
+        raise HTTPException(status_code=404, detail="Relación mods-colecciones no encontrada")
+    
+    old_collection = db.query(Collection).filter(Collection.id == old_mods_collection.collection_id).first()
+    
+    # Actualizar la colección
+    mods_collection = crud.update_collection_id(mods_collection_id, data.collection_id)
+    
+    # Get mod and new collection for Discord notification
+    mod = db.query(Mod).filter(Mod.id == mods_collection.mod_id).first()
+    new_collection = db.query(Collection).filter(Collection.id == mods_collection.collection_id).first()
+    
+    # Send Discord notification (non-blocking)
+    background_tasks.add_task(
+        notify_mod_removed_from_collection,
+        mod=mod,
+        collection=old_collection,
+        user=user
+    )
+    background_tasks.add_task(
+        notify_mod_added_to_collection,
+        mod=mod,
+        collection=new_collection,
+        user=user
+    )
+    
+    return ResponseBuilder.updated(
+        data=ModsCollectionResponse.model_validate(mods_collection),
+        message="Colección de la relación actualizada exitosamente",
         db=db
     )

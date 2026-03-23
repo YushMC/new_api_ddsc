@@ -20,6 +20,10 @@ class UpdateModGenreStatus(BaseModel):
     is_active: bool
 
 
+class UpdateModGenreId(BaseModel):
+    genre_id: int
+
+
 @router.get("")
 def list_mod_genres(
     db: Session = Depends(db_init.get_db),
@@ -285,5 +289,52 @@ def update_mod_genre_status(
     return ResponseBuilder.updated(
         data=ModGenreResponse.model_validate(mod_genre),
         message="Estado de la relación actualizado exitosamente",
+        db=db
+    )
+
+
+@router.put("/{mod_genre_id}")
+def update_mod_genre_id(
+    mod_genre_id: int,
+    data: UpdateModGenreId,
+    user: TokenUser = Depends(verify_admin_role),
+    db: Session = Depends(db_init.get_db),
+    background_tasks: BackgroundTasks = BackgroundTasks()
+):
+    """Actualizar el id_genre de una relación mod-género (solo OWNER/EDITOR)"""
+    
+    crud = CRUD_MOD_GENRE(db)
+    
+    # Obtener la relación antigua para obtener el género anterior
+    old_mod_genre = crud.get_mod_genre_admin(mod_genre_id)
+    if not old_mod_genre:
+        raise HTTPException(status_code=404, detail="Relación mod-género no encontrada")
+    
+    old_genre = db.query(Genre).filter(Genre.id == old_mod_genre.genre_id).first()
+    
+    # Actualizar el género
+    mod_genre = crud.update_genre_id(mod_genre_id, data.genre_id)
+    
+    # Get mod and new genre for Discord notification
+    mod = db.query(Mod).filter(Mod.id == mod_genre.mod_id).first()
+    new_genre = db.query(Genre).filter(Genre.id == mod_genre.genre_id).first()
+    
+    # Send Discord notification (non-blocking)
+    background_tasks.add_task(
+        notify_genres_removed,
+        mod=mod,
+        genres=[old_genre] if old_genre else [],
+        user=user
+    )
+    background_tasks.add_task(
+        notify_genres_added,
+        mod=mod,
+        genres=[new_genre] if new_genre else [],
+        user=user
+    )
+    
+    return ResponseBuilder.updated(
+        data=ModGenreResponse.model_validate(mod_genre),
+        message="Género de la relación actualizado exitosamente",
         db=db
     )

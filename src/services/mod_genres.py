@@ -212,3 +212,36 @@ class CRUD_MOD_GENRE:
         ).all()
         
         return [self._build_response_with_genre(mg) for mg in mod_genres]
+    
+    def update_genre_id(self, mod_genre_id: int, new_genre_id: int):
+        """Actualizar el id_genre de una relación mod-género (solo OWNER/EDITOR)"""
+        # Obtener la relación actual
+        mod_genre = self.__db.query(ModGenre).filter(
+            ModGenre.id == mod_genre_id
+        ).first()
+        
+        if not mod_genre:
+            raise HTTPException(status_code=404, detail="Relación mod-género no encontrada")
+        
+        # Verificar que el nuevo género existe
+        new_genre = self.__db.query(Genre).filter(
+            Genre.id == new_genre_id
+        ).first()
+        if not new_genre:
+            raise HTTPException(status_code=404, detail="Nuevo género no encontrado")
+        
+        # Verificar que no existe una relación activa entre este mod y el nuevo género
+        existing = self.__db.query(ModGenre).filter(
+            ModGenre.mod_id == mod_genre.mod_id,
+            ModGenre.genre_id == new_genre_id,
+            ModGenre.is_active == True
+        ).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="El mod ya tiene este nuevo género asignado")
+        
+        # Actualizar el género
+        mod_genre.genre_id = new_genre_id
+        self.__db.commit()
+        self.__db.refresh(mod_genre)
+        
+        return mod_genre

@@ -231,3 +231,36 @@ class CRUD_MODS_COLLECTION:
         ).all()
         
         return [self._build_response_with_collection_name(mc) for mc in mods_collections]
+    
+    def update_collection_id(self, mods_collection_id: int, new_collection_id: int):
+        """Actualizar el id_collection de una relación mods-colecciones (solo OWNER/EDITOR)"""
+        # Obtener la relación actual
+        mods_collection = self.__db.query(ModsCollection).filter(
+            ModsCollection.id == mods_collection_id
+        ).first()
+        
+        if not mods_collection:
+            raise HTTPException(status_code=404, detail="Relación mods-colecciones no encontrada")
+        
+        # Verificar que la nueva colección existe
+        new_collection = self.__db.query(Collection).filter(
+            Collection.id == new_collection_id
+        ).first()
+        if not new_collection:
+            raise HTTPException(status_code=404, detail="Nueva colección no encontrada")
+        
+        # Verificar que no existe una relación activa entre este mod y la nueva colección
+        existing = self.__db.query(ModsCollection).filter(
+            ModsCollection.mod_id == mods_collection.mod_id,
+            ModsCollection.collection_id == new_collection_id,
+            ModsCollection.is_active == True
+        ).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="El mod ya está en esta nueva colección")
+        
+        # Actualizar la colección
+        mods_collection.collection_id = new_collection_id
+        self.__db.commit()
+        self.__db.refresh(mods_collection)
+        
+        return mods_collection
