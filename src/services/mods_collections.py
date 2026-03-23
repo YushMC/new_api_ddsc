@@ -119,8 +119,8 @@ class CRUD_MODS_COLLECTION:
         
         return (mod, collection)
     
-    def reactivate_mod_collection(self, mods_collection_id: int):
-        """Reactivar mod en colección (solo OWNER/EDITOR)"""
+    def update_mods_collection_status(self, mods_collection_id: int, is_active: bool):
+        """Actualizar el estado is_active de una relación mods-colecciones (solo OWNER/EDITOR)"""
         mods_collection = self.__db.query(ModsCollection).filter(
             ModsCollection.id == mods_collection_id
         ).first()
@@ -128,7 +128,7 @@ class CRUD_MODS_COLLECTION:
         if not mods_collection:
             raise HTTPException(status_code=404, detail="Relación no encontrada")
         
-        mods_collection.is_active = True
+        mods_collection.is_active = is_active
         self.__db.commit()
         self.__db.refresh(mods_collection)
         

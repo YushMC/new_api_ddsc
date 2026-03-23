@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from src.conf.database import DATABASE_INIT
 from src.services.mods_collections import CRUD_MODS_COLLECTION
@@ -11,6 +12,10 @@ from src.background_tasks import notify_mod_added_to_collection, notify_mod_remo
 
 router = APIRouter()
 db_init = DATABASE_INIT()
+
+
+class UpdateModsCollectionStatus(BaseModel):
+    is_active: bool
 
 
 @router.get("")
@@ -150,49 +155,21 @@ def add_mod_to_collection(
     )
 
 
-@router.delete("/{mods_collection_id}")
-def remove_mod_from_collection(
+@router.patch("/status/{mods_collection_id}")
+def update_mods_collection_status(
     mods_collection_id: int,
-    user: TokenUser = Depends(get_current_user),
-    db: Session = Depends(db_init.get_db),
-    background_tasks: BackgroundTasks = BackgroundTasks()
-):
-    """
-    Remover un mod de una colección (soft delete - solo OWNER/EDITOR)
-    
-    Nota: La relación se marca como inactiva pero se mantiene en BD
-    """
-    if user.rol == UserRolEnum.UPLOADER:
-        raise HTTPException(status_code=403, detail="No autorizado para remover mods de colecciones")
-    
-    crud = CRUD_MODS_COLLECTION(db)
-    mod, collection = crud.remove_mod_from_collection(mods_collection_id)
-    
-    # Send Discord notification (non-blocking)
-    background_tasks.add_task(
-        notify_mod_removed_from_collection,
-        mod=mod,
-        collection=collection,
-        user=user
-    )
-    
-    return ResponseBuilder.deleted(message="Mod removido de colección exitosamente")
-
-
-@router.post("/{mods_collection_id}/reactivate")
-def reactivate_mod_collection(
-    mods_collection_id: int,
+    data: UpdateModsCollectionStatus,
     user: TokenUser = Depends(get_current_user),
     db: Session = Depends(db_init.get_db)
 ):
-    """Reactivar un mod en colección (solo OWNER/EDITOR)"""
+    """Actualizar el estado is_active de una relación mods-colecciones (solo OWNER/EDITOR)"""
     if user.rol == UserRolEnum.UPLOADER:
-        raise HTTPException(status_code=403, detail="No autorizado para reactivar mods en colecciones")
+        raise HTTPException(status_code=403, detail="No autorizado para actualizar estado de mods en colecciones")
     
     crud = CRUD_MODS_COLLECTION(db)
-    mods_collection = crud.reactivate_mod_collection(mods_collection_id)
+    mods_collection = crud.update_mods_collection_status(mods_collection_id, data.is_active)
     return ResponseBuilder.updated(
         data=ModsCollectionResponse.model_validate(mods_collection),
-        message="Mod reactivado en colección exitosamente",
+        message="Estado de la relación actualizado exitosamente",
         db=db
     )
