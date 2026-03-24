@@ -171,17 +171,8 @@ def get_my_mod_in_revision(
     if not mod:
         raise HTTPException(status_code=404, detail="Mod no encontrado o no está en revisión")
     
-    mod_response = _prepare_mod_response(mod, db)
-    
-    response_data = ResponseBuilder._create_response_with_info(
-        mod_response,
-        "success",
-        "Detalles del mod en revisión obtenidos exitosamente",
-        db=db
-    )
-    
     return ResponseBuilder.success(
-        data=response_data["data"],
+        data=_prepare_mod_response(mod, db),
         message="Detalles del mod en revisión obtenidos exitosamente",
         db=db
     )
