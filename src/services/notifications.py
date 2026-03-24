@@ -348,3 +348,28 @@ class CRUD_NOTIFICATION:
         )
         
         return notification
+
+    def notify_mod_restored(self, mod_id: int, mod_name: str, mod_creator_id: int, restored_by: str):
+        """
+        Crea una notificación para el UPLOADER cuando su mod es restaurado
+        
+        Args:
+            mod_id: ID del mod
+            mod_name: Nombre del mod
+            mod_creator_id: ID del usuario que creó el mod
+            restored_by: Nombre del usuario que restauró
+        
+        Returns:
+            Notification creada
+        """
+        notification = self.create_notification(
+            id_user=mod_creator_id,
+            id_mod=mod_id,
+            notification_type=NotificationTypeEnum.MOD_RESTORED,
+            title=f"Tu mod ha sido restaurado: {mod_name}",
+            message=f"Tu mod '{mod_name}' ha sido restaurado por {restored_by} y vuelve a ser visible.",
+            action_by=restored_by,
+            mod_name=mod_name
+        )
+        
+        return notification

@@ -232,6 +232,32 @@ class CRUD_MOD:
 
         return mod
     
+    def restore_mod(self, mod_id: int, user: TokenUser):
+        """
+        Restaurar (reactivar) un mod eliminado (soft delete)
+        
+        - Solo OWNER puede restaurar
+        - Establece is_active en True
+        - Limpia deleted_by y deleted_at
+        """
+        if user.rol != UserRolEnum.OWNER:
+            raise HTTPException(status_code=403, detail="Solo administradores pueden restaurar mods")
+        
+        mod = self.__db.query(Mod).filter(Mod.id == mod_id).first()
+
+        if not mod:
+            raise HTTPException(status_code=404, detail="Mod no encontrado")
+
+        mod.is_active = True
+        mod.deleted_by = None  # type: ignore
+        mod.deleted_at = None  # type: ignore
+        mod.updated_by = user.id
+
+        self.__db.commit()
+        self.__db.refresh(mod)
+
+        return mod
+    
     def is_mod_complete(self, mod_id: int) -> bool:
         """
         Verifica si un mod está completo (tiene imágenes Y al menos un crédito activo)
