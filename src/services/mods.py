@@ -250,6 +250,10 @@ class CRUD_MOD:
         """
         Aprueba un mod (solo si required_revision es True)
         
+        - Establece required_revision a False
+        - Establece is_active a True
+        - Marca approved_at y approved_by
+        
         Args:
             mod_id: ID del mod a aprobar
             user: Usuario que aprueba (debe ser OWNER/EDITOR)
@@ -272,10 +276,15 @@ class CRUD_MOD:
             "required_revision": {
                 "old": True,
                 "new": False
+            },
+            "is_active": {
+                "old": mod.is_active,
+                "new": True
             }
         }
         
         mod.required_revision = False #type: ignore
+        mod.is_active = True #type: ignore
         mod.approved_by = user.id # type: ignore
         mod.approved_at = datetime.now(UTC)  # type: ignore
         mod.updated_by = user.id
