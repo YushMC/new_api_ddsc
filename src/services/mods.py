@@ -133,13 +133,27 @@ class CRUD_MOD:
         return self.__db.query(Mod).filter(Mod.required_revision == True).offset(skip).limit(limit).all()
     
     def update_mod(self, mod_id: int, data: ModBase, user: TokenUser):
+        """
+        Actualizar un mod existente
+        
+        Solo el creador (EDITOR/OWNER) o administrador puede actualizar
+        UPLOADER no puede actualizar
+        """
         if user.rol == UserRolEnum.UPLOADER:
-            raise HTTPException(status_code=403, detail="Sin autorización")
+            raise HTTPException(status_code=403, detail="Sin autorización para actualizar mods")
         
         mod = self.__db.query(Mod).filter(Mod.id == mod_id).first()
 
         if not mod:
             raise HTTPException(status_code=404, detail="Mod no encontrado")
+        
+        # Validar permisos: solo EDITOR/OWNER pueden actualizar
+        # El creador del mod puede actualizar solo si es EDITOR/OWNER
+        # Los admins (EDITOR/OWNER) pueden actualizar cualquier mod
+        if user.rol == UserRolEnum.EDITOR:
+            # EDITOR solo puede actualizar mods que creó
+            if mod.created_by != user.id:
+                raise HTTPException(status_code=403, detail="No tienes permisos para actualizar este mod")
 
         # Guardar valores anteriores para detectar cambios
         changes = {}
@@ -194,13 +208,25 @@ class CRUD_MOD:
         return (mod, changes)
     
     def delete_mod(self, mod_id: int, user: TokenUser, reason: str = ""):
+        """
+        Eliminar (soft delete) un mod existente
+        
+        Solo el creador (EDITOR/OWNER) o administrador puede eliminar
+        UPLOADER no puede eliminar
+        """
         if user.rol == UserRolEnum.UPLOADER:
-            raise HTTPException(status_code=403, detail="Sin autorización")
+            raise HTTPException(status_code=403, detail="Sin autorización para eliminar mods")
         
         mod = self.__db.query(Mod).filter(Mod.id == mod_id).first()
 
         if not mod:
             raise HTTPException(status_code=404, detail="Mod no encontrado")
+        
+        # Validar permisos: solo el creador (EDITOR/OWNER) o OWNER puede eliminar
+        if user.rol == UserRolEnum.EDITOR:
+            # EDITOR solo puede eliminar mods que creó
+            if mod.created_by != user.id:
+                raise HTTPException(status_code=403, detail="No tienes permisos para eliminar este mod")
 
         mod.is_active = False
         mod.deleted_by = user.id # type: ignore

@@ -434,7 +434,7 @@ def approve_mod_route(
     background_tasks: BackgroundTasks = BackgroundTasks()
 ):
     """
-    Aprobar un mod que requiere revisión (requiere EDITOR/OWNER)
+    Aprobar un mod que requiere revisión (requiere OWNER)
     
     - Solo aprueba si required_revision es True
     - Establece required_revision a False
@@ -442,8 +442,8 @@ def approve_mod_route(
     - Crea notificación para el uploader
     - Envía notificación a Discord
     """
-    if user.rol == UserRolEnum.UPLOADER:
-        raise HTTPException(status_code=403, detail="No autorizado para aprobar mods")
+    if user.rol != UserRolEnum.OWNER:
+        raise HTTPException(status_code=403, detail="Solo administradores pueden aprobar mods")
     
     crud = CRUD_MOD(db)
     mod, changes = crud.approve_mod(mod_id, user)
@@ -482,7 +482,7 @@ def reject_mod_route(
     background_tasks: BackgroundTasks = BackgroundTasks()
 ):
     """
-    Rechazar un mod que requiere revisión (requiere EDITOR/OWNER)
+    Rechazar un mod que requiere revisión (requiere OWNER)
     
     - Solo rechaza si required_revision es True
     - Establece required_revision a False
@@ -491,8 +491,8 @@ def reject_mod_route(
     - Crea notificación para el uploader
     - Envía notificación a Discord
     """
-    if user.rol == UserRolEnum.UPLOADER:
-        raise HTTPException(status_code=403, detail="No autorizado para rechazar mods")
+    if user.rol != UserRolEnum.OWNER:
+        raise HTTPException(status_code=403, detail="Solo administradores pueden rechazar mods")
     
     crud = CRUD_MOD(db)
     mod, changes = crud.reject_mod(mod_id, user, request.comments)
@@ -598,15 +598,15 @@ def restore_mod_route(
     background_tasks: BackgroundTasks = BackgroundTasks()
 ):
     """
-    Restaurar un mod eliminado (requiere EDITOR/OWNER)
+    Restaurar un mod eliminado (requiere OWNER)
     
     - Cambio is_active a True
     - Limpia deleted_by y deleted_at
     - Crea notificación para el uploader
     - Envía notificación a Discord
     """
-    if user.rol == UserRolEnum.UPLOADER:
-        raise HTTPException(status_code=403, detail="No autorizado para restaurar mods")
+    if user.rol != UserRolEnum.OWNER:
+        raise HTTPException(status_code=403, detail="Solo administradores pueden restaurar mods")
     
     crud = CRUD_MOD(db)
     mod = crud.restore_mod(mod_id, user)
@@ -650,8 +650,17 @@ def add_genres_to_mod(
     Parámetros:
     - genre_ids: array de IDs de géneros a agregar
     
-    Requiere autenticación (cualquier usuario con token válido)
+    Requiere autenticación (solo el creador del mod u OWNER)
     """
+    # Verificar que el mod existe y obtener su creador
+    mod = db.query(Mod).filter(Mod.id == mod_id).first()
+    if not mod:
+        raise HTTPException(status_code=404, detail="Mod no encontrado")
+    
+    # Verificar permisos: solo el creador o OWNER pueden agregar géneros
+    if user.rol != UserRolEnum.OWNER and mod.created_by != user.id:
+        raise HTTPException(status_code=403, detail="No tienes permisos para agregar géneros a este mod")
+    
     crud = CRUD_MOD(db)
     mod, genres_added = crud.add_genres_to_mod(mod_id, data.genre_ids)
     
@@ -680,8 +689,17 @@ def remove_genres_from_mod(
     Parámetros:
     - genre_ids: array de IDs de géneros a remover
     
-    Requiere autenticación (cualquier usuario con token válido)
+    Requiere autenticación (solo el creador del mod u OWNER)
     """
+    # Verificar que el mod existe y obtener su creador
+    mod = db.query(Mod).filter(Mod.id == mod_id).first()
+    if not mod:
+        raise HTTPException(status_code=404, detail="Mod no encontrado")
+    
+    # Verificar permisos: solo el creador o OWNER pueden remover géneros
+    if user.rol != UserRolEnum.OWNER and mod.created_by != user.id:
+        raise HTTPException(status_code=403, detail="No tienes permisos para remover géneros de este mod")
+    
     crud = CRUD_MOD(db)
     mod, genres_removed = crud.remove_genres_from_mod(mod_id, data.genre_ids)
     
