@@ -130,7 +130,10 @@ class CRUD_MOD:
     
     def get_mods_pending_revision(self, skip: int = 0, limit: int = 20):
         """Obtener todos los mods que requieren revisión - Solo para administradores"""
-        return self.__db.query(Mod).filter(Mod.required_revision == True).offset(skip).limit(limit).all()
+        return self.__db.query(Mod).filter(
+            Mod.required_revision == True,
+            Mod.is_active == True
+        ).offset(skip).limit(limit).all()
     
     def update_mod(self, mod_id: int, data: ModBase, user: TokenUser):
         """
@@ -522,6 +525,7 @@ class CRUD_MOD:
         mods = self.__db.query(Mod).filter(
             Mod.created_by == user_id,
             Mod.required_revision == True,
+            Mod.is_active == True,
             Mod.deleted_at == None
         ).offset(skip).limit(limit).all()
         
@@ -542,6 +546,7 @@ class CRUD_MOD:
             Mod.id == mod_id,
             Mod.created_by == user_id,
             Mod.required_revision == True,
+            Mod.is_active == True,
             Mod.deleted_at == None
         ).first()
         
