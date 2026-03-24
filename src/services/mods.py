@@ -129,9 +129,10 @@ class CRUD_MOD:
         return self.__db.query(Mod).filter(Mod.required_revision == False).offset(skip).limit(limit).all()
     
     def get_mods_pending_revision(self, skip: int = 0, limit: int = 20):
-        """Obtener todos los mods que requieren revisión - Solo para administradores"""
+        """Obtener todos los mods que requieren revisión (sin filtrar por is_active) - Solo para administradores"""
         return self.__db.query(Mod).filter(
-            Mod.required_revision == True
+            Mod.required_revision == True,
+            Mod.deleted_at == None
         ).offset(skip).limit(limit).all()
     
     def update_mod(self, mod_id: int, data: ModBase, user: TokenUser):
@@ -508,7 +509,7 @@ class CRUD_MOD:
     
     def get_user_mods_in_revision(self, user_id: int, skip: int = 0, limit: int = 20):
         """
-        Obtiene todos los mods del usuario que requieren revisión (con paginación)
+        Obtiene todos los mods del usuario que requieren revisión (sin filtrar por is_active, con paginación)
         
         Args:
             user_id: ID del usuario que creó los mods
@@ -521,30 +522,28 @@ class CRUD_MOD:
         mods = self.__db.query(Mod).filter(
             Mod.created_by == user_id,
             Mod.required_revision == True,
-            Mod.is_active == True,
             Mod.deleted_at == None
         ).offset(skip).limit(limit).all()
         
         return mods
     
     def get_user_mod_in_revision_by_id(self, user_id: int, mod_id: int):
-        """
-        Obtiene un mod específico del usuario que requiere revisión
-        
-        Args:
-            user_id: ID del usuario que creó el mod
-            mod_id: ID del mod
-        
-        Returns:
-            Mod en revisión o None si no existe o no es del usuario
-        """
-        mod = self.__db.query(Mod).filter(
-            Mod.id == mod_id,
-            Mod.created_by == user_id,
-            Mod.required_revision == True,
-            Mod.is_active == True,
-            Mod.deleted_at == None
-        ).first()
-        
-        return mod
+         """
+         Obtiene un mod específico del usuario que requiere revisión
+         
+         Args:
+             user_id: ID del usuario que creó el mod
+             mod_id: ID del mod
+         
+         Returns:
+             Mod en revisión o None si no existe o no es del usuario
+         """
+         mod = self.__db.query(Mod).filter(
+             Mod.id == mod_id,
+             Mod.created_by == user_id,
+             Mod.required_revision == True,
+             Mod.deleted_at == None
+         ).first()
+         
+         return mod
 
