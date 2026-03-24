@@ -20,11 +20,8 @@ class GenreName(BaseModel):
     name: str
 
 @router.get("")
-def list_genres(user: TokenUser = Depends(get_current_user), db: Session = Depends(db_init.get_db)):
-    """Listar todos los géneros activos (requiere autenticación OWNER/EDITOR)"""
-    if user.rol == UserRolEnum.UPLOADER:
-        raise HTTPException(status_code=403, detail="No autorizado para listar géneros")
-    
+def list_genres(db: Session = Depends(db_init.get_db)):
+    """Listar todos los géneros activos (públicamente disponible)"""
     crud = CRUD_GENRE(db)
     genres = crud.get_generos()
     
@@ -83,11 +80,8 @@ def list_genres_admin(
     }
 
 @router.get("/{genre_id}")
-def get_genre(genre_id: int, user: TokenUser = Depends(get_current_user), db: Session = Depends(db_init.get_db)):
-    """Obtener un género específico (requiere autenticación OWNER/EDITOR)"""
-    if user.rol == UserRolEnum.UPLOADER:
-        raise HTTPException(status_code=403, detail="No autorizado para obtener géneros")
-    
+def get_genre(genre_id: int, db: Session = Depends(db_init.get_db)):
+    """Obtener un género específico (públicamente disponible)"""
     crud = CRUD_GENRE(db)
     genre = crud.get_genero(genre_id)
     return ResponseBuilder.success(
