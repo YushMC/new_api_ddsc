@@ -112,15 +112,22 @@ def list_my_mods(
 @router.get("/my_mods/revision")
 def list_my_mods_in_revision(
     db: Session = Depends(db_init.get_db),
-    user: TokenUser = Depends(get_current_user)
+    user: TokenUser = Depends(get_current_user),
+    skip: int = Query(0, ge=0, description="Cantidad de registros a omitir desde el inicio (para paginación). Ejemplo: skip=20 omite los primeros 20 resultados."),
+    limit: int = Query(20, ge=1, le=100, description="Cantidad máxima de registros a retornar (default: 20, max: 100). Ejemplo: limit=10 retorna hasta 10 resultados.")
 ):
     """
-    Listar todos los mods del usuario que requieren revisión
+    Listar todos los mods del usuario que requieren revisión (con paginación)
     
     Solo muestra los mods creados por el usuario autenticado que están en estado required_revision = True
+    
+    Soporta paginación mediante los parámetros `skip` y `limit`:
+    - Página 1: skip=0, limit=20 (default)
+    - Página 2: skip=20, limit=20
+    - Página 3: skip=40, limit=20
     """
     crud = CRUD_MOD(db)
-    mods = crud.get_user_mods_in_revision(user.id)
+    mods = crud.get_user_mods_in_revision(user.id, skip, limit)
     
     if not mods:
         return {

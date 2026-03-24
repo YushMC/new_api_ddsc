@@ -499,12 +499,14 @@ class CRUD_MOD:
         
         return mods
     
-    def get_user_mods_in_revision(self, user_id: int):
+    def get_user_mods_in_revision(self, user_id: int, skip: int = 0, limit: int = 20):
         """
-        Obtiene todos los mods del usuario que requieren revisión (required_revision = True)
+        Obtiene todos los mods del usuario que requieren revisión (con paginación)
         
         Args:
             user_id: ID del usuario que creó los mods
+            skip: Cantidad de registros a omitir (default: 0)
+            limit: Cantidad máxima de registros a retornar (default: 20)
         
         Returns:
             Lista de mods del usuario en revisión
@@ -513,7 +515,7 @@ class CRUD_MOD:
             Mod.created_by == user_id,
             Mod.required_revision == True,
             Mod.deleted_at == None
-        ).all()
+        ).offset(skip).limit(limit).all()
         
         return mods
     
