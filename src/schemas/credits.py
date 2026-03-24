@@ -33,6 +33,7 @@ class CreditUserInfo(BaseModel):
     """Info del usuario asociado al crédito (similar a UserResponse)"""
     id: Optional[int] = Field(None, description="ID del usuario")
     name: str = Field(..., description="Nombre del usuario o crédito")
+    slug: Optional[str] = Field(None, description="Slug del usuario")
     contact: Optional[str] = Field(None, description="Contacto del usuario")
     logo: Optional[str] = Field(None, description="Logo del usuario")
 

@@ -28,7 +28,7 @@ class CreditUpdate(BaseModel):
 def _enrich_credit_with_user(credit, db: Session):
     """
     Enriquece un crédito con la información del usuario si existe.
-    - Si tiene id_user: solo retorna {id, type, user}
+    - Si tiene id_user: solo retorna {id, type, user} (incluyendo slug)
     - Si no tiene id_user: retorna {id, id_mod, id_user, name, type, is_active}
     """
     from src.models.users import User
@@ -43,6 +43,7 @@ def _enrich_credit_with_user(credit, db: Session):
                 "user": {
                     "id": user.id,
                     "name": user.name,
+                    "slug": user.slug,
                     "contact": user.contact,
                     "logo": user.logo
                 }

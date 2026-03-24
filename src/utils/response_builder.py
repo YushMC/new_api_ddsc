@@ -40,7 +40,7 @@ def resolve_user_ids(info_data: dict, db) -> dict:
     Convierte:
         "created_by": 5
     En:
-        "created_by": {"id": 5, "name": "admin", "logo": "url"}
+        "created_by": {"id": 5, "name": "admin", "slug": "admin", "logo": "url"}
     
     Args:
         info_data: Dict con campos de info (ya extraídos por _extract_info)
@@ -67,7 +67,7 @@ def resolve_user_ids(info_data: dict, db) -> dict:
     # Una sola query para obtener todos los usuarios necesarios
     users = db.query(User).filter(User.id.in_(user_ids)).all()
     user_map = {
-        u.id: {"id": u.id, "name": u.name, "logo": u.logo}
+        u.id: {"id": u.id, "name": u.name, "slug": u.slug, "logo": u.logo}
         for u in users
     }
     
@@ -76,7 +76,7 @@ def resolve_user_ids(info_data: dict, db) -> dict:
     for field in USER_ID_FIELDS:
         val = resolved.get(field)
         if val and isinstance(val, int) and val != 0:
-            resolved[field] = user_map.get(val, {"id": val, "name": "Desconocido", "logo": None})
+            resolved[field] = user_map.get(val, {"id": val, "name": "Desconocido", "slug": None, "logo": None})
         elif field in resolved:
             resolved[field] = None
     
