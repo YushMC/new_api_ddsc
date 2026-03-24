@@ -498,4 +498,42 @@ class CRUD_MOD:
         ).all()
         
         return mods
+    
+    def get_user_mods_in_revision(self, user_id: int):
+        """
+        Obtiene todos los mods del usuario que requieren revisión (required_revision = True)
+        
+        Args:
+            user_id: ID del usuario que creó los mods
+        
+        Returns:
+            Lista de mods del usuario en revisión
+        """
+        mods = self.__db.query(Mod).filter(
+            Mod.created_by == user_id,
+            Mod.required_revision == True,
+            Mod.deleted_at == None
+        ).all()
+        
+        return mods
+    
+    def get_user_mod_in_revision_by_id(self, user_id: int, mod_id: int):
+        """
+        Obtiene un mod específico del usuario que requiere revisión
+        
+        Args:
+            user_id: ID del usuario que creó el mod
+            mod_id: ID del mod
+        
+        Returns:
+            Mod en revisión o None si no existe o no es del usuario
+        """
+        mod = self.__db.query(Mod).filter(
+            Mod.id == mod_id,
+            Mod.created_by == user_id,
+            Mod.required_revision == True,
+            Mod.deleted_at == None
+        ).first()
+        
+        return mod
 

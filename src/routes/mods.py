@@ -109,6 +109,76 @@ def list_my_mods(
         "data": prepared_mods
     }
 
+@router.get("/my_mods/revision")
+def list_my_mods_in_revision(
+    db: Session = Depends(db_init.get_db),
+    user: TokenUser = Depends(get_current_user)
+):
+    """
+    Listar todos los mods del usuario que requieren revisión
+    
+    Solo muestra los mods creados por el usuario autenticado que están en estado required_revision = True
+    """
+    crud = CRUD_MOD(db)
+    mods = crud.get_user_mods_in_revision(user.id)
+    
+    if not mods:
+        return {
+            "response": "success",
+            "message": "No hay mods en revisión",
+            "data": []
+        }
+    
+    prepared_mods = []
+    for m in mods:
+        mod_dict = _prepare_mod_response(m, db)
+        
+        response_structure = ResponseBuilder._create_response_with_info(
+            mod_dict,
+            "success",
+            "",
+            db=db
+        )
+        prepared_mods.append(response_structure["data"])
+    
+    return {
+        "response": "success",
+        "message": f"Se encontraron {len(prepared_mods)} mods en revisión",
+        "data": prepared_mods
+    }
+
+@router.get("/my_mods/revision/{mod_id}")
+def get_my_mod_in_revision(
+    mod_id: int,
+    db: Session = Depends(db_init.get_db),
+    user: TokenUser = Depends(get_current_user)
+):
+    """
+    Obtener los detalles de un mod específico del usuario que requiere revisión
+    
+    Solo muestra si el mod pertenece al usuario autenticado y está en revisión
+    """
+    crud = CRUD_MOD(db)
+    mod = crud.get_user_mod_in_revision_by_id(user.id, mod_id)
+    
+    if not mod:
+        raise HTTPException(status_code=404, detail="Mod no encontrado o no está en revisión")
+    
+    mod_response = _prepare_mod_response(mod, db)
+    
+    response_data = ResponseBuilder._create_response_with_info(
+        mod_response,
+        "success",
+        "Detalles del mod en revisión obtenidos exitosamente",
+        db=db
+    )
+    
+    return ResponseBuilder.success(
+        data=response_data["data"],
+        message="Detalles del mod en revisión obtenidos exitosamente",
+        db=db
+    )
+
 @router.get("/admin/all")
 def list_mods_admin(
     db: Session = Depends(db_init.get_db),
