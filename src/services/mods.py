@@ -131,8 +131,7 @@ class CRUD_MOD:
     def get_mods_pending_revision(self, skip: int = 0, limit: int = 20):
         """Obtener todos los mods que requieren revisión - Solo para administradores"""
         return self.__db.query(Mod).filter(
-            Mod.required_revision == True,
-            Mod.is_active == True
+            Mod.required_revision == True
         ).offset(skip).limit(limit).all()
     
     def update_mod(self, mod_id: int, data: ModBase, user: TokenUser):
