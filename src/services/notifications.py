@@ -323,3 +323,28 @@ class CRUD_NOTIFICATION:
         )
         
         return notification
+
+    def notify_mod_deleted(self, mod_id: int, mod_name: str, mod_creator_id: int, deleted_by: str):
+        """
+        Crea una notificación para el UPLOADER cuando su mod es eliminado
+        
+        Args:
+            mod_id: ID del mod
+            mod_name: Nombre del mod
+            mod_creator_id: ID del usuario que creó el mod
+            deleted_by: Nombre del usuario que eliminó
+        
+        Returns:
+            Notification creada
+        """
+        notification = self.create_notification(
+            id_user=mod_creator_id,
+            id_mod=mod_id,
+            notification_type=NotificationTypeEnum.MOD_DELETED,
+            title=f"Tu mod ha sido eliminado: {mod_name}",
+            message=f"Tu mod '{mod_name}' ha sido eliminado por {deleted_by}.",
+            action_by=deleted_by,
+            mod_name=mod_name
+        )
+        
+        return notification
