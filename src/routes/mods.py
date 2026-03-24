@@ -348,6 +348,19 @@ def get_mod(mod_id: int, db: Session = Depends(db_init.get_db)):
         db=db
     )
 
+@router.get("/by-slug/{slug}")
+def get_mod_by_slug(slug: str, db: Session = Depends(db_init.get_db)):
+    """Obtener un mod específico por slug (públicamente disponible)"""
+    crud = CRUD_MOD(db)
+    mod = crud.get_mod_by_slug(slug)
+    if not mod:
+        raise HTTPException(status_code=404, detail="Mod no encontrado")
+    return ResponseBuilder.success(
+        data=_prepare_mod_response(mod, db),
+        message="Mod obtenido exitosamente",
+        db=db
+    )
+
 @router.get("/admin/{mod_id}")
 def get_mod_admin(
     mod_id: int,

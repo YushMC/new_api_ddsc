@@ -97,6 +97,20 @@ def get_user(user_id: int, db: Session = Depends(db_init.get_db)):
         db=db
     )
 
+@router.get("/by-slug/{slug}")
+def get_user_by_slug(slug: str, db: Session = Depends(db_init.get_db)):
+    """Obtener un usuario específico por slug (públicamente disponible sin autenticación)"""
+    crud = CRUD_USERS(db)
+    user = crud.get_user_by_slug(slug)
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    return ResponseBuilder.success(
+        data=UserResponse.model_validate(user),
+        message="Usuario obtenido exitosamente",
+        db=db
+    )
+
 @router.get("/admin/all")
 def list_users_admin(
     db: Session = Depends(db_init.get_db),

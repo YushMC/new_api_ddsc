@@ -20,6 +20,7 @@ class ModBase(BaseModel):
 
     download_pc: str | None = None
     download_android: str | None = None
+    is_c_rated: bool = False
 
     required_revision: bool = False
     is_active: bool | None = None

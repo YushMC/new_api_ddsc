@@ -23,6 +23,7 @@ class UserResponse(BaseModel):
     """Schema de respuesta de usuario"""
     id: int
     name: str
+    slug: str
     role: UserRolEnum
     logo: Optional[str] = None
     contact: Optional[str] = None

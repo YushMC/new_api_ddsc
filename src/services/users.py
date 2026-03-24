@@ -21,6 +21,10 @@ class CRUD_USERS:
     def get_user_by_id(self, user_id: int):
         """Obtener usuario por ID"""
         return self.__db.query(User).filter(User.id == user_id, User.is_active == True).first()
+    
+    def get_user_by_slug(self, slug: str):
+        """Obtener usuario por slug"""
+        return self.__db.query(User).filter(User.slug == slug, User.is_active == True).first()
 
     def count_usuarios(self):
         """Contar total de usuarios en la BD"""

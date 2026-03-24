@@ -14,6 +14,8 @@ class User(__Base):
 
     name = Column(String(100), unique=True, nullable=False, index=True)
 
+    slug = Column(String(100), unique=True, nullable=False, index=True)
+
     password = Column(String(255), nullable=False)
 
     role = Column(Enum(UserRolEnum), nullable=False)

@@ -21,6 +21,7 @@ class Mod(__Base, TimestampMixin):
     character=Column(Enum(CharacterEnum), nullable=False, default=CharacterEnum.MC)
     download_pc=Column(String(500))
     download_android=Column(String(500))
+    is_c_rated=Column(Boolean, default=False)
     required_revision = Column(Boolean, default=False)
     approved_by = Column(Integer)
     approved_at = Column(DateTime)

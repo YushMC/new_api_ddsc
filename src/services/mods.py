@@ -116,6 +116,10 @@ class CRUD_MOD:
     
     def get_mod(self, mod_id: int):
         return self.__db.query(Mod).filter(Mod.id == mod_id, Mod.is_active == True).first()
+    
+    def get_mod_by_slug(self, slug: str):
+        """Obtener un mod específico por su slug"""
+        return self.__db.query(Mod).filter(Mod.slug == slug, Mod.is_active == True).first()
 
     def get_mods(self, skip: int = 0, limit: int = 20):
         return self.__db.query(Mod).filter(Mod.is_active == True).offset(skip).limit(limit).all()
