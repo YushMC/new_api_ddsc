@@ -257,8 +257,8 @@ class CRUD_MOD:
         Returns:
             Tuple (mod, changes) con el mod actualizado y los cambios
         """
-        if user.rol == UserRolEnum.UPLOADER:
-            raise HTTPException(status_code=403, detail="Sin autorización para aprobar mods")
+        if user.rol != UserRolEnum.OWNER:
+            raise HTTPException(status_code=403, detail="Solo administradores pueden aprobar mods")
         
         mod = self.__db.query(Mod).filter(Mod.id == mod_id).first()
         
@@ -289,16 +289,18 @@ class CRUD_MOD:
         """
         Rechaza un mod (solo si required_revision es True)
         
+        Nota: El mod permanece con required_revision=True para que el usuario pueda corregir y reintentar
+        
         Args:
             mod_id: ID del mod a rechazar
-            user: Usuario que rechaza (debe ser EDITOR/OWNER)
+            user: Usuario que rechaza (debe ser OWNER)
             comments: Comentarios/razón del rechazo
         
         Returns:
             Tuple (mod, changes) con el mod actualizado y los cambios
         """
-        if user.rol == UserRolEnum.UPLOADER:
-            raise HTTPException(status_code=403, detail="Sin autorización para rechazar mods")
+        if user.rol != UserRolEnum.OWNER:
+            raise HTTPException(status_code=403, detail="Solo administradores pueden rechazar mods")
         
         mod = self.__db.query(Mod).filter(Mod.id == mod_id).first()
         
@@ -309,17 +311,12 @@ class CRUD_MOD:
             raise HTTPException(status_code=400, detail="Este mod no requiere revisión")
         
         changes = {
-            "required_revision": {
-                "old": True,
-                "new": False
-            },
             "rejected": {
-                "old": False,
+                "old": None,
                 "new": True
             }
         }
         
-        mod.required_revision = False #type: ignore
         mod.rejected_by = user.id # type: ignore
         mod.rejected_at = datetime.now(UTC)  # type: ignore
         mod.comments = comments  # type: ignore
