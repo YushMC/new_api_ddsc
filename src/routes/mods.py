@@ -109,7 +109,7 @@ def list_my_mods(
         "data": prepared_mods
     }
 
-@router.get("/my_mods/revision")
+@router.get("/my-mods/revision")
 def list_my_mods_in_revision(
     db: Session = Depends(db_init.get_db),
     user: TokenUser = Depends(get_current_user),
@@ -154,7 +154,7 @@ def list_my_mods_in_revision(
         "data": prepared_mods
     }
 
-@router.get("/my_mods/revision/{mod_id}")
+@router.get("/my-mods/revision/{mod_id}")
 def get_my_mod_in_revision(
     mod_id: int,
     db: Session = Depends(db_init.get_db),
