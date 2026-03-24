@@ -252,12 +252,12 @@ class CRUD_MOD:
         
         Args:
             mod_id: ID del mod a aprobar
-            user: Usuario que aprueba (debe ser EDITOR/OWNER)
+            user: Usuario que aprueba (debe ser OWNER/EDITOR)
         
         Returns:
             Tuple (mod, changes) con el mod actualizado y los cambios
         """
-        if user.rol != UserRolEnum.OWNER:
+        if user.rol == UserRolEnum.UPLOADER:
             raise HTTPException(status_code=403, detail="Solo administradores pueden aprobar mods")
         
         mod = self.__db.query(Mod).filter(Mod.id == mod_id).first()
@@ -293,13 +293,13 @@ class CRUD_MOD:
         
         Args:
             mod_id: ID del mod a rechazar
-            user: Usuario que rechaza (debe ser OWNER)
+            user: Usuario que rechaza (debe ser OWNER/EDITOR)
             comments: Comentarios/razón del rechazo
         
         Returns:
             Tuple (mod, changes) con el mod actualizado y los cambios
         """
-        if user.rol != UserRolEnum.OWNER:
+        if user.rol == UserRolEnum.UPLOADER:
             raise HTTPException(status_code=403, detail="Solo administradores pueden rechazar mods")
         
         mod = self.__db.query(Mod).filter(Mod.id == mod_id).first()
