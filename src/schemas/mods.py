@@ -22,6 +22,7 @@ class ModBase(BaseModel):
     download_android: str | None = None
 
     required_revision: bool = False
+    is_active: bool | None = None
 
     created_at: datetime | None = None
     deleted_at: datetime | None = None
