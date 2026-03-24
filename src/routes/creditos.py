@@ -100,8 +100,8 @@ def get_credits_by_mod(mod_id: int, db: Session = Depends(db_init.get_db)):
     )
 
 
-@router.get("/get")
-def get_credits_by_user(user_id: int = Query(..., description="ID del usuario para buscar sus créditos"), db: Session = Depends(db_init.get_db)):
+@router.get("/user/{user_id}")
+def get_credits_by_user(user_id: int, db: Session = Depends(db_init.get_db)):
     """
     Obtener todos los créditos de un usuario con información de los mods (públicamente disponible)
     
