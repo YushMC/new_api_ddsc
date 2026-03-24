@@ -313,14 +313,21 @@ def create_banner_for_approved_mod(mod: Any, approved_by: Any) -> None:
         from src.conf.database import DATABASE_INIT
         from src.services.banners import CRUD_BANNER
         
-        db = DATABASE_INIT().get_db()
-        crud = CRUD_BANNER(db)
+        # Obtener la sesión correctamente
+        db_init = DATABASE_INIT()
+        SessionLocal = db_init._DATABASE_INIT__create_session()
+        db = SessionLocal()
         
-        # Crear banner automático
-        crud.create_banner_for_approved_mod(
-            mod_id=mod.id,
-            mod_name=mod.name,
-            created_by=approved_by.id if hasattr(approved_by, 'id') else approved_by
-        )
+        try:
+            crud = CRUD_BANNER(db)
+            
+            # Crear banner automático
+            crud.create_banner_for_approved_mod(
+                mod_id=mod.id,
+                mod_name=mod.name,
+                created_by=approved_by.id if hasattr(approved_by, 'id') else approved_by
+            )
+        finally:
+            db.close()
     except Exception as e:
         logger.error(f"Error en background task create_banner_for_approved_mod: {e}")
