@@ -187,13 +187,6 @@ class CRUD_MOD:
                     }
                 setattr(mod, key, value)
         
-        # Si se aprueba (required_revision cambia de True a False), marcar approved_at
-        if "required_revision" in changes:
-            old_val = changes["required_revision"]["old"]
-            new_val = changes["required_revision"]["new"]
-            if old_val == True and new_val == False:
-                mod.approved_at = datetime.now(UTC) # type: ignore
-        
         mod.updated_by = user.id
 
         self.__db.commit()
