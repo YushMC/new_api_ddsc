@@ -149,9 +149,9 @@ class CRUD_MOD:
         
         # Validar permisos: solo EDITOR/OWNER pueden actualizar
         # El creador del mod puede actualizar solo si es EDITOR/OWNER
-        # Los admins (EDITOR/OWNER) pueden actualizar cualquier mod
-        if user.rol == UserRolEnum.EDITOR:
-            # EDITOR solo puede actualizar mods que creó
+        # Los admins (OWNER) pueden actualizar cualquier mod
+        if user.rol != UserRolEnum.OWNER:
+            # Si no es OWNER, debe ser el creador del mod
             if mod.created_by != user.id:
                 raise HTTPException(status_code=403, detail="No tienes permisos para actualizar este mod")
 
@@ -223,8 +223,8 @@ class CRUD_MOD:
             raise HTTPException(status_code=404, detail="Mod no encontrado")
         
         # Validar permisos: solo el creador (EDITOR/OWNER) o OWNER puede eliminar
-        if user.rol == UserRolEnum.EDITOR:
-            # EDITOR solo puede eliminar mods que creó
+        if user.rol != UserRolEnum.OWNER:
+            # Si no es OWNER, debe ser el creador del mod
             if mod.created_by != user.id:
                 raise HTTPException(status_code=403, detail="No tienes permisos para eliminar este mod")
 
