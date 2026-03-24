@@ -650,15 +650,17 @@ def add_genres_to_mod(
     Parámetros:
     - genre_ids: array de IDs de géneros a agregar
     
-    Requiere autenticación (solo el creador del mod u OWNER)
+    Requiere autenticación:
+    - OWNER/EDITOR: pueden agregar géneros a cualquier mod
+    - UPLOADER: solo puede agregar géneros si es el creador del mod
     """
     # Verificar que el mod existe y obtener su creador
     mod = db.query(Mod).filter(Mod.id == mod_id).first()
     if not mod:
         raise HTTPException(status_code=404, detail="Mod no encontrado")
     
-    # Verificar permisos: solo el creador o OWNER pueden agregar géneros
-    if user.rol != UserRolEnum.OWNER and mod.created_by != user.id:
+    # Verificar permisos
+    if user.rol == UserRolEnum.UPLOADER and mod.created_by != user.id:
         raise HTTPException(status_code=403, detail="No tienes permisos para agregar géneros a este mod")
     
     crud = CRUD_MOD(db)
@@ -689,15 +691,17 @@ def remove_genres_from_mod(
     Parámetros:
     - genre_ids: array de IDs de géneros a remover
     
-    Requiere autenticación (solo el creador del mod u OWNER)
+    Requiere autenticación:
+    - OWNER/EDITOR: pueden remover géneros de cualquier mod
+    - UPLOADER: solo puede remover géneros si es el creador del mod
     """
     # Verificar que el mod existe y obtener su creador
     mod = db.query(Mod).filter(Mod.id == mod_id).first()
     if not mod:
         raise HTTPException(status_code=404, detail="Mod no encontrado")
     
-    # Verificar permisos: solo el creador o OWNER pueden remover géneros
-    if user.rol != UserRolEnum.OWNER and mod.created_by != user.id:
+    # Verificar permisos
+    if user.rol == UserRolEnum.UPLOADER and mod.created_by != user.id:
         raise HTTPException(status_code=403, detail="No tienes permisos para remover géneros de este mod")
     
     crud = CRUD_MOD(db)

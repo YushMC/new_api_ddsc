@@ -136,22 +136,17 @@ class CRUD_MOD:
         """
         Actualizar un mod existente
         
-        Solo el creador (EDITOR/OWNER) o administrador puede actualizar
-        UPLOADER no puede actualizar
+        - OWNER/EDITOR: pueden actualizar cualquier mod
+        - UPLOADER: solo puede actualizar si es el creador del mod
         """
-        if user.rol == UserRolEnum.UPLOADER:
-            raise HTTPException(status_code=403, detail="Sin autorización para actualizar mods")
-        
         mod = self.__db.query(Mod).filter(Mod.id == mod_id).first()
 
         if not mod:
             raise HTTPException(status_code=404, detail="Mod no encontrado")
         
-        # Validar permisos: solo EDITOR/OWNER pueden actualizar
-        # El creador del mod puede actualizar solo si es EDITOR/OWNER
-        # Los admins (OWNER) pueden actualizar cualquier mod
-        if user.rol != UserRolEnum.OWNER:
-            # Si no es OWNER, debe ser el creador del mod
+        # Validar permisos
+        if user.rol == UserRolEnum.UPLOADER:
+            # UPLOADER solo puede actualizar si es el creador
             if mod.created_by != user.id:
                 raise HTTPException(status_code=403, detail="No tienes permisos para actualizar este mod")
 
@@ -211,8 +206,8 @@ class CRUD_MOD:
         """
         Eliminar (soft delete) un mod existente
         
-        Solo el creador (EDITOR/OWNER) o administrador puede eliminar
-        UPLOADER no puede eliminar
+        - OWNER/EDITOR: pueden eliminar cualquier mod
+        - UPLOADER: no puede eliminar ningún mod
         """
         if user.rol == UserRolEnum.UPLOADER:
             raise HTTPException(status_code=403, detail="Sin autorización para eliminar mods")
@@ -221,12 +216,6 @@ class CRUD_MOD:
 
         if not mod:
             raise HTTPException(status_code=404, detail="Mod no encontrado")
-        
-        # Validar permisos: solo el creador (EDITOR/OWNER) o OWNER puede eliminar
-        if user.rol != UserRolEnum.OWNER:
-            # Si no es OWNER, debe ser el creador del mod
-            if mod.created_by != user.id:
-                raise HTTPException(status_code=403, detail="No tienes permisos para eliminar este mod")
 
         mod.is_active = False
         mod.deleted_by = user.id # type: ignore
