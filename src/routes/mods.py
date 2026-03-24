@@ -441,6 +441,7 @@ def approve_mod_route(
     - Marca approved_at y approved_by
     - Crea notificación para el uploader
     - Envía notificación a Discord
+    - Crea un banner automático
     """
     if user.rol != UserRolEnum.OWNER:
         raise HTTPException(status_code=403, detail="Solo administradores pueden aprobar mods")
@@ -465,6 +466,10 @@ def approve_mod_route(
     
     # Agregar notificación a Discord como background task
     background_tasks.add_task(DiscordNotifier.notify_mod_approved, mod, user, creator.name if creator else None)
+    
+    # Crear banner automático cuando se aprueba un mod
+    from src.background_tasks import create_banner_for_approved_mod
+    background_tasks.add_task(create_banner_for_approved_mod, mod, user)
     
     return ResponseBuilder.updated(
         data=_prepare_mod_response(mod, db),
@@ -738,3 +743,27 @@ def get_mod_genres(
         data=genre_list,
         message="Géneros del mod obtenidos exitosamente"
     )
+
+
+@router.get("/stats/total-active")
+def get_total_active_mods(db: Session = Depends(db_init.get_db)):
+    """
+    Obtener el total de mods activos (públicamente disponible)
+    
+    Retorna:
+    - total: número total de mods activos
+    """
+    try:
+        from src.models.enums import StatusEnum
+        
+        total = db.query(Mod).filter(
+            Mod.status != StatusEnum.ARCHIVED,
+            Mod.deleted_at.is_(None)
+        ).count()
+        
+        return ResponseBuilder.success(
+            data={"total": total},
+            message="Total de mods activos obtenido correctamente"
+        )
+    except Exception as e:
+        return ResponseBuilder.error(str(e), 500)

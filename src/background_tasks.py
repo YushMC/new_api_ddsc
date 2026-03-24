@@ -295,3 +295,32 @@ def notify_image_deleted(image: Any, mod: Any, user: Any) -> None:
         loop.run_until_complete(DiscordNotifier.notify_image_deleted(image, mod, user))
     except Exception as e:
         logger.error(f"Error en background task notify_image_deleted: {e}")
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# BANNERS
+# ═════════════════════════════════════════════════════════════════════════════
+
+def create_banner_for_approved_mod(mod: Any, approved_by: Any) -> None:
+    """
+    Crea un banner automáticamente cuando se aprueba un mod
+    
+    Args:
+        mod: Objeto del mod aprobado
+        approved_by: Usuario que aprobó el mod
+    """
+    try:
+        from src.conf.database import DATABASE_INIT
+        from src.services.banners import CRUD_BANNER
+        
+        db = DATABASE_INIT().get_db()
+        crud = CRUD_BANNER(db)
+        
+        # Crear banner automático
+        crud.create_banner_for_approved_mod(
+            mod_id=mod.id,
+            mod_name=mod.name,
+            created_by=approved_by.id if hasattr(approved_by, 'id') else approved_by
+        )
+    except Exception as e:
+        logger.error(f"Error en background task create_banner_for_approved_mod: {e}")

@@ -56,3 +56,7 @@ class NotificationTypeEnum(str, Enum):
 class NotificationStatusEnum(str, Enum):
     UNREAD="unread"
     READ="read"
+
+class BannerTypeEnum(str, Enum):
+    MOD_APPROVED="mod_approved"
+    MANUAL="manual"

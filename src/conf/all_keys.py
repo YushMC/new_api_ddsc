@@ -17,6 +17,7 @@ class TABLE_NAMES:
     IMAGENES="images"
     CREDITOS="credits"
     NOTIFICATIONS="notifications"
+    BANNERS="banners"
 
 class SESSION_KEYS:
     JWT_KEY="JWT_KEY"
