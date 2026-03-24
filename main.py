@@ -19,6 +19,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from collections import defaultdict
+import time
 
 db = DATABASE_INIT()
 
@@ -33,6 +36,9 @@ app = FastAPI(
 # Agregar el rate limiter al estado de la app
 app.state.limiter = limiter
 
+# Agregar middleware de slowapi
+app.add_middleware(SlowAPIMiddleware)
+
 # Handler personalizado para errores de rate limit
 @app.exception_handler(RateLimitExceeded)
 async def rate_limit_exceeded_handler(request, exc):
@@ -44,31 +50,6 @@ async def rate_limit_exceeded_handler(request, exc):
             "detail": str(exc.detail)
         },
     )
-
-# Middleware para aplicar rate limit a todas las rutas
-@app.middleware("http")
-async def rate_limit_middleware(request: Request, call_next):
-    try:
-        # Obtener la dirección IP del cliente
-        client_ip = get_remote_address(request)
-        
-        # Incrementar contador de peticiones (límite: 100 por minuto)
-        limiter.try_increment_limit(
-            key=f"{client_ip}",
-            rate_limit="100/minute"
-        )
-        
-        response = await call_next(request)
-        return response
-    except RateLimitExceeded:
-        return JSONResponse(
-            status_code=429,
-            content={
-                "response": "error",
-                "message": "Demasiadas peticiones. Límite: 100 peticiones por minuto por IP",
-                "detail": "Ha excedido el límite de peticiones permitidas"
-            },
-        )
 
 app.add_middleware(
     CORSMiddleware,
