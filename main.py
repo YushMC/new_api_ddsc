@@ -2,7 +2,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from src.conf.database import DATABASE_INIT
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from src.routes.mods import router as router_mods
 from src.routes.users import router as router_users
 from src.routes.generos import router as router_generos
@@ -15,13 +16,59 @@ from src.routes.mods_collections import router as router_mods_collections
 from src.routes.mod_genres import router as router_mod_genres
 from src.middleware.context import user_context_middleware
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 db = DATABASE_INIT()
+
+# Configurar rate limiter
+limiter = Limiter(key_func=get_remote_address)
 
 app = FastAPI(
     title="DDLC Mods API",
     version="1.0.0"
 )
+
+# Agregar el rate limiter al estado de la app
+app.state.limiter = limiter
+
+# Handler personalizado para errores de rate limit
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_exceeded_handler(request, exc):
+    return JSONResponse(
+        status_code=429,
+        content={
+            "response": "error",
+            "message": "Demasiadas peticiones. Límite: 100 peticiones por minuto por IP",
+            "detail": str(exc.detail)
+        },
+    )
+
+# Middleware para aplicar rate limit a todas las rutas
+@app.middleware("http")
+async def rate_limit_middleware(request: Request, call_next):
+    try:
+        # Obtener la dirección IP del cliente
+        client_ip = get_remote_address(request)
+        
+        # Incrementar contador de peticiones (límite: 100 por minuto)
+        limiter.try_increment_limit(
+            key=f"{client_ip}",
+            rate_limit="100/minute"
+        )
+        
+        response = await call_next(request)
+        return response
+    except RateLimitExceeded:
+        return JSONResponse(
+            status_code=429,
+            content={
+                "response": "error",
+                "message": "Demasiadas peticiones. Límite: 100 peticiones por minuto por IP",
+                "detail": "Ha excedido el límite de peticiones permitidas"
+            },
+        )
 
 app.add_middleware(
     CORSMiddleware,
