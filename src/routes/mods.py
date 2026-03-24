@@ -80,6 +80,34 @@ def list_mods(
         "data": prepared_mods
     }
 
+@router.get("/all-unpaginated")
+def list_all_mods_unpaginated(db: Session = Depends(db_init.get_db)):
+    """Listar todos los mods activos sin paginación (públicamente disponible)"""
+    crud = CRUD_MOD(db)
+    mods = crud.get_all_mods()
+    
+    # Preparar respuesta con estructura individual para cada mod
+    prepared_mods = []
+    for m in mods:
+        mod_dict = _prepare_mod_response(m, db)
+        
+        # Separar info y credits para estructura consistente con GET individual
+        from src.utils.response_builder import ResponseBuilder
+        response_structure = ResponseBuilder._create_response_with_info(
+            mod_dict, 
+            "success", 
+            "",  # Sin mensaje individual, solo para estructura
+            db=db
+        )
+        # Extraer solo la estructura de data
+        prepared_mods.append(response_structure["data"])
+    
+    return {
+        "response": "success",
+        "message": "Todos los mods obtenidos exitosamente",
+        "data": prepared_mods
+    }
+
 @router.get("/my-mods")
 def list_my_mods(
     db: Session = Depends(db_init.get_db),
