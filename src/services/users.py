@@ -3,6 +3,7 @@ from src.models.users import User
 from src.services.token import TokenUser
 from src.utils.hash import HASH_DATA
 from src.utils.jwt import JWT_TOKEN
+from src.utils.slug_normalizer import normalize_identifier
 from fastapi import HTTPException
 from typing import cast
 from src.models.enums import UserRolEnum
@@ -10,6 +11,11 @@ from src.models.enums import UserRolEnum
 class CRUD_USERS:
     def __init__(self, db:Session) -> None:
         self.__db= db
+    
+    @staticmethod
+    def _generate_slug_from_name(name: str) -> str:
+        """Genera un slug a partir del nombre del usuario"""
+        return normalize_identifier(name)
 
     def get_users(self):
         return self.__db.query(User).filter(User.is_active == True).all()
@@ -43,6 +49,15 @@ class CRUD_USERS:
         if existing_user:
             raise HTTPException(status_code=400, detail="El usuario ya existe")
         
+        # Generar slug si no existe o es nulo
+        if not data.get("slug"):
+            data["slug"] = self._generate_slug_from_name(data["name"])
+        
+        # Verificar que el slug sea único
+        existing_slug = self.__db.query(User).filter(User.slug == data["slug"]).first()
+        if existing_slug:
+            raise HTTPException(status_code=400, detail=f"El slug '{data['slug']}' ya existe")
+        
         hash_handler = HASH_DATA()
         data["password"] = hash_handler.hash_string(data["password"])
 
@@ -65,6 +80,10 @@ class CRUD_USERS:
         existing_user = self.__db.query(User).filter(User.name == data["name"]).first()
         if existing_user:
             raise HTTPException(status_code=400, detail="El usuario ya existe")
+        
+        # Generar slug si no existe o es nulo
+        if not data.get("slug"):
+            data["slug"] = self._generate_slug_from_name(data["name"])
         
         # Hash de contraseña
         hash_handler = HASH_DATA()
