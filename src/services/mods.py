@@ -563,4 +563,86 @@ class CRUD_MOD:
          ).first()
          
          return mod
+    
+    # ═════════════════════════════════════════════════════════════════════════════
+    # RUTAS PARA HOME - ESTADÍSTICAS Y MODS DESTACADOS
+    # ═════════════════════════════════════════════════════════════════════════════
+    
+    def get_latest_mods(self, limit: int = 10):
+        """
+        Obtener los mods más recientes activos
+        
+        Args:
+            limit: Cantidad máxima de mods a retornar (default: 10)
+        
+        Returns:
+            Lista de mods más recientes ordenados por created_at descendente
+        """
+        return self.__db.query(Mod).filter(
+            Mod.is_active == True,
+            Mod.deleted_at == None
+        ).order_by(Mod.created_at.desc()).limit(limit).all()
+    
+    def get_most_searched_mods(self, limit: int = 10):
+        """
+        Obtener los mods más buscados activos
+        
+        Args:
+            limit: Cantidad máxima de mods a retornar (default: 10)
+        
+        Returns:
+            Lista de mods más buscados ordenados por searchs descendente
+        """
+        from src.models.mod_statistic import ModStatistic
+        
+        mods = self.__db.query(Mod).join(
+            ModStatistic, Mod.id == ModStatistic.mod_id
+        ).filter(
+            Mod.is_active == True,
+            Mod.deleted_at == None
+        ).order_by(ModStatistic.searchs.desc()).limit(limit).all()
+        
+        return mods
+    
+    def get_most_downloaded_pc_mods(self, limit: int = 10):
+        """
+        Obtener los mods más descargados para PC activos
+        
+        Args:
+            limit: Cantidad máxima de mods a retornar (default: 10)
+        
+        Returns:
+            Lista de mods más descargados para PC ordenados por download_pc descendente
+        """
+        from src.models.mod_statistic import ModStatistic
+        
+        mods = self.__db.query(Mod).join(
+            ModStatistic, Mod.id == ModStatistic.mod_id
+        ).filter(
+            Mod.is_active == True,
+            Mod.deleted_at == None
+        ).order_by(ModStatistic.download_pc.desc()).limit(limit).all()
+        
+        return mods
+    
+    def get_most_downloaded_android_mods(self, limit: int = 10):
+        """
+        Obtener los mods más descargados para Android activos
+        
+        Args:
+            limit: Cantidad máxima de mods a retornar (default: 10)
+        
+        Returns:
+            Lista de mods más descargados para Android ordenados por download_android descendente
+        """
+        from src.models.mod_statistic import ModStatistic
+        
+        mods = self.__db.query(Mod).join(
+            ModStatistic, Mod.id == ModStatistic.mod_id
+        ).filter(
+            Mod.is_active == True,
+            Mod.deleted_at == None
+        ).order_by(ModStatistic.download_android.desc()).limit(limit).all()
+        
+        return mods
 
