@@ -22,6 +22,18 @@ class CRUD_CREDITS:
             Credit.is_active == True
         ).all()
     
+    def get_credits_by_user(self, user_id: int):
+        """Obtener todos los créditos de un usuario específico con información del mod"""
+        # Verificar que el usuario existe
+        user = self.__db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        
+        return self.__db.query(Credit).filter(
+            Credit.id_user == user_id,
+            Credit.is_active == True
+        ).all()
+    
     def get_credits_admin(self, skip: int = 0, limit: int = 20):
         """Obtener todos los créditos (incluyendo inactivos) - Solo para administradores"""
         return self.__db.query(Credit).offset(skip).limit(limit).all()

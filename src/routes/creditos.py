@@ -6,7 +6,8 @@ from src.services.mods import CRUD_MOD
 from src.middleware.jwt import get_current_user, verify_admin_role
 from src.services.token import TokenUser
 from src.models.credits import Credit
-from src.schemas.credits import CreditCreate, CreditResponse, CreditBatchCreate
+from src.models.mods import Mod
+from src.schemas.credits import CreditCreate, CreditResponse, CreditBatchCreate, CreditWithModResponse
 from src.utils.response_builder import ResponseBuilder
 from src.background_tasks import notify_mod_completed
 from pydantic import BaseModel
@@ -97,6 +98,54 @@ def get_credits_by_mod(mod_id: int, db: Session = Depends(db_init.get_db)):
         message="Créditos obtenidos exitosamente",
         db=db
     )
+
+
+@router.get("/get")
+def get_credits_by_user(user_id: int = Query(..., description="ID del usuario para buscar sus créditos"), db: Session = Depends(db_init.get_db)):
+    """
+    Obtener todos los créditos de un usuario con información de los mods (públicamente disponible)
+    
+    Parámetro:
+    - user_id: ID del usuario para buscar sus créditos
+    
+    Retorna:
+    - Lista de créditos del usuario con información completa del mod
+    """
+    try:
+        crud = CRUD_CREDITS(db)
+        credits = crud.get_credits_by_user(user_id)
+        
+        # Enriquecer cada crédito con la información del mod
+        enriched_credits = []
+        for credit in credits:
+            # Obtener la información del mod
+            mod = db.query(Mod).filter(Mod.id == credit.id_mod).first()
+            
+            credit_data = {
+                "id": credit.id,
+                "id_mod": credit.id_mod,
+                "id_user": credit.id_user,
+                "name": credit.name,
+                "type": credit.type,
+                "is_active": credit.is_active,
+                "mod": {
+                    "id": mod.id,
+                    "name": mod.name,
+                    "slug": mod.slug,
+                    "description": mod.description
+                } if mod else None
+            }
+            enriched_credits.append(credit_data)
+        
+        return ResponseBuilder.success(
+            data=enriched_credits,
+            message="Créditos del usuario obtenidos exitosamente",
+            db=db
+        )
+    except HTTPException as e:
+        return ResponseBuilder.error(e.detail, e.status_code)
+    except Exception as e:
+        return ResponseBuilder.error(str(e), 500)
 
 
 @router.get("/admin/all")

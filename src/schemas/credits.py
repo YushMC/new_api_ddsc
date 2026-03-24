@@ -40,6 +40,17 @@ class CreditUserInfo(BaseModel):
         from_attributes = True
 
 
+class ModInfoForCredit(BaseModel):
+    """Información básica del mod para respuesta de créditos"""
+    id: int = Field(..., description="ID del mod")
+    name: str = Field(..., description="Nombre del mod")
+    slug: str = Field(..., description="Slug del mod")
+    description: Optional[str] = Field(None, description="Descripción del mod")
+    
+    class Config:
+        from_attributes = True
+
+
 class CreditResponse(BaseModel):
     """Schema de respuesta de crédito"""
     id: int
@@ -52,6 +63,22 @@ class CreditResponse(BaseModel):
     # Información del usuario si existe
     user: Optional[CreditUserInfo] = Field(None, description="Información del usuario si existe")
 
+    class Config:
+        from_attributes = True
+
+
+class CreditWithModResponse(BaseModel):
+    """Schema de respuesta de crédito con información del mod"""
+    id: int = Field(..., description="ID del crédito")
+    id_mod: int = Field(..., description="ID del mod")
+    id_user: Optional[int] = Field(None, description="ID del usuario")
+    name: Optional[str] = Field(None, description="Nombre del crédito")
+    type: CreditsTypeEnum = Field(..., description="Tipo de crédito")
+    is_active: bool = Field(..., description="Si el crédito está activo")
+    
+    # Información del mod
+    mod: Optional[ModInfoForCredit] = Field(None, description="Información del mod")
+    
     class Config:
         from_attributes = True
 
