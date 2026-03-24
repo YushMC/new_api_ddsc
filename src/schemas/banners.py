@@ -46,13 +46,13 @@ class BannerResponse(BaseModel):
     message: str
     id_mod: Optional[int] = None
     created_by: int
-    style: str
+    style: Optional[str] = "info"
     url: Optional[str] = None
     is_active: bool
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
-    created_at: datetime
-    updated_at: datetime
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
 
 class BannerResponseComplete(BannerResponse):
