@@ -35,13 +35,11 @@ def get_active_banners(db: Session = Depends(db_init.get_db)):
 
 @router.get("", response_model=dict)
 def get_banners(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(20, ge=1, le=100),
     db: Session = Depends(db_init.get_db),
     current_user: TokenUser = Depends(get_current_user)
 ):
     """
-    Obtener banners paginados
+    Obtener todos los banners
     - Los EDITORS y OWNERS ven todos los banners
     - Los demás usuarios solo ven activos
     """
@@ -52,9 +50,9 @@ def get_banners(
         is_admin = current_user.role in [UserRolEnum.EDITOR, UserRolEnum.OWNER]
         
         if is_admin:
-            banners = crud.get_banners_admin(skip=skip, limit=limit)
+            banners = crud.get_banners_admin_all()
         else:
-            banners = crud.get_banners(skip=skip, limit=limit)
+            banners = crud.get_banners_all()
         
         response_data = [
             BannerResponse.model_validate(banner).model_dump()

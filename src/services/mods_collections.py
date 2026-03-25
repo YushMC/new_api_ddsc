@@ -177,9 +177,23 @@ class CRUD_MODS_COLLECTION:
         
         return [self._build_response_with_collection_name(mc) for mc in mods_collections]
     
+    def get_mods_collections_with_collection_name_all(self):
+        """Obtener TODAS las relaciones activas sin paginación con collection_name"""
+        mods_collections = self.__db.query(ModsCollection).filter(
+            ModsCollection.is_active == True
+        ).all()
+        
+        return [self._build_response_with_collection_name(mc) for mc in mods_collections]
+    
     def get_mods_collections_admin_with_collection_name(self, skip: int = 0, limit: int = 20):
         """Obtener todas las relaciones incluyendo inactivas con collection_name (paginado)"""
         mods_collections = self.__db.query(ModsCollection).offset(skip).limit(limit).all()
+        
+        return [self._build_response_with_collection_name(mc) for mc in mods_collections]
+    
+    def get_mods_collections_admin_with_collection_name_all(self):
+        """Obtener TODAS las relaciones sin paginación incluyendo inactivas con collection_name"""
+        mods_collections = self.__db.query(ModsCollection).all()
         
         return [self._build_response_with_collection_name(mc) for mc in mods_collections]
     

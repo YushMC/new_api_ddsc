@@ -26,20 +26,13 @@ class UpdateModsCollectionId(BaseModel):
 
 @router.get("")
 def list_mods_collections(
-    db: Session = Depends(db_init.get_db),
-    skip: int = Query(0, ge=0, description="Cantidad de registros a omitir desde el inicio (para paginación). Ejemplo: skip=20 omite los primeros 20 resultados."),
-    limit: int = Query(20, ge=1, le=100, description="Cantidad máxima de registros a retornar (default: 20, max: 100). Ejemplo: limit=10 retorna hasta 10 resultados.")
+    db: Session = Depends(db_init.get_db)
 ):
     """
     Listar todas las relaciones mods-colecciones activas (públicamente disponible)
-    
-    Soporta paginación mediante los parámetros `skip` y `limit`:
-    - Página 1: skip=0, limit=20 (default)
-    - Página 2: skip=20, limit=20
-    - Página 3: skip=40, limit=20
     """
     crud = CRUD_MODS_COLLECTION(db)
-    mods_collections = crud.get_mods_collections_with_collection_name(skip, limit)
+    mods_collections = crud.get_mods_collections_with_collection_name_all()
     
     # Construir respuesta con structure (resource + info)
     response_data = []
@@ -61,20 +54,13 @@ def list_mods_collections(
 @router.get("/admin/all")
 def list_mods_collections_admin(
     db: Session = Depends(db_init.get_db),
-    skip: int = Query(0, ge=0, description="Cantidad de registros a omitir desde el inicio (para paginación). Ejemplo: skip=20 omite los primeros 20 resultados."),
-    limit: int = Query(20, ge=1, le=100, description="Cantidad máxima de registros a retornar (default: 20, max: 100). Ejemplo: limit=10 retorna hasta 10 resultados."),
     user: TokenUser = Depends(verify_admin_role)
 ):
     """
     Listar todas las relaciones incluyendo inactivas (solo OWNER/EDITOR)
-    
-    Soporta paginación mediante los parámetros `skip` y `limit`:
-    - Página 1: skip=0, limit=20 (default)
-    - Página 2: skip=20, limit=20
-    - Página 3: skip=40, limit=20
     """
     crud = CRUD_MODS_COLLECTION(db)
-    mods_collections = crud.get_mods_collections_admin_with_collection_name(skip, limit)
+    mods_collections = crud.get_mods_collections_admin_with_collection_name_all()
     
     # Construir respuesta con structure (resource + info)
     response_data = []

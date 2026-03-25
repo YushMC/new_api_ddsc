@@ -158,9 +158,23 @@ class CRUD_MOD_GENRE:
         
         return [self._build_response_with_genre(mg) for mg in mod_genres]
     
+    def get_mod_genres_with_genre_all(self):
+        """Obtener TODAS las relaciones activas sin paginación con género"""
+        mod_genres = self.__db.query(ModGenre).filter(
+            ModGenre.is_active == True
+        ).all()
+        
+        return [self._build_response_with_genre(mg) for mg in mod_genres]
+    
     def get_mod_genres_admin_with_genre(self, skip: int = 0, limit: int = 20):
         """Obtener todas las relaciones incluyendo inactivas con género (paginado)"""
         mod_genres = self.__db.query(ModGenre).offset(skip).limit(limit).all()
+        
+        return [self._build_response_with_genre(mg) for mg in mod_genres]
+    
+    def get_mod_genres_admin_with_genre_all(self):
+        """Obtener TODAS las relaciones sin paginación incluyendo inactivas con género"""
+        mod_genres = self.__db.query(ModGenre).all()
         
         return [self._build_response_with_genre(mg) for mg in mod_genres]
     

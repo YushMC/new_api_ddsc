@@ -53,15 +53,41 @@ class CRUD_MOD_STATISTIC:
             ModStatistic.mod_id.in_(mod_id_list)
         ).offset(skip).limit(limit).all()
     
+    def get_statistics_by_creator_all(self, user_id: int):
+        """Obtener TODAS las estadísticas sin paginación de mods creados por un usuario específico"""
+        # Primero obtener los mod_ids del usuario
+        mod_ids = self.__db.query(Mod.id).filter(
+            Mod.created_by == user_id
+        ).all()
+        
+        if not mod_ids:
+            return []
+        
+        mod_id_list = [m[0] for m in mod_ids]
+        
+        return self.__db.query(ModStatistic).filter(
+            ModStatistic.mod_id.in_(mod_id_list)
+        ).all()
+    
     def get_statistics(self, skip: int = 0, limit: int = 20):
         """Obtener todas las estadísticas activas (paginado)"""
         return self.__db.query(ModStatistic).filter(
             ModStatistic.is_active == True
         ).offset(skip).limit(limit).all()
     
+    def get_statistics_all(self):
+        """Obtener TODAS las estadísticas activas sin paginación"""
+        return self.__db.query(ModStatistic).filter(
+            ModStatistic.is_active == True
+        ).all()
+    
     def get_statistics_admin(self, skip: int = 0, limit: int = 20):
         """Obtener todas las estadísticas incluyendo inactivas (paginado)"""
         return self.__db.query(ModStatistic).offset(skip).limit(limit).all()
+    
+    def get_statistics_admin_all(self):
+        """Obtener TODAS las estadísticas sin paginación incluyendo inactivas"""
+        return self.__db.query(ModStatistic).all()
     
     def create_statistic(self, mod_id: int):
         """Crear estadística para un mod"""

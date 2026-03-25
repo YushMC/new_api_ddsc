@@ -16,22 +16,12 @@ db_init = DATABASE_INIT()
 @router.get("")
 def get_notifications(
     status: Optional[str] = Query(None, description="Filtrar por estado: 'unread' o 'read' (opcional, sin filtro retorna todas)"),
-    skip: int = Query(0, ge=0, description="Cantidad de registros a omitir desde el inicio (para paginación). Ejemplo: skip=50 omite los primeros 50 resultados."),
-    limit: int = Query(50, ge=1, le=100, description="Cantidad máxima de registros a retornar (default: 50, max: 100). Ejemplo: limit=25 retorna hasta 25 resultados."),
     user: TokenUser = Depends(get_current_user),
     db: Session = Depends(db_init.get_db)
 ):
     """
     Obtener notificaciones del usuario autenticado
-    
-    Soporta paginación mediante los parámetros `skip` y `limit`:
-    - Página 1: skip=0, limit=50 (default)
-    - Página 2: skip=50, limit=50
-    - Página 3: skip=100, limit=50
     """
-    if limit > 100:
-        limit = 100
-    
     crud = CRUD_NOTIFICATION(db)
     
     # Convertir string a enum si se proporciona
@@ -44,11 +34,9 @@ def get_notifications(
         else:
             raise HTTPException(status_code=400, detail="Status debe ser 'unread' o 'read'")
     
-    notifications = crud.get_user_notifications(
+    notifications = crud.get_user_notifications_all(
         user_id=user.id,
-        status=status_filter,
-        skip=skip,
-        limit=limit
+        status=status_filter
     )
     
     return ResponseBuilder.success(
@@ -61,20 +49,13 @@ def get_notifications(
 @router.get("/admin/all")
 def list_notifications_admin(
     db: Session = Depends(db_init.get_db),
-    skip: int = Query(0, ge=0, description="Cantidad de registros a omitir desde el inicio (para paginación). Ejemplo: skip=50 omite los primeros 50 resultados."),
-    limit: int = Query(50, ge=1, le=100, description="Cantidad máxima de registros a retornar (default: 50, max: 100). Ejemplo: limit=25 retorna hasta 25 resultados."),
     user: TokenUser = Depends(verify_admin_role)
 ):
     """
     Listar todas las notificaciones incluyendo inactivas (solo para OWNER/EDITOR)
-    
-    Soporta paginación mediante los parámetros `skip` y `limit`:
-    - Página 1: skip=0, limit=50 (default)
-    - Página 2: skip=50, limit=50
-    - Página 3: skip=100, limit=50
     """
     crud = CRUD_NOTIFICATION(db)
-    notifications = crud.get_notifications_admin(skip, limit)
+    notifications = crud.get_notifications_admin_all()
     
     return ResponseBuilder.success(
         data=[NotificationResponse.model_validate(n).model_dump() for n in notifications],

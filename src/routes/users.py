@@ -114,20 +114,13 @@ def get_user_by_slug(slug: str, db: Session = Depends(db_init.get_db)):
 @router.get("/admin/all")
 def list_users_admin(
     db: Session = Depends(db_init.get_db),
-    skip: int = Query(0, ge=0, description="Cantidad de registros a omitir desde el inicio (para paginación). Ejemplo: skip=20 omite los primeros 20 resultados."),
-    limit: int = Query(20, ge=1, le=100, description="Cantidad máxima de registros a retornar (default: 20, max: 100). Ejemplo: limit=10 retorna hasta 10 resultados."),
     user: TokenUser = Depends(verify_admin_role)
 ):
     """
     Listar todos los usuarios incluyendo inactivos (solo para OWNER/EDITOR)
-    
-    Soporta paginación mediante los parámetros `skip` y `limit`:
-    - Página 1: skip=0, limit=20 (default)
-    - Página 2: skip=20, limit=20
-    - Página 3: skip=40, limit=20
     """
     crud = CRUD_USERS(db)
-    users = crud.get_users_admin(skip, limit)
+    users = crud.get_users_admin_all()
     return ResponseBuilder.list_response(
         data=[UserResponse.model_validate(u) for u in users],
         message="Usuarios obtenidos exitosamente (incluyendo inactivos)"

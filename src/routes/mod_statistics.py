@@ -14,20 +14,13 @@ db_init = DATABASE_INIT()
 
 @router.get("")
 def list_statistics(
-    db: Session = Depends(db_init.get_db),
-    skip: int = Query(0, ge=0, description="Cantidad de registros a omitir desde el inicio (para paginación). Ejemplo: skip=20 omite los primeros 20 resultados."),
-    limit: int = Query(20, ge=1, le=100, description="Cantidad máxima de registros a retornar (default: 20, max: 100). Ejemplo: limit=10 retorna hasta 10 resultados.")
+    db: Session = Depends(db_init.get_db)
 ):
     """
     Listar todas las estadísticas activas (públicamente disponible)
-    
-    Soporta paginación mediante los parámetros `skip` y `limit`:
-    - Página 1: skip=0, limit=20 (default)
-    - Página 2: skip=20, limit=20
-    - Página 3: skip=40, limit=20
     """
     crud = CRUD_MOD_STATISTIC(db)
-    statistics = crud.get_statistics(skip, limit)
+    statistics = crud.get_statistics_all()
     
     prepared = []
     for s in statistics:
@@ -49,20 +42,13 @@ def list_statistics(
 @router.get("/admin/all")
 def list_statistics_admin(
     db: Session = Depends(db_init.get_db),
-    skip: int = Query(0, ge=0, description="Cantidad de registros a omitir desde el inicio (para paginación). Ejemplo: skip=20 omite los primeros 20 resultados."),
-    limit: int = Query(20, ge=1, le=100, description="Cantidad máxima de registros a retornar (default: 20, max: 100). Ejemplo: limit=10 retorna hasta 10 resultados."),
     user: TokenUser = Depends(verify_admin_role)
 ):
     """
     Listar todas las estadísticas incluyendo inactivas (solo OWNER/EDITOR)
-    
-    Soporta paginación mediante los parámetros `skip` y `limit`:
-    - Página 1: skip=0, limit=20 (default)
-    - Página 2: skip=20, limit=20
-    - Página 3: skip=40, limit=20
     """
     crud = CRUD_MOD_STATISTIC(db)
-    statistics = crud.get_statistics_admin(skip, limit)
+    statistics = crud.get_statistics_admin_all()
     
     prepared = []
     for s in statistics:
@@ -84,17 +70,13 @@ def list_statistics_admin(
 @router.get("/my-statistics")
 def get_my_statistics(
     db: Session = Depends(db_init.get_db),
-    user: TokenUser = Depends(get_current_user),
-    skip: int = Query(0, ge=0, description="Cantidad de registros a omitir desde el inicio (para paginación). Ejemplo: skip=20 omite los primeros 20 resultados."),
-    limit: int = Query(20, ge=1, le=100, description="Cantidad máxima de registros a retornar (default: 20, max: 100). Ejemplo: limit=10 retorna hasta 10 resultados.")
+    user: TokenUser = Depends(get_current_user)
 ):
     """
     Obtener todas las estadísticas de mods creados por el usuario autenticado (cualquier rol)
-    
-    Soporta paginación mediante los parámetros `skip` y `limit`
     """
     crud = CRUD_MOD_STATISTIC(db)
-    statistics = crud.get_statistics_by_creator(user.id, skip, limit)
+    statistics = crud.get_statistics_by_creator_all(user.id)
     
     prepared = []
     for s in statistics:

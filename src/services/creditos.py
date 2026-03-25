@@ -38,6 +38,10 @@ class CRUD_CREDITS:
         """Obtener todos los créditos (incluyendo inactivos) - Solo para administradores"""
         return self.__db.query(Credit).offset(skip).limit(limit).all()
     
+    def get_credits_admin_all(self):
+        """Obtener TODOS los créditos sin paginación (incluyendo inactivos) - Solo para administradores"""
+        return self.__db.query(Credit).all()
+    
     def get_credit(self, credit_id: int):
         """Obtener un crédito específico"""
         credit = self.__db.query(Credit).filter(

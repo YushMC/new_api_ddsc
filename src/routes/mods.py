@@ -50,13 +50,11 @@ def _prepare_mod_response(mod, db: Session):
 
 @router.get("/all")
 def list_mods(
-    db: Session = Depends(db_init.get_db),
-    skip: int = Query(0, ge=0, description="Cantidad de registros a omitir desde el inicio (para paginación). Ejemplo: skip=20 omite los primeros 20 resultados."),
-    limit: int = Query(20, ge=1, le=100, description="Cantidad máxima de registros a retornar (default: 20, max: 100). Ejemplo: limit=10 retorna hasta 10 resultados.")
+    db: Session = Depends(db_init.get_db)
 ):
     """Listar todos los mods activos (públicamente disponible)"""
     crud = CRUD_MOD(db)
-    mods = crud.get_mods(skip, limit)
+    mods = crud.get_all_mods()
     
     # Preparar respuesta con estructura individual para cada mod
     prepared_mods = []
@@ -80,44 +78,14 @@ def list_mods(
         "data": prepared_mods
     }
 
-@router.get("/all-unpaginated")
-def list_all_mods_unpaginated(db: Session = Depends(db_init.get_db)):
-    """Listar todos los mods activos sin paginación (públicamente disponible)"""
-    crud = CRUD_MOD(db)
-    mods = crud.get_all_mods()
-    
-    # Preparar respuesta con estructura individual para cada mod
-    prepared_mods = []
-    for m in mods:
-        mod_dict = _prepare_mod_response(m, db)
-        
-        # Separar info y credits para estructura consistente con GET individual
-        from src.utils.response_builder import ResponseBuilder
-        response_structure = ResponseBuilder._create_response_with_info(
-            mod_dict, 
-            "success", 
-            "",  # Sin mensaje individual, solo para estructura
-            db=db
-        )
-        # Extraer solo la estructura de data
-        prepared_mods.append(response_structure["data"])
-    
-    return {
-        "response": "success",
-        "message": "Todos los mods obtenidos exitosamente",
-        "data": prepared_mods
-    }
-
 @router.get("/my-mods")
 def list_my_mods(
     db: Session = Depends(db_init.get_db),
-    user: TokenUser = Depends(get_current_user),
-    skip: int = Query(0, ge=0, description="Cantidad de registros a omitir desde el inicio (para paginación). Ejemplo: skip=20 omite los primeros 20 resultados."),
-    limit: int = Query(20, ge=1, le=100, description="Cantidad máxima de registros a retornar (default: 20, max: 100). Ejemplo: limit=10 retorna hasta 10 resultados.")
+    user: TokenUser = Depends(get_current_user)
 ):
     """Listar todos los mods creados por el usuario autenticado (cualquier rol)"""
     crud = CRUD_MOD(db)
-    mods = crud.get_mods_by_creator(user.id, skip, limit)
+    mods = crud.get_mods_by_creator_all(user.id)
     
     prepared_mods = []
     for m in mods:
@@ -140,22 +108,15 @@ def list_my_mods(
 @router.get("/my-mods/revision")
 def list_my_mods_in_revision(
     db: Session = Depends(db_init.get_db),
-    user: TokenUser = Depends(get_current_user),
-    skip: int = Query(0, ge=0, description="Cantidad de registros a omitir desde el inicio (para paginación). Ejemplo: skip=20 omite los primeros 20 resultados."),
-    limit: int = Query(20, ge=1, le=100, description="Cantidad máxima de registros a retornar (default: 20, max: 100). Ejemplo: limit=10 retorna hasta 10 resultados.")
+    user: TokenUser = Depends(get_current_user)
 ):
     """
-    Listar todos los mods del usuario que requieren revisión (con paginación)
+    Listar todos los mods del usuario que requieren revisión
     
     Solo muestra los mods creados por el usuario autenticado que están en estado required_revision = True
-    
-    Soporta paginación mediante los parámetros `skip` y `limit`:
-    - Página 1: skip=0, limit=20 (default)
-    - Página 2: skip=20, limit=20
-    - Página 3: skip=40, limit=20
     """
     crud = CRUD_MOD(db)
-    mods = crud.get_user_mods_in_revision(user.id, skip, limit)
+    mods = crud.get_user_mods_in_revision_all(user.id)
     
     if not mods:
         return {
@@ -208,20 +169,13 @@ def get_my_mod_in_revision(
 @router.get("/admin/all")
 def list_mods_admin(
     db: Session = Depends(db_init.get_db),
-    skip: int = Query(0, ge=0, description="Cantidad de registros a omitir desde el inicio (para paginación). Ejemplo: skip=20 omite los primeros 20 resultados."),
-    limit: int = Query(20, ge=1, le=100, description="Cantidad máxima de registros a retornar (default: 20, max: 100). Ejemplo: limit=10 retorna hasta 10 resultados."),
     user: TokenUser = Depends(verify_admin_role)
 ):
     """
     Listar todos los mods excluyendo los que requieren revisión (solo para OWNER/EDITOR)
-    
-    Soporta paginación mediante los parámetros `skip` y `limit`:
-    - Página 1: skip=0, limit=20 (default)
-    - Página 2: skip=20, limit=20
-    - Página 3: skip=40, limit=20
     """
     crud = CRUD_MOD(db)
-    mods = crud.get_mods_admin(skip, limit)
+    mods = crud.get_mods_admin_all()
     
     # Preparar respuesta con estructura individual para cada mod
     prepared_mods = []
@@ -248,20 +202,13 @@ def list_mods_admin(
 @router.get("/admin/revision")
 def list_mods_pending_revision(
     db: Session = Depends(db_init.get_db),
-    skip: int = Query(0, ge=0, description="Cantidad de registros a omitir desde el inicio (para paginación). Ejemplo: skip=20 omite los primeros 20 resultados."),
-    limit: int = Query(20, ge=1, le=100, description="Cantidad máxima de registros a retornar (default: 20, max: 100). Ejemplo: limit=10 retorna hasta 10 resultados."),
     user: TokenUser = Depends(verify_admin_role)
 ):
     """
     Listar todos los mods que requieren revisión (solo para OWNER/EDITOR)
-    
-    Soporta paginación mediante los parámetros `skip` y `limit`:
-    - Página 1: skip=0, limit=20 (default)
-    - Página 2: skip=20, limit=20
-    - Página 3: skip=40, limit=20
     """
     crud = CRUD_MOD(db)
-    mods = crud.get_mods_pending_revision(skip, limit)
+    mods = crud.get_mods_pending_revision_all()
     
     prepared_mods = []
     for m in mods:

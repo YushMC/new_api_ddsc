@@ -14,10 +14,20 @@ class CRUD_BANNER:
         return self.__db.query(Banner).filter(
             Banner.is_active == True
         ).offset(skip).limit(limit).all()
+    
+    def get_banners_all(self):
+        """Obtener TODOS los banners activos sin paginación"""
+        return self.__db.query(Banner).filter(
+            Banner.is_active == True
+        ).all()
 
     def get_banners_admin(self, skip: int = 0, limit: int = 20):
         """Obtener todos los banners (incluyendo inactivos) - Solo para administradores"""
         return self.__db.query(Banner).offset(skip).limit(limit).all()
+    
+    def get_banners_admin_all(self):
+        """Obtener TODOS los banners sin paginación (incluyendo inactivos) - Solo para administradores"""
+        return self.__db.query(Banner).all()
 
     def get_banner(self, banner_id: int):
         """Obtener un banner específico"""

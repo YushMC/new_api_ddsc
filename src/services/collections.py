@@ -27,9 +27,19 @@ class CRUD_COLLECTION:
             Collection.is_active == True
         ).offset(skip).limit(limit).all()
     
+    def get_collections_all(self):
+        """Obtener TODAS las colecciones activas sin paginación"""
+        return self.__db.query(Collection).filter(
+            Collection.is_active == True
+        ).all()
+    
     def get_collections_admin(self, skip: int = 0, limit: int = 20):
         """Obtener todas las colecciones incluyendo inactivas (paginado)"""
         return self.__db.query(Collection).offset(skip).limit(limit).all()
+    
+    def get_collections_admin_all(self):
+        """Obtener TODAS las colecciones sin paginación incluyendo inactivas"""
+        return self.__db.query(Collection).all()
     
     def create_collection(self, name: str, description: str | None = None, is_seasonal: bool = False, start_date: date_type | None = None, end_date: date_type | None = None):
         """Crear nueva colección (solo OWNER/EDITOR)"""

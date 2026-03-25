@@ -53,6 +53,10 @@ class CRUD_IMAGE:
         """Obtener todas las imágenes (incluyendo inactivas) - Solo para administradores"""
         return self.__db.query(Image).offset(skip).limit(limit).all()
     
+    def get_imagenes_admin_all(self):
+        """Obtener TODAS las imágenes sin paginación (incluyendo inactivas) - Solo para administradores"""
+        return self.__db.query(Image).all()
+    
     def get_imagen(self, imagen_id: int):
         """Obtener una imagen específica"""
         imagen = self.__db.query(Image).filter(

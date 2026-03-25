@@ -106,9 +106,34 @@ class CRUD_NOTIFICATION:
         
         return query.order_by(Notification.created_at.desc()).offset(skip).limit(limit).all()
     
+    def get_user_notifications_all(self, user_id: int, status: NotificationStatusEnum = None):
+        """
+        Obtiene TODAS las notificaciones sin paginación de un usuario
+        
+        Args:
+            user_id: ID del usuario
+            status: Filtrar por estado (unread, read) - opcional
+        
+        Returns:
+            Lista de notificaciones ordenadas por fecha más reciente
+        """
+        query = self.__db.query(Notification).filter(
+            Notification.id_user == user_id,
+            Notification.is_active == True
+        )
+        
+        if status:
+            query = query.filter(Notification.status == status)
+        
+        return query.order_by(Notification.created_at.desc()).all()
+    
     def get_notifications_admin(self, skip: int = 0, limit: int = 50):
         """Obtener todas las notificaciones (incluyendo inactivas) - Solo para administradores"""
         return self.__db.query(Notification).offset(skip).limit(limit).all()
+    
+    def get_notifications_admin_all(self):
+        """Obtener TODAS las notificaciones sin paginación (incluyendo inactivas) - Solo para administradores"""
+        return self.__db.query(Notification).all()
     
     def get_unread_count(self, user_id: int) -> int:
         """

@@ -19,6 +19,10 @@ class CRUD_GENRE:
     def get_generos_admin(self, skip: int = 0, limit: int = 20):
         """Obtener todos los géneros (incluyendo inactivos) - Solo para administradores"""
         return self.__db.query(Genre).offset(skip).limit(limit).all()
+    
+    def get_generos_admin_all(self):
+        """Obtener TODOS los géneros sin paginación (incluyendo inactivos) - Solo para administradores"""
+        return self.__db.query(Genre).all()
 
     def get_genero(self, genre_id: int):
         """Obtener un género específico"""
