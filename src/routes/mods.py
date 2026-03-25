@@ -345,6 +345,10 @@ def create_mod_route(
             mod_name=mod.name,
             uploader_name=user.name
         )
+    # Si es OWNER/EDITOR, crear banner automáticamente (mod se crea activo)
+    else:
+        from src.background_tasks import create_banner_for_approved_mod
+        background_tasks.add_task(create_banner_for_approved_mod, mod, user)
     
     # Agregar notificación a Discord como background task (no bloquea respuesta)
     background_tasks.add_task(notify_mod_created, mod, user)

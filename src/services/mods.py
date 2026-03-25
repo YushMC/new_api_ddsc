@@ -20,7 +20,7 @@ class CRUD_MOD:
     def _enrich_credit_with_user(credit, db: Session):
         """
         Enriquece un crédito con la información del usuario si existe.
-        - Si tiene id_user: solo retorna {id, type, user} (incluyendo slug)
+        - Si tiene id_user: solo retorna {id, type, user} (incluyendo slug y about_me)
         - Si no tiene id_user: retorna {id, id_mod, id_user, name, type, is_active}
         """
         from src.models.users import User
@@ -37,7 +37,8 @@ class CRUD_MOD:
                         "name": user.name,
                         "slug": user.slug,
                         "contact": user.contact,
-                        "logo": user.logo
+                        "logo": user.logo,
+                        "about_me": user.about_me
                     }
                 }
         
