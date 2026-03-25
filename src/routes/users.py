@@ -74,10 +74,16 @@ def login(credentials: UserLogin, db: Session = Depends(db_init.get_db)):
     )
 
 @router.get("")
-def list_users(user: TokenUser = Depends(get_current_user), db: Session = Depends(db_init.get_db)):
-    """Listar todos los usuarios activos (requiere token válido - cualquier rol)"""
+def list_users(skip: int = Query(0, ge=0), limit: int = Query(20, ge=1, le=100), db: Session = Depends(db_init.get_db)):
+    """
+    Listar todos los usuarios activos (endpoint público - no requiere autenticación)
+    
+    Parámetros:
+    - skip: número de usuarios a saltar (paginación) - default: 0
+    - limit: número máximo de usuarios a retornar - default: 20, máximo: 100
+    """
     crud = CRUD_USERS(db)
-    users = crud.get_users()
+    users = crud.get_users_paginated(skip=skip, limit=limit)
     return ResponseBuilder.list_response(
         data=[UserResponse.model_validate(u) for u in users],
         message="Usuarios obtenidos exitosamente"

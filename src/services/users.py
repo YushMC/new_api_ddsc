@@ -19,6 +19,10 @@ class CRUD_USERS:
 
     def get_users(self):
         return self.__db.query(User).filter(User.is_active == True).all()
+    
+    def get_users_paginated(self, skip: int = 0, limit: int = 20):
+        """Obtener usuarios activos con paginación (endpoint público)"""
+        return self.__db.query(User).filter(User.is_active == True).offset(skip).limit(limit).all()
 
     def get_users_admin(self, skip: int = 0, limit: int = 20):
         """Obtener todos los usuarios (incluyendo inactivos) - Solo para administradores"""
