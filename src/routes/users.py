@@ -133,25 +133,6 @@ def list_users_admin(
         message="Usuarios obtenidos exitosamente (incluyendo inactivos)"
     )
 
-@router.get("/admin/all-unpaginated")
-def list_users_admin_all(
-    db: Session = Depends(db_init.get_db),
-    user: TokenUser = Depends(verify_admin_role)
-):
-    """
-    Listar TODOS los usuarios sin limitaciones de paginación (solo para OWNER/EDITOR)
-    
-    ⚠️ Este endpoint retorna TODOS los usuarios incluyendo inactivos, SIN paginación.
-    
-    Úsalo solo cuando necesites obtener la lista completa sin límites.
-    """
-    crud = CRUD_USERS(db)
-    users = crud.get_users_admin_all()
-    return ResponseBuilder.list_response(
-        data=[UserResponse.model_validate(u) for u in users],
-        message=f"Se obtuvieron {len(users)} usuarios totales sin limitaciones (incluyendo inactivos)"
-    )
-
 @router.post("")
 def create_user(user_data: UserCreate, user: TokenUser = Depends(get_current_user), db: Session = Depends(db_init.get_db)):
     """

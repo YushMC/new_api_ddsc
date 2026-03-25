@@ -144,17 +144,6 @@ class CRUD_MOD:
             Mod.deleted_at == None
         ).offset(skip).limit(limit).all()
     
-    def get_mods_admin_all(self):
-        """Obtener TODOS los mods sin paginación (incluyendo inactivos, excluyendo los que requieren revisión) - Solo para administradores"""
-        return self.__db.query(Mod).filter(Mod.required_revision == False).all()
-    
-    def get_mods_pending_revision_all(self):
-        """Obtener TODOS los mods que requieren revisión sin paginación - Solo para administradores"""
-        return self.__db.query(Mod).filter(
-            Mod.required_revision == True,
-            Mod.deleted_at == None
-        ).all()
-    
     def update_mod(self, mod_id: int, data: ModBase, user: TokenUser):
         """
         Actualizar un mod existente
