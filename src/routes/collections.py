@@ -44,6 +44,64 @@ def list_collections(
     }
 
 
+@router.get("/seasonal")
+def list_seasonal_collections(
+    db: Session = Depends(db_init.get_db)
+):
+    """
+    Listar todas las colecciones estacionales activas sin paginación (públicamente disponible)
+    
+    Retorna solo colecciones con is_seasonal=true
+    """
+    crud = CRUD_COLLECTION(db)
+    collections = crud.get_seasonal_collections()
+    
+    prepared = []
+    for c in collections:
+        response_structure = ResponseBuilder._create_response_with_info(
+            CollectionResponse.model_validate(c),
+            "success",
+            "",
+            db=db
+        )
+        prepared.append(response_structure["data"])
+    
+    return {
+        "response": "success",
+        "message": "Colecciones estacionales obtenidas exitosamente",
+        "data": prepared
+    }
+
+
+@router.get("/random-collections")
+def get_random_collections(
+    db: Session = Depends(db_init.get_db)
+):
+    """
+    Obtener 3 colecciones aleatorias activas que NO sean estacionales (públicamente disponible)
+    
+    Retorna colecciones con is_seasonal=false al azar (máximo 3)
+    """
+    crud = CRUD_COLLECTION(db)
+    collections = crud.get_random_collections(limit=3)
+    
+    prepared = []
+    for c in collections:
+        response_structure = ResponseBuilder._create_response_with_info(
+            CollectionResponse.model_validate(c),
+            "success",
+            "",
+            db=db
+        )
+        prepared.append(response_structure["data"])
+    
+    return {
+        "response": "success",
+        "message": "Colecciones aleatorias obtenidas exitosamente",
+        "data": prepared
+    }
+
+
 @router.get("/admin/all")
 def list_collections_admin(
     db: Session = Depends(db_init.get_db),

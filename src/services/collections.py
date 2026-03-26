@@ -2,6 +2,7 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from datetime import date as date_type
 from src.models.collection import Collection
+from sqlalchemy import func
 
 
 class CRUD_COLLECTION:
@@ -166,3 +167,17 @@ class CRUD_COLLECTION:
         self.__db.refresh(collection)
         
         return collection
+    
+    def get_seasonal_collections(self):
+        """Obtener TODAS las colecciones activas que sean de temporada (is_seasonal=True) sin paginación"""
+        return self.__db.query(Collection).filter(
+            Collection.is_active == True,
+            Collection.is_seasonal == True
+        ).all()
+    
+    def get_random_collections(self, limit: int = 3):
+        """Obtener colecciones aleatorias activas que NO sean de temporada (is_seasonal=False)"""
+        return self.__db.query(Collection).filter(
+            Collection.is_active == True,
+            Collection.is_seasonal == False
+        ).order_by(func.random()).limit(limit).all()
