@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query
 from src.middleware.jwt import get_current_user, verify_admin_role
 from src.conf.database import DATABASE_INIT
 from src.services.mods import CRUD_MOD
+from src.services.mod_statistics import CRUD_MOD_STATISTIC
 from src.services.token import TokenUser
 from src.background_tasks import notify_mod_created, notify_mod_updated, notify_genres_added, notify_genres_removed
 from src.utils.response_builder import ResponseBuilder
@@ -335,7 +336,7 @@ def create_mod_route(
     crud = CRUD_MOD(db)
     mod = crud.create_mod(data, user)
     
-    # Si es UPLOADER, crear notificaciones para EDITORS/OWNERS
+    # Si es UPLOADER, crear notificaciones para EDITORS/OWNERS (no crear estadísticas aún)
     if user.rol == UserRolEnum.UPLOADER:
         from src.services.notifications import CRUD_NOTIFICATION
         notification_crud = CRUD_NOTIFICATION(db)
@@ -345,10 +346,14 @@ def create_mod_route(
             mod_name=mod.name,
             uploader_name=user.name
         )
-    # Si es OWNER/EDITOR, crear banner automáticamente (mod se crea activo)
+    # Si es OWNER/EDITOR, crear banner automáticamente y estadísticas (mod se crea activo)
     else:
         from src.background_tasks import create_banner_for_approved_mod
         background_tasks.add_task(create_banner_for_approved_mod, mod, user)
+        
+        # Crear estadísticas automáticamente para OWNER/EDITOR
+        crud_stats = CRUD_MOD_STATISTIC(db)
+        background_tasks.add_task(crud_stats.create_statistic, mod.id)
     
     # Agregar notificación a Discord como background task (no bloquea respuesta)
     background_tasks.add_task(notify_mod_created, mod, user)
@@ -434,6 +439,7 @@ def approve_mod_route(
     - Crea notificación para el uploader
     - Envía notificación a Discord
     - Crea un banner automático
+    - Crea automáticamente estadísticas del mod (si no existen)
     """
     if user.rol != UserRolEnum.OWNER:
         raise HTTPException(status_code=403, detail="Solo administradores pueden aprobar mods")
@@ -462,6 +468,10 @@ def approve_mod_route(
     # Crear banner automático cuando se aprueba un mod
     from src.background_tasks import create_banner_for_approved_mod
     background_tasks.add_task(create_banner_for_approved_mod, mod, user)
+    
+    # Crear estadísticas automáticamente si no existen (para mods de uploader)
+    crud_stats = CRUD_MOD_STATISTIC(db)
+    background_tasks.add_task(crud_stats.create_statistic, mod.id)
     
     return ResponseBuilder.updated(
         data=_prepare_mod_response(mod, db),
