@@ -33,6 +33,49 @@ def get_active_banners(db: Session = Depends(db_init.get_db)):
         return ResponseBuilder.error(str(e), 500)
 
 
+@router.get("/latest/active")
+def get_latest_active_banner(db: Session = Depends(db_init.get_db)):
+    """
+    Obtener el banner más reciente activo y vigente
+    - Solo devuelve el banner más reciente creado
+    - Filtra banners con is_active=True
+    - Respeta las fechas start_date y end_date
+    """
+    try:
+        crud = CRUD_BANNER(db)
+        banner = crud.get_latest_active_banner()
+        
+        if not banner:
+            return ResponseBuilder.success(None, "No hay banners activos disponibles")
+        
+        response_data = BannerResponse.model_validate(banner).model_dump()
+        
+        return ResponseBuilder.success(response_data, "Banner más reciente obtenido correctamente")
+    except Exception as e:
+        return ResponseBuilder.error(str(e), 500)
+
+
+@router.get("/latest")
+def get_latest_banner(db: Session = Depends(db_init.get_db)):
+    """
+    Obtener el banner más reciente
+    - Solo devuelve el banner más reciente creado
+    - Filtra banners con is_active=True
+    """
+    try:
+        crud = CRUD_BANNER(db)
+        banner = crud.get_latest_banner()
+        
+        if not banner:
+            return ResponseBuilder.success(None, "No hay banners disponibles")
+        
+        response_data = BannerResponse.model_validate(banner).model_dump()
+        
+        return ResponseBuilder.success(response_data, "Banner más reciente obtenido correctamente")
+    except Exception as e:
+        return ResponseBuilder.error(str(e), 500)
+
+
 @router.get("", response_model=dict)
 def get_banners(
     db: Session = Depends(db_init.get_db),

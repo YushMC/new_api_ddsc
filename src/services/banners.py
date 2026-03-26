@@ -133,3 +133,18 @@ class CRUD_BANNER:
             Banner.id_mod == mod_id,
             Banner.is_active == True
         ).all()
+    
+    def get_latest_banner(self):
+        """Obtener el banner más reciente activo"""
+        return self.__db.query(Banner).filter(
+            Banner.is_active == True
+        ).order_by(Banner.created_at.desc()).first()
+    
+    def get_latest_active_banner(self):
+        """Obtener el banner más reciente activo y vigente (respeta fechas)"""
+        now = datetime.now(UTC)
+        return self.__db.query(Banner).filter(
+            Banner.is_active == True,
+            (Banner.start_date.is_(None) | (Banner.start_date <= now)),
+            (Banner.end_date.is_(None) | (Banner.end_date >= now))
+        ).order_by(Banner.created_at.desc()).first()
