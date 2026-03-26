@@ -108,7 +108,8 @@ class CRUD_MOD_STATISTIC:
             mod_id=mod_id,
             download_pc=0,
             download_android=0,
-            searchs=0
+            searchs=0,
+            views=0
         )
         self.__db.add(statistic)
         self.__db.commit()
@@ -116,7 +117,7 @@ class CRUD_MOD_STATISTIC:
         
         return statistic
     
-    def increment_statistic(self, mod_id: int, download_pc: int = 0, download_android: int = 0, searchs: int = 0):
+    def increment_statistic(self, mod_id: int, download_pc: int = 0, download_android: int = 0, searchs: int = 0, views: int = 0):
         """Incrementar valores de estadística (público)"""
         statistic = self.__db.query(ModStatistic).filter(
             ModStatistic.mod_id == mod_id,
@@ -130,6 +131,7 @@ class CRUD_MOD_STATISTIC:
         statistic.download_pc = (statistic.download_pc or 0) + download_pc
         statistic.download_android = (statistic.download_android or 0) + download_android
         statistic.searchs = (statistic.searchs or 0) + searchs
+        statistic.views = (statistic.views or 0) + views
         
         self.__db.commit()
         self.__db.refresh(statistic)
@@ -177,6 +179,21 @@ class CRUD_MOD_STATISTIC:
             raise HTTPException(status_code=404, detail="Estadística no encontrada")
         
         statistic.searchs = (statistic.searchs or 0) + 1
+        self.__db.commit()
+        self.__db.refresh(statistic)
+        return statistic
+    
+    def increment_views(self, mod_id: int):
+        """Incrementar vistas en 1 (público)"""
+        statistic = self.__db.query(ModStatistic).filter(
+            ModStatistic.mod_id == mod_id,
+            ModStatistic.is_active == True
+        ).first()
+        
+        if not statistic:
+            raise HTTPException(status_code=404, detail="Estadística no encontrada")
+        
+        statistic.views = (statistic.views or 0) + 1
         self.__db.commit()
         self.__db.refresh(statistic)
         return statistic

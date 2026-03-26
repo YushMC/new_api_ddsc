@@ -16,6 +16,7 @@ class ModStatistic(__Base, TimestampMixin):
     download_pc = Column(Integer, default=0)
     download_android = Column(Integer, default=0)
     searchs = Column(Integer, default=0)
+    views = Column(Integer, default=0)
 
     # Relaciones
     mod = relationship("Mod", backref="mod_statistics")

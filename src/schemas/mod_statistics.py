@@ -7,6 +7,7 @@ class ModStatisticBase(BaseModel):
     download_pc: int = 0
     download_android: int = 0
     searchs: int = 0
+    views: int = 0
 
 
 class ModStatisticCreate(ModStatisticBase):
@@ -24,6 +25,7 @@ class ModStatisticUpdate(BaseModel):
     download_pc: int = 0
     download_android: int = 0
     searchs: int = 0
+    views: int = 0
 
 
 class ModStatisticIncrement(BaseModel):
@@ -58,6 +60,7 @@ def transform_statistic_to_response(statistic_obj) -> dict:
         "download_pc": statistic_obj.download_pc,
         "download_android": statistic_obj.download_android,
         "searchs": statistic_obj.searchs,
+        "views": statistic_obj.views,
         "created_by": statistic_obj.created_by,
         "created_at": statistic_obj.created_at,
         "updated_by": statistic_obj.updated_by,

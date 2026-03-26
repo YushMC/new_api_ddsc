@@ -168,6 +168,23 @@ def get_mod_statistic(
     )
 
 
+@router.get("/mod/{mod_id}/views")
+def get_mod_views(
+    mod_id: int,
+    db: Session = Depends(db_init.get_db)
+):
+    """Obtener número de vistas de un mod específico (públicamente disponible)"""
+    crud = CRUD_MOD_STATISTIC(db)
+    statistic = crud.get_statistic_by_mod(mod_id)
+    if not statistic:
+        raise HTTPException(status_code=404, detail="Estadística no encontrada para este mod")
+    return ResponseBuilder.success(
+        data={"mod_id": mod_id, "views": statistic.views},
+        message="Vistas del mod obtenidas exitosamente",
+        db=db
+    )
+
+
 @router.post("/by-mods")
 def get_statistics_by_mods(
     data: ModStatisticsRequest,
@@ -251,6 +268,23 @@ def increment_searchs(
     return ResponseBuilder.updated(
         data=ModStatisticResponse.model_validate(transform_statistic_to_response(statistic)),
         message="Búsquedas incrementadas exitosamente",
+        db=db
+    )
+
+
+@router.post("/mod/{mod_id}/increment-views")
+def increment_views(
+    mod_id: int,
+    db: Session = Depends(db_init.get_db)
+):
+    """
+    Incrementar vistas en 1 (público, sin token)
+    """
+    crud = CRUD_MOD_STATISTIC(db)
+    statistic = crud.increment_views(mod_id)
+    return ResponseBuilder.updated(
+        data=ModStatisticResponse.model_validate(transform_statistic_to_response(statistic)),
+        message="Vistas incrementadas exitosamente",
         db=db
     )
 
