@@ -70,7 +70,7 @@ class CRUD_BANNER:
         
         return banner
 
-    def create_banner_for_approved_mod(self, mod_id: int, mod_name: str, created_by: int):
+    def create_banner_for_approved_mod(self, mod_id: int, mod_name: str, mod_slug: str, created_by: int):
         """Crear banner automático cuando se aprueba un mod"""
         title = f"¡Nuevo mod aprobado: {mod_name}!"
         message = f"Un nuevo mod '{mod_name}' ha sido aprobado y está disponible para descargar."
@@ -82,7 +82,7 @@ class CRUD_BANNER:
             created_by=created_by,
             style="success",
             id_mod=mod_id,
-            url=f"/mod/{mod_id}"
+            url=f"/mods/{mod_slug}"
         )
 
     def update_banner(self, banner_id: int, **kwargs):

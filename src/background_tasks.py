@@ -325,6 +325,7 @@ def create_banner_for_approved_mod(mod: Any, approved_by: Any) -> None:
             crud.create_banner_for_approved_mod(
                 mod_id=mod.id,
                 mod_name=mod.name,
+                mod_slug=mod.slug,
                 created_by=approved_by.id if hasattr(approved_by, 'id') else approved_by
             )
         finally:
