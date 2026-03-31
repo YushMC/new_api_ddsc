@@ -6,6 +6,7 @@ from src.services.mods_collections import CRUD_MODS_COLLECTION
 from src.middleware.jwt import get_current_user, verify_admin_role
 from src.services.token import TokenUser
 from src.schemas.mods_collections import ModsCollectionResponse, ModsCollectionCreate, ModsCollectionResponseWithCollection
+from src.schemas.mods import ModCommplete
 from src.utils.response_builder import ResponseBuilder, resolve_user_ids
 from src.models.enums import UserRolEnum
 from src.models.mods import Mod
@@ -183,24 +184,68 @@ def get_mod_collections_admin(
     }
 
 
+def _prepare_mod_with_full_info(mod, db: Session):
+    """Prepara un mod con información completa (info, imágenes, géneros, créditos)"""
+    from src.schemas.imagenes import ImageResponse
+    from src.schemas.generos import GenreResponse
+    from src.services.mods import CRUD_MOD as ModCRUD
+    
+    mod_dict = ModCommplete.model_validate(mod).model_dump()
+    
+    # Organizar créditos si existen
+    credits = ModCRUD._organize_credits(mod, db)
+    mod_dict['credits'] = credits
+    
+    # Agregar imágenes activas si existen
+    images = []
+    if hasattr(mod, 'images') and mod.images:
+        images = [
+            ImageResponse.model_validate(img).model_dump()
+            for img in mod.images if img.is_active
+        ]
+    mod_dict['images'] = images
+    
+    # Agregar géneros activos si existen
+    genres = []
+    mod_crud = ModCRUD(db)
+    mod_genres = mod_crud.get_mod_genres(mod.id)
+    if mod_genres:
+        genres = [
+            GenreResponse.model_validate(g).model_dump()
+            for g in mod_genres
+        ]
+    mod_dict['genres'] = genres
+    
+    return mod_dict
+
+
 @router.get("/collection/{collection_id}")
 def get_collection_mods(
     collection_id: int,
     db: Session = Depends(db_init.get_db)
 ):
-    """Obtener todos los mods de una colección (públicamente disponible)"""
+    """Obtener todos los mods de una colección con información completa (públicamente disponible)"""
     crud = CRUD_MODS_COLLECTION(db)
     mods_collections = crud.get_collection_mods_with_collection_name(collection_id)
     
-    # Construir respuesta con structure (resource + info)
+    # Construir respuesta con información completa de los mods
     response_data = []
     for resource, info in mods_collections:
-        # Resolver IDs de usuario a objetos
-        info_resolved = resolve_user_ids(info, db)
-        response_data.append({
-            "resource": resource,
-            "info": info_resolved
-        })
+        # Obtener el mod completo
+        mod = db.query(Mod).filter(Mod.id == resource['mod_id']).first()
+        
+        if mod:
+            # Preparar información completa del mod
+            mod_info = _prepare_mod_with_full_info(mod, db)
+            
+            # Resolver IDs de usuario a objetos
+            info_resolved = resolve_user_ids(info, db)
+            
+            response_data.append({
+                "resource": resource,
+                "info": info_resolved,
+                "mod": mod_info  # Agregar información completa del mod
+            })
     
     return {
         "response": "success",
