@@ -2,11 +2,15 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query
 from sqlalchemy.orm import Session
 from src.conf.database import DATABASE_INIT
 from src.services.collections import CRUD_COLLECTION
+from src.services.mods_collections import CRUD_MODS_COLLECTION
 from src.middleware.jwt import get_current_user, verify_admin_role
 from src.services.token import TokenUser
 from src.schemas.collections import CollectionResponse, CollectionCreate, CollectionUpdate, CollectionSeasonalUpdate, CollectionDatesUpdate, CollectionStatusRequest
-from src.utils.response_builder import ResponseBuilder
+from src.schemas.mods import ModCommplete
+from src.utils.response_builder import ResponseBuilder, resolve_user_ids
 from src.models.enums import UserRolEnum
+from src.models.mods import Mod
+from src.models.collection import Collection
 from src.background_tasks import (
     notify_collection_created, 
     notify_collection_updated,
@@ -15,6 +19,64 @@ from src.background_tasks import (
 
 router = APIRouter()
 db_init = DATABASE_INIT()
+
+
+def _prepare_mod_with_full_info(mod, db: Session):
+    """Prepara un mod con información completa (info, imágenes, géneros, créditos)"""
+    from src.schemas.imagenes import ImageResponse
+    from src.schemas.generos import GenreResponse
+    from src.services.mods import CRUD_MOD as ModCRUD
+    
+    mod_dict = ModCommplete.model_validate(mod).model_dump()
+    
+    # Organizar créditos si existen
+    credits = ModCRUD._organize_credits(mod, db)
+    mod_dict['credits'] = credits
+    
+    # Agregar imágenes activas si existen
+    images = []
+    if hasattr(mod, 'images') and mod.images:
+        images = [
+            ImageResponse.model_validate(img).model_dump()
+            for img in mod.images if img.is_active
+        ]
+    mod_dict['images'] = images
+    
+    # Agregar géneros activos si existen
+    genres = []
+    mod_crud = ModCRUD(db)
+    mod_genres = mod_crud.get_mod_genres(mod.id)
+    if mod_genres:
+        genres = [
+            GenreResponse.model_validate(g).model_dump()
+            for g in mod_genres
+        ]
+    mod_dict['genres'] = genres
+    
+    return mod_dict
+
+
+def _enrich_collection_with_mods(collection, db: Session):
+    """Enriquece una colección con sus mods completos"""
+    collection_dict = CollectionResponse.model_validate(collection).model_dump()
+    
+    # Obtener todos los mods de esta colección
+    crud_mods_collections = CRUD_MODS_COLLECTION(db)
+    mods_collections = crud_mods_collections.get_collection_mods_with_collection_name(collection.id)
+    
+    mods = []
+    for resource, info in mods_collections:
+        mod = db.query(Mod).filter(Mod.id == resource['mod_id']).first()
+        if mod:
+            mod_info = _prepare_mod_with_full_info(mod, db)
+            mods.append(mod_info)
+    
+    collection_dict['mods'] = mods
+    
+    # Resolver IDs de usuario a objetos en la colección
+    collection_dict = resolve_user_ids(collection_dict, db)
+    
+    return collection_dict
 
 
 @router.get("")
@@ -58,13 +120,11 @@ def list_seasonal_collections(
     
     prepared = []
     for c in collections:
-        response_structure = ResponseBuilder._create_response_with_info(
-            CollectionResponse.model_validate(c),
-            "success",
-            "",
-            db=db
-        )
-        prepared.append(response_structure["data"])
+        collection_with_mods = _enrich_collection_with_mods(c, db)
+        prepared.append({
+            "resource": collection_with_mods,
+            "mods": collection_with_mods.pop('mods', [])
+        })
     
     return {
         "response": "success",
@@ -87,13 +147,11 @@ def get_random_collections(
     
     prepared = []
     for c in collections:
-        response_structure = ResponseBuilder._create_response_with_info(
-            CollectionResponse.model_validate(c),
-            "success",
-            "",
-            db=db
-        )
-        prepared.append(response_structure["data"])
+        collection_with_mods = _enrich_collection_with_mods(c, db)
+        prepared.append({
+            "resource": collection_with_mods,
+            "mods": collection_with_mods.pop('mods', [])
+        })
     
     return {
         "response": "success",

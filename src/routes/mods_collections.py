@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from src.conf.database import DATABASE_INIT
 from src.services.mods_collections import CRUD_MODS_COLLECTION
+from src.services.collections import CRUD_COLLECTION
 from src.middleware.jwt import get_current_user, verify_admin_role
 from src.services.token import TokenUser
 from src.schemas.mods_collections import ModsCollectionResponse, ModsCollectionCreate, ModsCollectionResponseWithCollection
@@ -219,38 +220,51 @@ def _prepare_mod_with_full_info(mod, db: Session):
     return mod_dict
 
 
+def _enrich_collection_with_mods(collection, db: Session):
+    """Enriquece una colección con sus mods completos"""
+    from src.schemas.collections import CollectionResponse
+    
+    collection_dict = CollectionResponse.model_validate(collection).model_dump()
+    
+    # Obtener todos los mods de esta colección
+    crud = CRUD_MODS_COLLECTION(db)
+    mods_collections = crud.get_collection_mods_with_collection_name(collection.id)
+    
+    mods = []
+    for resource, info in mods_collections:
+        mod = db.query(Mod).filter(Mod.id == resource['mod_id']).first()
+        if mod:
+            mod_info = _prepare_mod_with_full_info(mod, db)
+            mods.append(mod_info)
+    
+    collection_dict['mods'] = mods
+    
+    # Resolver IDs de usuario a objetos en la colección
+    collection_dict = resolve_user_ids(collection_dict, db)
+    
+    return collection_dict
+
+
 @router.get("/collection/{collection_id}")
 def get_collection_mods(
     collection_id: int,
     db: Session = Depends(db_init.get_db)
 ):
     """Obtener todos los mods de una colección con información completa (públicamente disponible)"""
-    crud = CRUD_MODS_COLLECTION(db)
-    mods_collections = crud.get_collection_mods_with_collection_name(collection_id)
+    crud_collection = CRUD_COLLECTION(db)
+    collection = crud_collection.get_collection(collection_id)
+    if not collection:
+        raise HTTPException(status_code=404, detail="Colección no encontrada")
     
-    # Construir respuesta con información completa de los mods
-    response_data = []
-    for resource, info in mods_collections:
-        # Obtener el mod completo
-        mod = db.query(Mod).filter(Mod.id == resource['mod_id']).first()
-        
-        if mod:
-            # Preparar información completa del mod
-            mod_info = _prepare_mod_with_full_info(mod, db)
-            
-            # Resolver IDs de usuario a objetos
-            info_resolved = resolve_user_ids(info, db)
-            
-            response_data.append({
-                "resource": resource,
-                "info": info_resolved,
-                "mod": mod_info  # Agregar información completa del mod
-            })
+    collection_with_mods = _enrich_collection_with_mods(collection, db)
     
     return {
         "response": "success",
         "message": "Mods de la colección obtenidos exitosamente",
-        "data": response_data
+        "data": {
+            "resource": collection_with_mods,
+            "mods": collection_with_mods.pop('mods', [])
+        }
     }
 
 
