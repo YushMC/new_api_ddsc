@@ -175,7 +175,7 @@ class CRUD_COLLECTION:
             Collection.is_seasonal == True
         ).all()
     
-    def get_random_collections(self, limit: int = 3):
+    def get_random_collections(self, limit: int = 2):
         """Obtener colecciones aleatorias activas que NO sean de temporada (is_seasonal=False)"""
         return self.__db.query(Collection).filter(
             Collection.is_active == True,

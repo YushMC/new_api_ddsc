@@ -138,12 +138,12 @@ def get_random_collections(
     db: Session = Depends(db_init.get_db)
 ):
     """
-    Obtener 3 colecciones aleatorias activas que NO sean estacionales (públicamente disponible)
+    Obtener 2 colecciones aleatorias activas que NO sean estacionales (públicamente disponible)
     
-    Retorna colecciones con is_seasonal=false al azar (máximo 3)
+    Retorna colecciones con is_seasonal=false al azar (máximo 2)
     """
     crud = CRUD_COLLECTION(db)
-    collections = crud.get_random_collections(limit=3)
+    collections = crud.get_random_collections(limit=2)
     
     prepared = []
     for c in collections:
